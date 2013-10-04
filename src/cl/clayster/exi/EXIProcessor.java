@@ -28,8 +28,22 @@ import com.siemens.ct.exi.helpers.DefaultEXIFactory;
 
 public class EXIProcessor {
 	
-	public static final String xsdLocation = "C:\\Users\\Javier\\Documents\\UTFSM\\Memoria - XMPP\\Softwares\\Exifficient\\bundle\\sample-data\\jabber-client.xsd";
 	public static final String CHARSET = "ISO-8859-1";
+	
+	static EXIFactory exiFactory;
+	static EXIResult exiResult;
+	static SAXSource exiSource;
+	
+	public EXIProcessor(String xsdLocation) throws EXIException{
+		// create default factory and EXI grammar for schema
+		exiFactory = DefaultEXIFactory.newInstance();
+		exiFactory.setFidelityOptions(FidelityOptions.createAll());
+		GrammarFactory grammarFactory = GrammarFactory.newInstance();
+		Grammars g = grammarFactory.createGrammars(xsdLocation);
+		exiFactory.setGrammars(g);
+	}
+	/*
+	public static final String xsdLocation = "C:\\Users\\Javier\\Documents\\UTFSM\\Memoria - XMPP\\Softwares\\Exifficient\\bundle\\sample-data\\jabber-client.xsd";
 	
 	protected static String encode(String xml) throws IOException, EXIException, SAXException, TransformerException{
 		// create default factory and EXI grammar for schema
@@ -98,10 +112,59 @@ public class EXIProcessor {
 		transformer.transform(exiSource, new StreamResult(baos));		
 		return baos.toString();
 	}
+	*/
 	
 	public static boolean isEXI(byte b){
 		byte distinguishingBits = -128;
 		byte aux = (byte) (b & distinguishingBits);
 		return aux == distinguishingBits;
+	}
+	
+	/** FUNCIONES DEFINITIVAS Y PARA XSD VARIABLES **/
+	protected String encode(String xml) throws IOException, EXIException, SAXException, TransformerException{
+		// encoding
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		exiResult = new EXIResult(exiFactory);		
+		exiResult.setOutputStream(baos);
+		
+		XMLReader xmlReader = XMLReaderFactory.createXMLReader();
+		xmlReader.setContentHandler(exiResult.getHandler());
+		xmlReader.parse(new InputSource(new StringReader(xml)));
+		return new String(baos.toByteArray(), EXIProcessor.CHARSET);
+	}
+
+	protected String decode(String exi) throws IOException, EXIException, SAXException, TransformerException{
+		// decoding		
+		exiSource = new EXISource(exiFactory);
+		XMLReader exiReader = exiSource.getXMLReader();
+	
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer transformer = tf.newTransformer();
+
+		byte[] exiBytes = exi.getBytes(EXIProcessor.CHARSET);		
+		
+		InputStream exiIS = new ByteArrayInputStream(exiBytes);
+		exiSource = new SAXSource(new InputSource(exiIS));
+		exiSource.setXMLReader(exiReader);
+	
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		transformer.transform(exiSource, new StreamResult(baos));		
+		return baos.toString();
+	}
+	
+	protected String decode(InputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{		
+		// decoding
+		exiSource = new EXISource(exiFactory);
+		XMLReader exiReader = exiSource.getXMLReader();
+	
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer transformer = tf.newTransformer();
+		
+		exiSource = new SAXSource(new InputSource(exiIS));
+		exiSource.setXMLReader(exiReader);
+	
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		transformer.transform(exiSource, new StreamResult(baos));		
+		return baos.toString();
 	}
 }

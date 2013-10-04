@@ -29,31 +29,8 @@ public class Smack implements MessageListener{
 	
 	public static void main(String[] args) throws XMPPException, IOException{
 		// visualize XMLs sent and received 
-		System.setProperty("smack.debugEnabled", "false");
-		XMPPConnection.DEBUG_ENABLED = false;		
-		
-		/*
-		BufferedWriter writer = null;
-        try {
-            //create a temporary file
-            String timeLog = new SimpleDateFormat("yyyyMMdd_HHmmss").format(Calendar.getInstance().getTime());
-            File logFile = new File("./res/" + timeLog + ".txt");
-
-            // This will output the full path where the file will be written to...
-            System.out.println(logFile.getCanonicalPath());
-
-            writer = new BufferedWriter(new FileWriter(logFile));
-            writer.write("Hello world!");
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                // Close the writer regardless of what happens...
-                writer.close();
-            } catch (Exception e) {
-            }
-        }
-        */
+		System.setProperty("smack.debugEnabled", "true");
+		XMPPConnection.DEBUG_ENABLED = true;
 		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
@@ -77,7 +54,8 @@ public class Smack implements MessageListener{
 		connection.login(usuario, password);
 		
 		// Start EXI
-		connection.enableEXI(true);
+		//connection.enableEXI(true);
+		connection.proposeEXICompression();
 		
 		// chatmanager to interchange messages
 		ChatManager chatmanager = connection.getChatManager();

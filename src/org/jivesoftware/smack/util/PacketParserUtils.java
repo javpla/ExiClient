@@ -918,4 +918,40 @@ public class PacketParserUtils {
             return this.str;
         }
     }
+    
+    
+    /************************ EXI code ************************/
+    
+    /**
+     * Parses a setupResponse stanza.
+     *
+     * @param parser the XML parser, positioned at the start of a setupResponse stanza.
+     * @return a list of Strings containing the namespaces of schemas missing on the server. Null if nothing is missing.
+     * @throws Exception if an exception occurs while parsing the packet.
+     */
+    public static List<String> parseSetupResponse(XmlPullParser parser) throws Exception {
+    	List<String> missingSchemas = null;
+    	String elementName;
+        boolean done = false;
+        while (!done) {
+            int eventType = parser.next();
+            if (eventType == XmlPullParser.START_TAG) {
+                elementName = parser.getName();
+                if (elementName.equals("missingSchema")) {
+                	if(missingSchemas == null)	missingSchemas = new ArrayList<String>();
+                    missingSchemas.add(parser.getAttributeValue("", "ns"));
+System.out.println(elementName + " " + parser.getAttributeValue("", "ns"));
+                }
+                else if (elementName.equals("schema")) {
+                }
+System.out.println(elementName + " " + parser.getAttributeValue("", "ns"));
+            }
+            else if (eventType == XmlPullParser.END_TAG) {
+                if (parser.getName().equals("setupResponse")) {
+                    done = true;
+                }
+            }
+        }
+        return missingSchemas;
+    }
 }

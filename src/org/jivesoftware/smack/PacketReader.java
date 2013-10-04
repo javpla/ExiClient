@@ -20,18 +20,23 @@
 
 package org.jivesoftware.smack;
 
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+
 import org.jivesoftware.smack.Connection.ListenerWrapper;
-import org.jivesoftware.smack.packet.*;
+import org.jivesoftware.smack.packet.Packet;
+import org.jivesoftware.smack.packet.XMPPError;
 import org.jivesoftware.smack.sasl.SASLMechanism.Challenge;
 import org.jivesoftware.smack.sasl.SASLMechanism.Failure;
 import org.jivesoftware.smack.sasl.SASLMechanism.Success;
 import org.jivesoftware.smack.util.PacketParserUtils;
-
 import org.xmlpull.mxp1.MXParser;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
-import java.util.concurrent.*;
+import cl.clayster.exi.EXIXMPPConnection;
 
 /**
  * Listens for XML traffic from the XMPP server and parses it into packet objects.
@@ -269,11 +274,26 @@ public class PacketReader {
                         // to be sent by the server
                         resetParser();
                     }
-                    // TODO: EXI code
+                    
+                    /************************ EXI code ************************/
+                    
                     else if (parser.getName().equals("setupResponse")) {
-                    	
+                    	{
+                    		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
+                        	List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
+                    		if(missingSchemas == null){
+                    			exiConnection.startExiCompression();
+                    		}
+                    		else{
+                    			// TODO: enviar schemas / enviar descarga de schemas
+                    		}
+                    	}
                     }
-                    // fin EXI code
+                    else if (parser.getName().equals("compressed")) {
+                    	//TODO: 2.2.8 Example 19. (restart stream)
+                    }
+                    /************************ fin EXI code ************************/
+                    
                 }
                 else if (eventType == XmlPullParser.END_TAG) {
                     if (parser.getName().equals("stream")) {

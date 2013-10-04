@@ -13,9 +13,11 @@ import com.siemens.ct.exi.exceptions.EXIException;
 public class EXIWriter extends BufferedWriter {
 	
 	private boolean exi = false;
+	private EXIProcessor exiProcessor;
 
-	public EXIWriter(Writer wrappedWriter) {
+	public EXIWriter(Writer wrappedWriter, EXIProcessor exiProcessor) {
 		super(wrappedWriter);
+		this.exiProcessor = exiProcessor;
 	}
 
 	@Override
@@ -27,7 +29,7 @@ public class EXIWriter extends BufferedWriter {
     	
     	String exi = null;
     	try {
-			exi = EXIProcessor.encode(xml);
+			exi = exiProcessor.encode(xml);
     	}catch (SAXException | EXIException | TransformerException e){
     		e.printStackTrace();
 			super.write(xml, off, len);

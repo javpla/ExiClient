@@ -14,9 +14,12 @@ import com.siemens.ct.exi.exceptions.EXIException;
 public class EXIReader extends BufferedReader {
 	 
 	private boolean exi = false;
+	private EXIProcessor exiProcessor;
 	
-    public EXIReader(Reader wrappedReader) {
+    public EXIReader(Reader wrappedReader, EXIProcessor exiProcessor) {
     	super(wrappedReader);
+    	
+    	this.exiProcessor = exiProcessor;
     }
     
     
@@ -25,7 +28,8 @@ public class EXIReader extends BufferedReader {
     	if(exi && EXIProcessor.isEXI((byte) cbuf[off])){
     		String exi = new String(cbuf);
     		try {
-    			cbuf = EXIProcessor.decode(exi.substring(off, off + len)).toCharArray();
+    			exi = exiProcessor.decode(exi.substring(off, off + len));
+    			cbuf = exi.toCharArray();
     		} catch (EXIException | SAXException | TransformerException e) {
     			e.printStackTrace();
     		}

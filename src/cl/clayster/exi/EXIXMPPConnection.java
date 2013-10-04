@@ -1,5 +1,7 @@
 package cl.clayster.exi;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -13,6 +15,8 @@ import org.jivesoftware.smack.packet.XMPPError;
 import org.jivesoftware.smack.util.ObservableReader;
 import org.jivesoftware.smack.util.ObservableWriter;
 
+import com.siemens.ct.exi.exceptions.EXIException;
+
 /**
  * Defines necessary methods to establish an EXI connection over XMPP according to XEP-0322
  * 
@@ -20,6 +24,9 @@ import org.jivesoftware.smack.util.ObservableWriter;
  *
  */
 public class EXIXMPPConnection extends XMPPConnection{
+	
+	private static final String canonicalSchemaLocation = "./res/canonicalSchema.xsd"; 
+	private static final String schemasStanzasFileLocation = "./res/schemas.xml";
 	
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
@@ -30,25 +37,35 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 */
 	@Override
 	public void initReaderAndWriter() throws XMPPException {
+		EXIProcessor exiProcessor = null;
+		try {
+			exiProcessor = new EXIProcessor(canonicalSchemaLocation);
+		} catch (EXIException e1) {
+			e1.printStackTrace();
+		}
+		if(exiProcessor == null){
+			super.initReaderAndWriter();
+			throw new XMPPException("Unable to create EXI processor. Continuing using normal XMPP only.");
+		}
 		try {
             if (compressionHandler == null) {
             	
-                reader = new EXIReader(new InputStreamReader(socket.getInputStream(), EXIProcessor.CHARSET));
-                writer = new EXIWriter(new OutputStreamWriter(socket.getOutputStream(), EXIProcessor.CHARSET));
+                reader = new EXIReader(new InputStreamReader(socket.getInputStream(), EXIProcessor.CHARSET), exiProcessor);
+                writer = new EXIWriter(new OutputStreamWriter(socket.getOutputStream(), EXIProcessor.CHARSET), exiProcessor);
             }
             else {
                 try {
                     OutputStream os = compressionHandler.getOutputStream(socket.getOutputStream());
-                    writer = new EXIWriter(new OutputStreamWriter(os, EXIProcessor.CHARSET));
+                    writer = new EXIWriter(new OutputStreamWriter(os, EXIProcessor.CHARSET), exiProcessor);
 
                     InputStream is = compressionHandler.getInputStream(socket.getInputStream());
-                    reader = new EXIReader(new InputStreamReader(is, EXIProcessor.CHARSET));
+                    reader = new EXIReader(new InputStreamReader(is, EXIProcessor.CHARSET), exiProcessor);
                 }
                 catch (Exception e) {
                     e.printStackTrace();
                     compressionHandler = null;
-                    reader = new EXIReader(new InputStreamReader(socket.getInputStream(), EXIProcessor.CHARSET));
-                    writer = new EXIWriter(new OutputStreamWriter(socket.getOutputStream(), EXIProcessor.CHARSET));
+                    reader = new EXIReader(new InputStreamReader(socket.getInputStream(), EXIProcessor.CHARSET), exiProcessor);
+                    writer = new EXIWriter(new OutputStreamWriter(socket.getOutputStream(), EXIProcessor.CHARSET), exiProcessor);
                 }
             }
         }
@@ -83,21 +100,46 @@ public class EXIXMPPConnection extends XMPPConnection{
 	}
 	
 	/**
-	 * Starts negotiating an EXI connection with the server by sending a setup suggestion. Assumes that the server offers EXI compression method.
-	 * @throws IOException
+	 * Sends an EXI setup proposition to the server (assuming that the server supports EXI compression).
+	 * Reads the schemas stanzas file and generates the Setup stanza to inform about the schemas needed.
+	 * @throws IOException If there are problems reading the schemas stanzas file
 	 */
 	public void proposeEXICompression() throws IOException{
-		// TODO: hacer la negociacion
-		writer.write(generarSetupStanza());
+	    String schemas;
+		StringBuilder setupStanza = new StringBuilder();
+        BufferedReader br = new BufferedReader(new FileReader(schemasStanzasFileLocation));
+	    try {
+	        StringBuilder sb = new StringBuilder();
+	        String line = br.readLine();
+
+	        while (line != null) {
+	            sb.append(line);
+	            line = br.readLine();
+	        }
+	        schemas = sb.toString();
+	    } finally {
+	        br.close();
+	    }
+	    
+        setupStanza.append("<setup");
+        setupStanza.append(" xmlns=\'http://jabber.org/protocol/compress/exi\'");
+        setupStanza.append(" version=\'1\'");
+        setupStanza.append(" strict=\'true\'");
+        setupStanza.append(" blockSize=\'1024\'");
+        setupStanza.append(" valueMaxLength=\'32\'");
+        setupStanza.append(" valuePartitionCapacity=\'100\'>");
+        setupStanza.append(schemas);
+        setupStanza.append("</setup>");
+        
+        writer.write(setupStanza.toString());
 	    writer.flush();
-	        
+	}
+
+	public void startExiCompression() throws IOException {
+		writer.write("<compress xmlns=\'http://jabber.org/protocol/compress\'><method>exi</method></compress>");
+	    writer.flush();
 	}
 	
-	public String generarSetupStanza(){
-		StringBuilder stream = new StringBuilder();
-        stream.append("<setup xmlns=\'http://jabber.org/protocol/compress/exi\' version=\'1\' strict=\'true\' blockSize=\'1024\' valueMaxLength=\'32\' valuePartitionCapacity=\'100\'");
-        stream.append("</setup>");
-        return stream.toString();
-	}
+	
 	
 }
