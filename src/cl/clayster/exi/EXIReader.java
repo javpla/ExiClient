@@ -29,6 +29,7 @@ public class EXIReader extends BufferedReader {
     		String exi = new String(cbuf);
     		try {
     			exi = exiProcessor.decode(exi.substring(off, off + len));
+System.out.println("EXIClient decoded: " + exi);    			
     			cbuf = exi.toCharArray();
     		} catch (EXIException | SAXException | TransformerException e) {
     			e.printStackTrace();

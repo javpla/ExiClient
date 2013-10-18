@@ -266,16 +266,24 @@ public class PacketReader {
                         // will be to bind the resource
                         connection.getSASLAuthentication().authenticated();
                     }
+                    
+                    /************************ EXI code ************************/
+                    
                     else if (parser.getName().equals("compressed")) {
+                		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
+                    	exiConnection.enableEXI(true);
+                    	// TODO: 2.2.8 Example 19. (restart stream) <-within enableEXI(boolean)
+                    	/**
+                    	 * 
                         // Server confirmed that it's possible to use stream compression. Start
                         // stream compression
                         connection.startStreamCompression();
                         // Reset the state of the parser since a new stream element is going
                         // to be sent by the server
                         resetParser();
+                        *
+                    	**/
                     }
-                    
-                    /************************ EXI code ************************/
                     
                     else if (parser.getName().equals("setupResponse")) {
                     	{
@@ -288,9 +296,6 @@ public class PacketReader {
                     			// TODO: enviar schemas / enviar descarga de schemas
                     		}
                     	}
-                    }
-                    else if (parser.getName().equals("compressed")) {
-                    	//TODO: 2.2.8 Example 19. (restart stream)
                     }
                     /************************ fin EXI code ************************/
                     

@@ -86,17 +86,21 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * Turns on the EXI connection to start encoding and decoding EXI messages. Connection parameters should be already negotiated with the server.
 	 * 
 	 * @param enable true to enable EXI messages (false to disable)
+	 * @throws IOException 
 	 */
-	public void enableEXI(boolean enable){
+	public void enableEXI(boolean enable) throws IOException{
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
 			((EXIReader) ((ObservableReader) reader).wrappedReader).setEXI(enable);
 			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).setEXI(enable);
 		}
-		if(reader instanceof EXIReader && writer instanceof EXIWriter){
+		else if(reader instanceof EXIReader && writer instanceof EXIWriter){
 			((EXIReader) reader).setEXI(enable);
 			((EXIWriter) writer).setEXI(enable);
 			System.out.println("sdada");
-		}		
+		}	
+		else System.err.println("No se ha activado EXI");
+		
+		// TODO: 2.2.8 Example 19. (restart stream)
 	}
 	
 	/**
