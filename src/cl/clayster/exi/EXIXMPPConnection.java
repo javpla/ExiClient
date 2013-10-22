@@ -26,7 +26,7 @@ import com.siemens.ct.exi.exceptions.EXIException;
 public class EXIXMPPConnection extends XMPPConnection{
 	
 	private static final String canonicalSchemaLocation = "./res/canonicalSchema.xsd"; 
-	private static final String schemasStanzasFileLocation = "./res/schemas.xml";
+	private static final String schemasFileLocation = "./res/schemas.xml";
 	
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
@@ -110,8 +110,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 */
 	public void proposeEXICompression() throws IOException{
 	    String schemas;
-		StringBuilder setupStanza = new StringBuilder();
-        BufferedReader br = new BufferedReader(new FileReader(schemasStanzasFileLocation));
+        BufferedReader br = new BufferedReader(new FileReader(schemasFileLocation));
 	    try {
 	        StringBuilder sb = new StringBuilder();
 	        String line = br.readLine();
@@ -124,18 +123,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 	    } finally {
 	        br.close();
 	    }
-	    
-        setupStanza.append("<setup");
-        setupStanza.append(" xmlns=\'http://jabber.org/protocol/compress/exi\'");
-        setupStanza.append(" version=\'1\'");
-        setupStanza.append(" strict=\'true\'");
-        setupStanza.append(" blockSize=\'1024\'");
-        setupStanza.append(" valueMaxLength=\'32\'");
-        setupStanza.append(" valuePartitionCapacity=\'100\'>");
-        setupStanza.append(schemas);
-        setupStanza.append("</setup>");
         
-        writer.write(setupStanza.toString());
+        writer.write(schemas);
 	    writer.flush();
 	}
 
