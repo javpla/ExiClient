@@ -3,6 +3,7 @@ package cl.clayster.exi;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 
 import org.jivesoftware.smack.Chat;
@@ -31,6 +32,15 @@ public class Smack implements MessageListener{
 		// visualize XMLs sent and received 
 		System.setProperty("smack.debugEnabled", "true");
 		XMPPConnection.DEBUG_ENABLED = true;
+		
+		/*
+		try {
+			EXIUtils.generateBoth(EXIUtils.schemasFolder);
+		} catch (NoSuchAlgorithmException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		*/
 		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);

@@ -1,13 +1,17 @@
 package cl.clayster.exi;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.util.Iterator;
+import java.util.List;
 
+import org.apache.xerces.impl.dv.util.Base64;
+import org.dom4j.DocumentException;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
@@ -25,9 +29,6 @@ import com.siemens.ct.exi.exceptions.EXIException;
  */
 public class EXIXMPPConnection extends XMPPConnection{
 	
-	private static final String canonicalSchemaLocation = "./res/canonicalSchema.xsd"; 
-	private static final String schemasFileLocation = "./res/schemas.xml";
-	
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
 	}
@@ -39,7 +40,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	public void initReaderAndWriter() throws XMPPException {
 		EXIProcessor exiProcessor = null;
 		try {
-			exiProcessor = new EXIProcessor(canonicalSchemaLocation);
+			exiProcessor = new EXIProcessor(EXIUtils.canonicalSchemaLocation);
 		} catch (EXIException e1) {
 			e1.printStackTrace();
 		}
@@ -100,7 +101,18 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}	
 		else System.err.println("No se ha activado EXI");
 		
-		// TODO: 2.2.8 Example 19. (restart stream)
+		/*
+		writer.write("<exi:streamStart from='client@im.example.com'"
+				+ " to='im.example.com'"
+				+ " version='1.0'"
+				+ " xml:lang='en'"
+				+ " xmlns:exi='http://jabber.org/protocol/compress/exi'>"
+				+ " <exi:xmlns prefix='' namespace='jabber:client'/>"
+				+ " <exi:xmlns prefix='streams' namespace='http://etherx.jabber.org/streams'/>"
+				+ " <exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
+				+ " </exi:streamStart>");
+		writer.flush();
+		*/
 	}
 	
 	/**
@@ -109,20 +121,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @throws IOException If there are problems reading the schemas stanzas file
 	 */
 	public void proposeEXICompression() throws IOException{
-	    String schemas;
-        BufferedReader br = new BufferedReader(new FileReader(schemasFileLocation));
-	    try {
-	        StringBuilder sb = new StringBuilder();
-	        String line = br.readLine();
-
-	        while (line != null) {
-	            sb.append(line);
-	            line = br.readLine();
-	        }
-	        schemas = sb.toString();
-	    } finally {
-	        br.close();
-	    }
+	    String schemas = EXIUtils.readFile(EXIUtils.schemasFileLocation);
         
         writer.write(schemas);
 	    writer.flush();
@@ -131,6 +130,33 @@ public class EXIXMPPConnection extends XMPPConnection{
 	public void startExiCompression() throws IOException {
 		writer.write("<compress xmlns=\'http://jabber.org/protocol/compress\'><method>exi</method></compress>");
 	    writer.flush();
+	}
+
+	public void sendMissingSchemas(List<String> missingSchemas) throws IOException, DocumentException {
+		String encodedBytes, schemaLocation = null;
+		String canonicalSchemaString = EXIUtils.readFile(EXIUtils.canonicalSchemaLocation);
+		Element canonicalSchemaElement = DocumentHelper.parseText(canonicalSchemaString).getRootElement();
+		Element auxElement;
+		for(String ms : missingSchemas){
+			for (@SuppressWarnings("unchecked") Iterator<Element> i = canonicalSchemaElement.elementIterator("import"); i.hasNext();) {
+				auxElement = i.next();
+				if(auxElement.attributeValue("namespace").equals(ms)){
+					schemaLocation = auxElement.attributeValue("schemaLocation");
+					break;
+				}
+			}
+			if(schemaLocation == null){
+				System.err.println("error: no se ha encontrado el archivo: " + ms);
+				return;
+			}
+			
+			encodedBytes = "<uploadSchema xmlns='http://jabber.org/protocol/compress/exi' contentType='Text'>"
+					.concat(Base64.encode(EXIUtils.readFile(schemaLocation).getBytes()))
+					.concat("</uploadSchema>");
+		
+		writer.write(encodedBytes);
+		writer.flush();
+		}
 	}
 	
 	

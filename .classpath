@@ -6,5 +6,6 @@
 	<classpathentry kind="lib" path="C:/Users/Javier/workspace/Personales/ExiClient/lib/org.xbill.dns_2.1.4.jar"/>
 	<classpathentry kind="lib" path="C:/Users/Javier/workspace/Personales/ExiClient/lib/exificient.jar"/>
 	<classpathentry kind="lib" path="lib/xercesImpl.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Javier/workspace/Personales/ExiClient/lib/dom4j-1.6.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -294,6 +294,12 @@ public class PacketReader {
                     		}
                     		else{
                     			// TODO: enviar schemas / enviar descarga de schemas
+                    			System.out.println("Missing schemas:");
+                    			for(String ms : missingSchemas){
+                    				System.out.println("\t" + ms);
+                    			}
+                    			exiConnection.sendMissingSchemas(missingSchemas);
+                    			//exiConnection.startExiCompression();
                     		}
                     	}
                     }

@@ -1,6 +1,6 @@
 <setup xmlns='http://jabber.org/protocol/compress/exi' version='1' strict='true' blockSize='1024' valueMaxLength='32' valuePartitionCapacity='100'>
-	<schema ns='http://www.w3.org/XML/1998/namespace' bytes='4727' md5Hash='2e2cf9072dc058dcda41b7ee77a5cb54'/>
-	<schema ns='jabber:client' bytes='6915' md5Hash='b75569d6ab074cb678bb10f50dc44db6'/>
-	<schema ns='jabber:x:event' bytes='1014' md5Hash='305f4bef3c118b9d3d11d96aea753026'/>
-	<schema ns='urn:ietf:params:xml:ns:xmpp-stanzas' bytes='3081' md5Hash='9ad48ff02d0c1258cbc5830d6af7a835'/>
+	<schema ns='http://www.w3.org/XML/1998/namespace' bytes='4609' md5Hash='a32e1deb1da5d9bde7c0f4f0fbf2861e'/>
+	<schema ns='jabber:client' bytes='6699' md5Hash='16744ff6085cd6754fc441b35b529958'/>
+	<schema ns='jabber:x:event' bytes='979' md5Hash='0c6bd29974956ebce777ca9677bdde03'/>
+	<schema ns='urn:ietf:params:xml:ns:xmpp-stanzas' bytes='3000' md5Hash='55d8db2ba44499bb7065621c60e3fed2'/>
 </setup>

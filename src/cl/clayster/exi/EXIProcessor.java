@@ -152,6 +152,24 @@ public class EXIProcessor {
 		return baos.toString();
 	}
 	
+	// TODO: TRABAJAR CON BYTES!!!! 
+	protected byte[] decode(byte[] exiBytes) throws IOException, EXIException, SAXException, TransformerException{
+		// decoding		
+		exiSource = new EXISource(exiFactory);
+		XMLReader exiReader = exiSource.getXMLReader();
+	
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer transformer = tf.newTransformer();		
+		
+		InputStream exiIS = new ByteArrayInputStream(exiBytes);
+		exiSource = new SAXSource(new InputSource(exiIS));
+		exiSource.setXMLReader(exiReader);
+	
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		transformer.transform(exiSource, new StreamResult(baos));		
+		return baos.toByteArray();
+	}
+	
 	protected String decode(InputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{		
 		// decoding
 		exiSource = new EXISource(exiFactory);

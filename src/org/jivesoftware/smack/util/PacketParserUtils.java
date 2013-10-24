@@ -938,13 +938,13 @@ public class PacketParserUtils {
             if (eventType == XmlPullParser.START_TAG) {
                 elementName = parser.getName();
                 if (elementName.equals("missingSchema")) {
-                	if(missingSchemas == null)	missingSchemas = new ArrayList<String>();
+                	if(missingSchemas == null){
+                		missingSchemas = new ArrayList<String>();
+                	}
                     missingSchemas.add(parser.getAttributeValue("", "ns"));
-System.out.println(elementName + " " + parser.getAttributeValue("", "ns"));
                 }
-                else if (elementName.equals("schema")) {
-                }
-System.out.println(elementName + " " + parser.getAttributeValue("", "ns"));
+                else if (elementName.equals("schema")) {}
+//System.out.println(elementName + " " + parser.getAttributeValue("", "ns"));
             }
             else if (eventType == XmlPullParser.END_TAG) {
                 if (parser.getName().equals("setupResponse")) {
