@@ -1,12 +1,20 @@
 package cl.clayster.exi;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
+import javax.xml.transform.TransformerException;
 
 import org.apache.xerces.impl.dv.util.Base64;
 import org.dom4j.DocumentException;
@@ -18,6 +26,7 @@ import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.XMPPError;
 import org.jivesoftware.smack.util.ObservableReader;
 import org.jivesoftware.smack.util.ObservableWriter;
+import org.xml.sax.SAXException;
 
 import com.siemens.ct.exi.exceptions.EXIException;
 
@@ -28,6 +37,8 @@ import com.siemens.ct.exi.exceptions.EXIException;
  *
  */
 public class EXIXMPPConnection extends XMPPConnection{
+	
+	public int schemaDownloads = 0;
 	
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
@@ -101,7 +112,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}	
 		else System.err.println("No se ha activado EXI");
 		
-		/*
+		
 		writer.write("<exi:streamStart from='client@im.example.com'"
 				+ " to='im.example.com'"
 				+ " version='1.0'"
@@ -112,18 +123,26 @@ public class EXIXMPPConnection extends XMPPConnection{
 				+ " <exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
 				+ " </exi:streamStart>");
 		writer.flush();
-		*/
+		
 	}
 	
 	/**
 	 * Sends an EXI setup proposition to the server (assuming that the server supports EXI compression).
-	 * Reads the schemas stanzas file and generates the Setup stanza to inform about the schemas needed.
+	 * Reads the schemas stanzas file, removes unnecessary attributes (which need to be present) and generates the Setup stanza to inform about the schemas needed.
 	 * @throws IOException If there are problems reading the schemas stanzas file
+	 * @throws DocumentException 
 	 */
-	public void proposeEXICompression() throws IOException{
-	    String schemas = EXIUtils.readFile(EXIUtils.schemasFileLocation);
-        
-        writer.write(schemas);
+	public void proposeEXICompression() throws IOException, DocumentException{
+	    Element setup;
+        setup = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
+ 		Element auxSchema;
+        for (@SuppressWarnings("unchecked") Iterator<Element> i = setup.elementIterator("schema"); i.hasNext();) {
+        	auxSchema = i.next();
+        	auxSchema.remove(auxSchema.attribute("url"));
+        	auxSchema.remove(auxSchema.attribute("schemaLocation"));
+        }
+	    
+        writer.write(setup.asXML());
 	    writer.flush();
 	}
 
@@ -132,7 +151,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	    writer.flush();
 	}
 
-	public void sendMissingSchemas(List<String> missingSchemas) throws IOException, DocumentException {
+	private void uploadMissingSchemas(List<String> missingSchemas) throws IOException, DocumentException, EXIException, SAXException, TransformerException, NoSuchAlgorithmException {
 		String encodedBytes, schemaLocation = null;
 		String canonicalSchemaString = EXIUtils.readFile(EXIUtils.canonicalSchemaLocation);
 		Element canonicalSchemaElement = DocumentHelper.parseText(canonicalSchemaString).getRootElement();
@@ -150,8 +169,10 @@ public class EXIXMPPConnection extends XMPPConnection{
 				return;
 			}
 			
-			encodedBytes = "<uploadSchema xmlns='http://jabber.org/protocol/compress/exi' contentType='Text'>"
-					.concat(Base64.encode(EXIUtils.readFile(schemaLocation).getBytes()))
+			String contentType = "Text", content = Base64.encode(Files.readAllBytes(Paths.get(schemaLocation)));
+			
+			encodedBytes = "<uploadSchema xmlns='http://jabber.org/protocol/compress/exi' contentType='" + contentType + "'>"
+					.concat(content)
 					.concat("</uploadSchema>");
 		
 		writer.write(encodedBytes);
@@ -159,6 +180,112 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 	}
 	
+	private void uploadCompressedMissingSchemas(List<String> missingSchemas) throws IOException, DocumentException, EXIException, SAXException, TransformerException, NoSuchAlgorithmException {
+		String encodedBytes, schemaLocation = null;
+		String canonicalSchemaString = EXIUtils.readFile(EXIUtils.canonicalSchemaLocation);
+		Element canonicalSchemaElement = DocumentHelper.parseText(canonicalSchemaString).getRootElement();
+		Element auxElement;
+		for(String ms : missingSchemas){
+			for (@SuppressWarnings("unchecked") Iterator<Element> i = canonicalSchemaElement.elementIterator("import"); i.hasNext();) {
+				auxElement = i.next();
+				if(auxElement.attributeValue("namespace").equals(ms)){
+					schemaLocation = auxElement.attributeValue("schemaLocation");
+					break;
+				}
+			}
+			if(schemaLocation == null){
+				System.err.println("error: no se ha encontrado el archivo: " + ms);
+				return;
+			}
+			
+			String content = Base64.encode(Files.readAllBytes(Paths.get(schemaLocation)));
+			MessageDigest md = MessageDigest.getInstance("MD5");
+	    	File file = new File(schemaLocation);
+			String md5Hash = EXIUtils.bytesToHex(md.digest(Files.readAllBytes(file.toPath())));
+			String archivo = new String(Files.readAllBytes(file.toPath()));
+			String contentType = "ExiBody' md5Hash='" + md5Hash + "' bytes='" + file.length() + "'";
+			//TODO: arreglar la siguiente linea, pide archivos pero es schemaless!!
+			content = EXIProcessor.encodeSchemaless(archivo);
+			
+			encodedBytes = "<uploadSchema xmlns='http://jabber.org/protocol/compress/exi' contentType='" + contentType + "'>"
+					.concat(content)
+					.concat("</uploadSchema>");
+		
+		writer.write(encodedBytes);
+		writer.flush();
+		}
+	}
+	
+	// TODO
+	private void downloadSchemas(List<String> missingSchemas) throws IOException, NoSuchAlgorithmException, DocumentException, EXIException, SAXException, TransformerException{
+		String msg = "", url = "";
+		Element schemasElement;
+		try {
+			schemasElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
+		} catch (DocumentException e) {
+			System.err.println("error: no se ha encontrado el archivo: " + EXIUtils.schemasFileLocation);
+			return;
+		}
+		Element auxElement;
+		for(String ms : missingSchemas){
+			url = "";
+			for (@SuppressWarnings("unchecked") Iterator<Element> i = schemasElement.elementIterator("schema"); i.hasNext();) {
+				auxElement = i.next();
+				if(auxElement.attributeValue("ns").equals(ms)){
+					url = auxElement.attributeValue("url");
+					break;
+				}
+			}
+			if(!url.equals("")){
+				msg = "<downloadSchema xmlns='http://jabber.org/protocol/compress/exi' url='" + url + "'/>";
+				System.out.println("Sending: " + msg);
+				writer.write(msg);
+				writer.flush();
+				schemaDownloads++;
+			}
+			else{
+				System.err.println("No url for " + ms + ". Trying to upload schema as binary file.");
+				List<String> l = new ArrayList<String>();
+				l.add(ms);
+				uploadMissingSchemas(l);
+			}
+		}	
+	}
+
+	/**
+	 * Send schemas that are missing in the server.
+	 * 
+	 * @param missingSchemas a list containing all schemas missing in the server
+	 * @param opt how missing schemas will be sent to the server. Options are as follows
+	 * <br> 1 - upload schema as EXI body
+	 * <br> 2 - upload schema as EXI document
+	 * <br> 3 - send a url for the server to download the schema by itself  
+	 * <br> x - anything else to upload schema as a binary file
+	 * @throws TransformerException 
+	 * @throws SAXException 
+	 * @throws EXIException 
+	 * @throws DocumentException 
+	 * @throws IOException 
+	 * @throws NoSuchAlgorithmException 
+	 */
+	public void sendMissingSchemas(List<String> missingSchemas, int opt) 
+			throws NoSuchAlgorithmException, IOException, DocumentException, EXIException, SAXException, TransformerException {
+		switch(opt){
+			case 1:
+				uploadCompressedMissingSchemas(missingSchemas);
+				break;
+			case 2:
+				// TODO
+				uploadCompressedMissingSchemas(missingSchemas);
+				break;
+			case 3:
+				downloadSchemas(missingSchemas);
+				break;
+			default:	
+				uploadMissingSchemas(missingSchemas);
+				break;
+		}
+	}
 	
 	
 }

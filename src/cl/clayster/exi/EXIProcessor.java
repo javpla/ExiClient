@@ -17,6 +17,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 
+import com.siemens.ct.exi.CodingMode;
 import com.siemens.ct.exi.EXIFactory;
 import com.siemens.ct.exi.FidelityOptions;
 import com.siemens.ct.exi.GrammarFactory;
@@ -38,32 +39,29 @@ public class EXIProcessor {
 		// create default factory and EXI grammar for schema
 		exiFactory = DefaultEXIFactory.newInstance();
 		exiFactory.setFidelityOptions(FidelityOptions.createAll());
+		exiFactory.setCodingMode(CodingMode.BIT_PACKED);
 		GrammarFactory grammarFactory = GrammarFactory.newInstance();
 		Grammars g = grammarFactory.createGrammars(xsdLocation);
 		exiFactory.setGrammars(g);
+	}
+	
+	public EXIProcessor() {}
+	
+	public static String encodeSchemaless(String xml) throws IOException, EXIException, SAXException{
+		ByteArrayOutputStream osEXI = new ByteArrayOutputStream();
+		// start encoding process
+		EXIFactory factory = DefaultEXIFactory.newInstance();
+		XMLReader xmlReader = XMLReaderFactory.createXMLReader();
+
+		EXIResult exiResult = new EXIResult(factory);
+		exiResult.setOutputStream(osEXI);
+		xmlReader.setContentHandler(exiResult.getHandler());
+
+		xmlReader.parse(new InputSource(new StringReader(xml)));
+		
+		return new String(osEXI.toByteArray(), EXIProcessor.CHARSET);
 	}
 	/*
-	public static final String xsdLocation = "C:\\Users\\Javier\\Documents\\UTFSM\\Memoria - XMPP\\Softwares\\Exifficient\\bundle\\sample-data\\jabber-client.xsd";
-	
-	protected static String encode(String xml) throws IOException, EXIException, SAXException, TransformerException{
-		// create default factory and EXI grammar for schema
-		EXIFactory exiFactory = DefaultEXIFactory.newInstance();
-		exiFactory.setFidelityOptions(FidelityOptions.createAll());
-		GrammarFactory grammarFactory = GrammarFactory.newInstance();
-		Grammars g = grammarFactory.createGrammars(xsdLocation);
-		exiFactory.setGrammars(g);
-		
-		// encoding
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		EXIResult exiResult = new EXIResult(exiFactory);		
-		exiResult.setOutputStream(baos);
-		
-		XMLReader xmlReader = XMLReaderFactory.createXMLReader();
-		xmlReader.setContentHandler(exiResult.getHandler());
-		xmlReader.parse(new InputSource(new StringReader(xml)));
-		return new String(baos.toByteArray(), EXIProcessor.CHARSET);
-	}
-
 	protected static String decode(String exi) throws IOException, EXIException, SAXException, TransformerException{		
 		// create default factory and EXI grammar for schema
 		EXIFactory exiFactory = DefaultEXIFactory.newInstance();

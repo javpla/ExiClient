@@ -284,24 +284,25 @@ public class PacketReader {
                         *
                     	**/
                     }
-                    
                     else if (parser.getName().equals("setupResponse")) {
-                    	{
-                    		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                        	List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
-                    		if(missingSchemas == null){
-                    			exiConnection.startExiCompression();
-                    		}
-                    		else{
-                    			// TODO: enviar schemas / enviar descarga de schemas
-                    			System.out.println("Missing schemas:");
-                    			for(String ms : missingSchemas){
-                    				System.out.println("\t" + ms);
-                    			}
-                    			exiConnection.sendMissingSchemas(missingSchemas);
-                    			//exiConnection.startExiCompression();
-                    		}
+                		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
+                    	List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
+                		if(missingSchemas == null){
+                			exiConnection.startExiCompression();
+                		}
+                		else{
+                			exiConnection.sendMissingSchemas(missingSchemas, 3);
+                		}
+                    }
+                    else if (parser.getName().equals("downloadSchemaResponse") && parser.getAttributeValue(null, "result").equals("true")) {
+                		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
+                    	if(--exiConnection.schemaDownloads == 0){
+                    		exiConnection.startExiCompression();
                     	}
+                    }
+                    else if (parser.getName().equals("failure")){
+                		// TODO: continuar sin compresión
+System.out.println("There was a failure during EXI negotiation.");
                     }
                     /************************ fin EXI code ************************/
                     

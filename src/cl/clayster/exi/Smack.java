@@ -3,9 +3,9 @@ package cl.clayster.exi;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 
+import org.dom4j.DocumentException;
 import org.jivesoftware.smack.Chat;
 import org.jivesoftware.smack.ChatManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
@@ -33,14 +33,12 @@ public class Smack implements MessageListener{
 		System.setProperty("smack.debugEnabled", "true");
 		XMPPConnection.DEBUG_ENABLED = true;
 		
-		/*
-		try {
-			EXIUtils.generateBoth(EXIUtils.schemasFolder);
+		/*try {
+			EXIUtils.generateBoth();
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
-		*/
+		}*/
 		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
@@ -65,7 +63,12 @@ public class Smack implements MessageListener{
 		
 		// Start EXI
 		//connection.enableEXI(true);
-		connection.proposeEXICompression();
+		try {
+			connection.proposeEXICompression();
+		} catch (DocumentException e) {
+			System.err.println("Unable to propose EXI compression.");
+			System.err.println("Reason: " + e.getMessage());
+		}
 		
 		// chatmanager to interchange messages
 		ChatManager chatmanager = connection.getChatManager();
