@@ -39,6 +39,7 @@ import com.siemens.ct.exi.exceptions.EXIException;
 public class EXIXMPPConnection extends XMPPConnection{
 	
 	public int schemaDownloads = 0;
+	private boolean quickSetup = false;
 	
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
@@ -112,7 +113,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}	
 		else System.err.println("No se ha activado EXI");
 		
-		
+		/*
 		writer.write("<exi:streamStart from='client@im.example.com'"
 				+ " to='im.example.com'"
 				+ " version='1.0'"
@@ -123,7 +124,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 				+ " <exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
 				+ " </exi:streamStart>");
 		writer.flush();
-		
+		*/
 	}
 	
 	/**
@@ -133,16 +134,24 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @throws DocumentException 
 	 */
 	public void proposeEXICompression() throws IOException, DocumentException{
-	    Element setup;
-        setup = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
- 		Element auxSchema;
-        for (@SuppressWarnings("unchecked") Iterator<Element> i = setup.elementIterator("schema"); i.hasNext();) {
-        	auxSchema = i.next();
-        	auxSchema.remove(auxSchema.attribute("url"));
-        	auxSchema.remove(auxSchema.attribute("schemaLocation"));
-        }
-	    
-        writer.write(setup.asXML());
+		String configId = EXIUtils.readFile(EXIUtils.configurationIdLocation);
+		String setupStanza = "";
+		
+		if(configId != null){
+			quickSetup = true;
+			setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + configId + "'/>";
+		}
+		else{
+			Element setupElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
+	 		Element auxSchema;
+	        for (@SuppressWarnings("unchecked") Iterator<Element> i = setupElement.elementIterator("schema"); i.hasNext();) {
+	        	auxSchema = i.next();
+	        	auxSchema.remove(auxSchema.attribute("url"));
+	        	auxSchema.remove(auxSchema.attribute("schemaLocation"));
+	        }
+	        setupStanza = setupElement.asXML();
+		}
+        writer.write(setupStanza);
 	    writer.flush();
 	}
 
@@ -216,7 +225,6 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 	}
 	
-	// TODO
 	private void downloadSchemas(List<String> missingSchemas) throws IOException, NoSuchAlgorithmException, DocumentException, EXIException, SAXException, TransformerException{
 		String msg = "", url = "";
 		Element schemasElement;
@@ -286,6 +294,15 @@ public class EXIXMPPConnection extends XMPPConnection{
 				break;
 		}
 	}
-	
+
+	public void saveConfigId(String configId) {
+		if(configId != null && !quickSetup){
+			try {
+				EXIUtils.writeFile(EXIUtils.configurationIdLocation, configId);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}	
 	
 }

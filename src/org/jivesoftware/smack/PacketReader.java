@@ -270,8 +270,9 @@ public class PacketReader {
                     /************************ EXI code ************************/
                     
                     else if (parser.getName().equals("compressed")) {
-                		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
+                    	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
                     	exiConnection.enableEXI(true);
+                    	exiConnection.saveConfigId(parser.getAttributeValue(null, "configurationId"));
                     	// TODO: 2.2.8 Example 19. (restart stream) <-within enableEXI(boolean)
                     	/**
                     	 * 
@@ -286,13 +287,18 @@ public class PacketReader {
                     }
                     else if (parser.getName().equals("setupResponse")) {
                 		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                    	List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
-                		if(missingSchemas == null){
+                		if(parser.getAttributeValue(null, "agreement").equals("true")){
                 			exiConnection.startExiCompression();
-                		}
+                    	}
                 		else{
-                			exiConnection.sendMissingSchemas(missingSchemas, 3);
-                		}
+	                    	List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
+	                		if(missingSchemas == null){
+	                			exiConnection.startExiCompression();
+	                		}
+	                		else{
+	                			exiConnection.sendMissingSchemas(missingSchemas, 3);
+	                		}
+                    	}
                     }
                     else if (parser.getName().equals("downloadSchemaResponse") && parser.getAttributeValue(null, "result").equals("true")) {
                 		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);

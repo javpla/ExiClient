@@ -35,7 +35,8 @@ public class EXIWriter extends BufferedWriter {
 			super.write(xml, off, len);
 			return;
     	}
-    	System.out.println("msj a codificar: " + xml);
+    	System.out.println("XML a codificar: " + xml);
+    	System.out.println("EXI a enviar: " + exi);
         super.write(exi, off, exi.length());
         
         // send messages separately (do not wait for the queue to send them)
