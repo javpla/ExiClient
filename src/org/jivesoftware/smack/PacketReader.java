@@ -287,16 +287,20 @@ public class PacketReader {
                     }
                     else if (parser.getName().equals("setupResponse")) {
                 		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                		if(parser.getAttributeValue(null, "agreement").equals("true")){
-                			exiConnection.startExiCompression();
+                		if(exiConnection.getQuickSetup()){
+                			if(parser.getAttributeValue(null, "agreement") != null && parser.getAttributeValue(null, "agreement").equals("true")){
+                				exiConnection.startExiCompression();
+                			}else{
+                				exiConnection.proposeEXICompression(false);
+                			}
                     	}
                 		else{
 	                    	List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
-	                		if(missingSchemas == null){
-	                			exiConnection.startExiCompression();
+	                		if(missingSchemas.size() > 0){
+	                			exiConnection.sendMissingSchemas(missingSchemas, 3);
 	                		}
 	                		else{
-	                			exiConnection.sendMissingSchemas(missingSchemas, 3);
+	                			exiConnection.startExiCompression();
 	                		}
                     	}
                     }

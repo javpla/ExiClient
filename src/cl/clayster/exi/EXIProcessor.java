@@ -119,7 +119,8 @@ public class EXIProcessor {
 	}
 	
 	/** FUNCIONES DEFINITIVAS Y PARA XSD VARIABLES **/
-	protected String encode(String xml) throws IOException, EXIException, SAXException, TransformerException{
+	
+	protected byte[] encodeByteArray(String xml) throws IOException, EXIException, SAXException, TransformerException{
 		// encoding
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		exiResult = new EXIResult(exiFactory);		
@@ -128,30 +129,11 @@ public class EXIProcessor {
 		XMLReader xmlReader = XMLReaderFactory.createXMLReader();
 		xmlReader.setContentHandler(exiResult.getHandler());
 		xmlReader.parse(new InputSource(new StringReader(xml)));
-		return new String(baos.toByteArray(), EXIProcessor.CHARSET);
-	}
-
-	protected String decode(String exi) throws IOException, EXIException, SAXException, TransformerException{
-		// decoding		
-		exiSource = new EXISource(exiFactory);
-		XMLReader exiReader = exiSource.getXMLReader();
-	
-		TransformerFactory tf = TransformerFactory.newInstance();
-		Transformer transformer = tf.newTransformer();
-
-		byte[] exiBytes = exi.getBytes(EXIProcessor.CHARSET);		
-		
-		InputStream exiIS = new ByteArrayInputStream(exiBytes);
-		exiSource = new SAXSource(new InputSource(exiIS));
-		exiSource.setXMLReader(exiReader);
-	
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		transformer.transform(exiSource, new StreamResult(baos));		
-		return baos.toString();
+		return baos.toByteArray();
 	}
 	
 	// TODO: TRABAJAR CON BYTES!!!! 
-	protected byte[] decode(byte[] exiBytes) throws IOException, EXIException, SAXException, TransformerException{
+	protected String decode(byte[] exiBytes) throws IOException, EXIException, SAXException, TransformerException{
 		// decoding		
 		exiSource = new EXISource(exiFactory);
 		XMLReader exiReader = exiSource.getXMLReader();
@@ -165,7 +147,26 @@ public class EXIProcessor {
 	
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		transformer.transform(exiSource, new StreamResult(baos));		
-		return baos.toByteArray();
+		return baos.toString();
+	}
+	
+	protected String decode(String exi) throws IOException, EXIException, SAXException, TransformerException{
+		// decoding		
+		exiSource = new EXISource(exiFactory);
+		XMLReader exiReader = exiSource.getXMLReader();
+	
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer transformer = tf.newTransformer();		
+		
+		byte[] exiBytes = exi.getBytes();
+		
+		InputStream exiIS = new ByteArrayInputStream(exiBytes);
+		exiSource = new SAXSource(new InputSource(exiIS));
+		exiSource.setXMLReader(exiReader);
+	
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		transformer.transform(exiSource, new StreamResult(baos));		
+		return baos.toString();
 	}
 	
 	protected String decode(InputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{		

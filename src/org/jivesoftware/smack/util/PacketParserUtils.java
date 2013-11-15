@@ -930,7 +930,7 @@ public class PacketParserUtils {
      * @throws Exception if an exception occurs while parsing the packet.
      */
     public static List<String> parseSetupResponse(XmlPullParser parser) throws Exception {
-    	List<String> missingSchemas = null;
+    	List<String> missingSchemas = new ArrayList<String>();
     	String elementName;
         boolean done = false;
         while (!done) {

@@ -3,9 +3,7 @@ package cl.clayster.exi;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -45,6 +43,10 @@ public class EXIXMPPConnection extends XMPPConnection{
 		super(config);
 	}
 	
+	public boolean getQuickSetup(){
+		return quickSetup;
+	}
+	
 	/**
 	 * Defines the reader and writer which are capable of sending both normal XMPP messages and EXI messages depending on which one is enabled.
 	 */
@@ -63,22 +65,28 @@ public class EXIXMPPConnection extends XMPPConnection{
 		try {
             if (compressionHandler == null) {
             	
-                reader = new EXIReader(new InputStreamReader(socket.getInputStream(), EXIProcessor.CHARSET), exiProcessor);
-                writer = new EXIWriter(new OutputStreamWriter(socket.getOutputStream(), EXIProcessor.CHARSET), exiProcessor);
+                //reader = new EXIReader(new InputStreamReader(socket.getInputStream(), EXIProcessor.CHARSET), exiProcessor);
+                //writer = new EXIWriter(new OutputStreamWriter(socket.getOutputStream(), EXIProcessor.CHARSET), exiProcessor);
+            	reader = new EXIReader(socket.getInputStream(), exiProcessor);
+                writer = new EXIWriter(socket.getOutputStream(), exiProcessor);
             }
             else {
                 try {
                     OutputStream os = compressionHandler.getOutputStream(socket.getOutputStream());
-                    writer = new EXIWriter(new OutputStreamWriter(os, EXIProcessor.CHARSET), exiProcessor);
+                    //writer = new EXIWriter(new OutputStreamWriter(os, EXIProcessor.CHARSET), exiProcessor);
+                    writer = new EXIWriter(os, exiProcessor);
 
                     InputStream is = compressionHandler.getInputStream(socket.getInputStream());
-                    reader = new EXIReader(new InputStreamReader(is, EXIProcessor.CHARSET), exiProcessor);
+                    //reader = new EXIReader(new InputStreamReader(is, EXIProcessor.CHARSET), exiProcessor);
+                    reader = new EXIReader(is, exiProcessor);
                 }
                 catch (Exception e) {
                     e.printStackTrace();
                     compressionHandler = null;
-                    reader = new EXIReader(new InputStreamReader(socket.getInputStream(), EXIProcessor.CHARSET), exiProcessor);
-                    writer = new EXIWriter(new OutputStreamWriter(socket.getOutputStream(), EXIProcessor.CHARSET), exiProcessor);
+                    //reader = new EXIReader(new InputStreamReader(socket.getInputStream(), EXIProcessor.CHARSET), exiProcessor);
+                    reader = new EXIReader(socket.getInputStream(), exiProcessor);
+                    //writer = new EXIWriter(new OutputStreamWriter(socket.getOutputStream(), EXIProcessor.CHARSET), exiProcessor);
+                    writer = new EXIWriter(socket.getOutputStream(), exiProcessor);
                 }
             }
         }
@@ -132,14 +140,16 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * Reads the schemas stanzas file, removes unnecessary attributes (which need to be present) and generates the Setup stanza to inform about the schemas needed.
 	 * @throws IOException If there are problems reading the schemas stanzas file
 	 * @throws DocumentException 
+	 * @parameter quickSetup true if quick configurations are to be proposed, false otherwise
 	 */
-	public void proposeEXICompression() throws IOException, DocumentException{
-		String configId = EXIUtils.readFile(EXIUtils.configurationIdLocation);
+	public void proposeEXICompression(boolean quickSetup) throws IOException, DocumentException{
 		String setupStanza = "";
-		
-		if(configId != null){
-			quickSetup = true;
-			setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + configId + "'/>";
+		this.quickSetup = quickSetup;
+		if(quickSetup){
+			String configId = EXIUtils.readFile(EXIUtils.configurationIdLocation);
+			if(configId != null){
+				setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + configId + "'/>";
+			}
 		}
 		else{
 			Element setupElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
@@ -246,7 +256,6 @@ public class EXIXMPPConnection extends XMPPConnection{
 			}
 			if(!url.equals("")){
 				msg = "<downloadSchema xmlns='http://jabber.org/protocol/compress/exi' url='" + url + "'/>";
-				System.out.println("Sending: " + msg);
 				writer.write(msg);
 				writer.flush();
 				schemaDownloads++;

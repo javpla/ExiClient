@@ -64,7 +64,7 @@ public class Smack implements MessageListener{
 		// Start EXI
 		//connection.enableEXI(true);
 		try {
-			connection.proposeEXICompression();
+			connection.proposeEXICompression(true);
 		} catch (DocumentException e) {
 			System.err.println("Unable to propose EXI compression.");
 			System.err.println("Reason: " + e.getMessage());
