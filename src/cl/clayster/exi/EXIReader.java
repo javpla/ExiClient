@@ -22,7 +22,7 @@ public class EXIReader extends BufferedReader {
 	private BufferedInputStream is;
 	private byte[] ba;
 	
-	private byte[] anterior;
+	private byte[] anterior;	// bytes recibidos anteriormente (mensaje EXI incompleto)
 	
     public EXIReader(InputStream in, EXIProcessor exiProcessor) throws UnsupportedEncodingException {
     	super(new InputStreamReader(in, "UTF-8"));
