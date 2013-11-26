@@ -29,8 +29,6 @@ import com.siemens.ct.exi.helpers.DefaultEXIFactory;
 
 public class EXIProcessor {
 	
-	public static final String CHARSET = "ISO-8859-1";
-	
 	static EXIFactory exiFactory;
 	static EXIResult exiResult;
 	static SAXSource exiSource;
@@ -47,7 +45,7 @@ public class EXIProcessor {
 	
 	public EXIProcessor() {}
 	
-	public static String encodeSchemaless(String xml) throws IOException, EXIException, SAXException{
+	public static byte[] encodeSchemaless(String xml) throws IOException, EXIException, SAXException{
 		ByteArrayOutputStream osEXI = new ByteArrayOutputStream();
 		// start encoding process
 		EXIFactory factory = DefaultEXIFactory.newInstance();
@@ -59,7 +57,7 @@ public class EXIProcessor {
 
 		xmlReader.parse(new InputSource(new StringReader(xml)));
 		
-		return new String(osEXI.toByteArray(), EXIProcessor.CHARSET);
+		return osEXI.toByteArray();
 	}
 	/*
 	protected static String decode(String exi) throws IOException, EXIException, SAXException, TransformerException{		

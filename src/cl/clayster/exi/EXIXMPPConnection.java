@@ -224,7 +224,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 			String archivo = new String(Files.readAllBytes(file.toPath()));
 			String contentType = "ExiBody' md5Hash='" + md5Hash + "' bytes='" + file.length() + "'";
 			//TODO: arreglar la siguiente linea, pide archivos pero es schemaless!!
-			content = EXIProcessor.encodeSchemaless(archivo);
+			content = new String(EXIProcessor.encodeSchemaless(archivo));
 			
 			encodedBytes = "<uploadSchema xmlns='http://jabber.org/protocol/compress/exi' contentType='" + contentType + "'>"
 					.concat(content)
