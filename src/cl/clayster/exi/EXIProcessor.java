@@ -2,6 +2,7 @@ package cl.clayster.exi;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.StringReader;
@@ -33,83 +34,89 @@ public class EXIProcessor {
 	static EXIResult exiResult;
 	static SAXSource exiSource;
 	
+	private static final CodingMode schemalessCodingMode = CodingMode.COMPRESSION;
+	private static final FidelityOptions schemalessFidelityOptions = FidelityOptions.createAll();
+	private static final boolean schemalessIsFragmet = false;
+	
 	public EXIProcessor(String xsdLocation) throws EXIException{
 		// create default factory and EXI grammar for schema
 		exiFactory = DefaultEXIFactory.newInstance();
 		exiFactory.setFidelityOptions(FidelityOptions.createAll());
 		exiFactory.setCodingMode(CodingMode.BIT_PACKED);
-		GrammarFactory grammarFactory = GrammarFactory.newInstance();
-		Grammars g = grammarFactory.createGrammars(xsdLocation);
-		exiFactory.setGrammars(g);
+		
+		if(xsdLocation != null && new File(xsdLocation).isFile()){
+			GrammarFactory grammarFactory = GrammarFactory.newInstance();
+			Grammars g = grammarFactory.createGrammars(xsdLocation);
+			exiFactory.setGrammars(g);
+		}
+		else{
+			System.out.println("Invalid Schema file location. Encoding schema-less.");
+		}
 	}
 	
-	public EXIProcessor() {}
-	
+	/**
+	 * Encodes an XML String into an EXI byte array using no schema files.
+	 * 
+	 * @param xml the String to be encoded
+	 * @return a byte array containing the encoded bytes
+	 * @throws IOException
+	 * @throws EXIException
+	 * @throws SAXException
+	 */
 	public static byte[] encodeSchemaless(String xml) throws IOException, EXIException, SAXException{
 		ByteArrayOutputStream osEXI = new ByteArrayOutputStream();
 		// start encoding process
 		EXIFactory factory = DefaultEXIFactory.newInstance();
+		factory.setCodingMode(schemalessCodingMode);
+		factory.setFidelityOptions(schemalessFidelityOptions);
+		factory.setFragment(schemalessIsFragmet);
+		
 		XMLReader xmlReader = XMLReaderFactory.createXMLReader();
-
 		EXIResult exiResult = new EXIResult(factory);
+		
 		exiResult.setOutputStream(osEXI);
 		xmlReader.setContentHandler(exiResult.getHandler());
-
+		xmlReader.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd", Boolean.FALSE);	// ignorar DTD externos
+		
 		xmlReader.parse(new InputSource(new StringReader(xml)));
 		
+System.out.println("(" + xml.length() + "->" + osEXI.toByteArray().length + ")");
 		return osEXI.toByteArray();
 	}
-	/*
-	protected static String decode(String exi) throws IOException, EXIException, SAXException, TransformerException{		
-		// create default factory and EXI grammar for schema
-		EXIFactory exiFactory = DefaultEXIFactory.newInstance();
-		exiFactory.setFidelityOptions(FidelityOptions.createAll());
-		GrammarFactory grammarFactory = GrammarFactory.newInstance();
-		Grammars g = grammarFactory.createGrammars(xsdLocation);
-		exiFactory.setGrammars(g);
-		
-		// decoding		
-		SAXSource exiSource = new EXISource(exiFactory);
-		XMLReader exiReader = exiSource.getXMLReader();
 	
+	/**
+	 * Decodes an EXI byte array using no schema files.
+	 * 
+	 * @param exi the EXI stanza to be decoded
+	 * @return a String containing the decoded XML
+	 * @throws IOException
+	 * @throws EXIException
+	 * @throws SAXException
+	 */
+	public static String decodeSchemaless(byte[] exi) throws TransformerException, EXIException{
 		TransformerFactory tf = TransformerFactory.newInstance();
 		Transformer transformer = tf.newTransformer();
+		
+		EXIFactory factory = DefaultEXIFactory.newInstance();
+		factory.setCodingMode(schemalessCodingMode);
+		factory.setFidelityOptions(schemalessFidelityOptions);
+		factory.setFragment(schemalessIsFragmet);
+		
+		SAXSource exiSource = new SAXSource(new InputSource(new ByteArrayInputStream(exi)));
+		exiSource.setXMLReader(factory.createEXIReader());
 
-		byte[] exiBytes = exi.getBytes(EXIProcessor.CHARSET);		
-		
-		InputStream exiIS = new ByteArrayInputStream(exiBytes);
-		exiSource = new SAXSource(new InputSource(exiIS));
-		exiSource.setXMLReader(exiReader);
-	
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		transformer.transform(exiSource, new StreamResult(baos));		
-		return baos.toString();
+		ByteArrayOutputStream xmlDecoded = new ByteArrayOutputStream();
+		transformer.transform(exiSource, new StreamResult(xmlDecoded));
+
+		return xmlDecoded.toString();
 	}
 	
-	protected static String decode(InputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{		
-		// create default factory and EXI grammar for schema
-		EXIFactory exiFactory = DefaultEXIFactory.newInstance();
-		exiFactory.setFidelityOptions(FidelityOptions.createAll());
-		GrammarFactory grammarFactory = GrammarFactory.newInstance();
-		Grammars g = grammarFactory.createGrammars(xsdLocation);
-		exiFactory.setGrammars(g);
-		
-		// decoding		
-		SAXSource exiSource = new EXISource(exiFactory);
-		XMLReader exiReader = exiSource.getXMLReader();
-	
-		TransformerFactory tf = TransformerFactory.newInstance();
-		Transformer transformer = tf.newTransformer();
-		
-		exiSource = new SAXSource(new InputSource(exiIS));
-		exiSource.setXMLReader(exiReader);
-	
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		transformer.transform(exiSource, new StreamResult(baos));		
-		return baos.toString();
-	}
-	*/
-	
+	/**
+	 * Uses distinguishing bits (10) to recognize EXI stanzas.
+	 * 
+	 * @param b the first byte of the EXI stanza to be evaluated
+	 * @return <b>true</b> if the byte starts with distinguishing bits, <b>false</b> otherwise
+	 */
 	public static boolean isEXI(byte b){
 		byte distinguishingBits = -128;
 		byte aux = (byte) (b & distinguishingBits);
@@ -118,7 +125,7 @@ public class EXIProcessor {
 	
 	/** FUNCIONES DEFINITIVAS Y PARA XSD VARIABLES **/
 	
-	protected byte[] encodeByteArray(String xml) throws IOException, EXIException, SAXException, TransformerException{
+	protected byte[] encodeToByteArray(String xml) throws IOException, EXIException, SAXException, TransformerException{
 		// encoding
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		exiResult = new EXIResult(exiFactory);		
@@ -130,7 +137,6 @@ public class EXIProcessor {
 		return baos.toByteArray();
 	}
 	
-	// TODO: TRABAJAR CON BYTES!!!! 
 	protected String decode(byte[] exiBytes) throws IOException, EXIException, SAXException, TransformerException{
 		// decoding		
 		exiSource = new EXISource(exiFactory);
@@ -138,25 +144,6 @@ public class EXIProcessor {
 	
 		TransformerFactory tf = TransformerFactory.newInstance();
 		Transformer transformer = tf.newTransformer();		
-		
-		InputStream exiIS = new ByteArrayInputStream(exiBytes);
-		exiSource = new SAXSource(new InputSource(exiIS));
-		exiSource.setXMLReader(exiReader);
-	
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		transformer.transform(exiSource, new StreamResult(baos));		
-		return baos.toString();
-	}
-	
-	protected String decode(String exi) throws IOException, EXIException, SAXException, TransformerException{
-		// decoding		
-		exiSource = new EXISource(exiFactory);
-		XMLReader exiReader = exiSource.getXMLReader();
-	
-		TransformerFactory tf = TransformerFactory.newInstance();
-		Transformer transformer = tf.newTransformer();		
-		
-		byte[] exiBytes = exi.getBytes();
 		
 		InputStream exiIS = new ByteArrayInputStream(exiBytes);
 		exiSource = new SAXSource(new InputSource(exiIS));

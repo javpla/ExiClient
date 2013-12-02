@@ -34,7 +34,7 @@ public class EXIWriter extends BufferedWriter {
     	
     	byte[] exi = null;
     	try {
-			exi = exiProcessor.encodeByteArray(xml);
+			exi = exiProcessor.encodeToByteArray(xml);
     	}catch (SAXException | EXIException | TransformerException e){
     		e.printStackTrace();
 			super.write(xml, off, len);

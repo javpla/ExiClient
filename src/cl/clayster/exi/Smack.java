@@ -28,18 +28,66 @@ public class Smack implements MessageListener{
 	static final String usuario = "smackuser";
 	static final String password = "smackuser";
 	
+	
+	
 	public static void main(String[] args) throws XMPPException, IOException{
+/********************* encode SCHEMALESS for uploadSchema ***************************************
+		String schemaLocation = "C:/Users/Javier/workspace/Personales/ExiClient/res/xml.xsd";
+    	File file = new File(schemaLocation);
+		String archivo = new String(Files.readAllBytes(file.toPath()));
+		
+System.out.println("Archivo a codificar: " + schemaLocation);
+		try {
+			byte[] exiBytes = EXIProcessor.encodeSchemaless(archivo);
+			String exiHex = EXIUtils.bytesToHex(exiBytes);
+System.out.println(exiHex);
+
+		//	decode
+		String xml = EXIProcessor.decodeSchemaless(exiBytes);
+System.out.println(xml);		
+		} catch (EXIException | TransformerException | SAXException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		**/
+
+/********************* encode SCHEMALESS for exi specific stanzas ***************************************
+	 	String exiSpecific = " <exi:streamStart from='client@im.example.com'"
+	 			+ " to='im.example.com'"
+	 			+ " version='1.0'"
+	 			+ " xml:lang='en'"
+	 			+ " xmlns:exi='http://jabber.org/protocol/compress/exi'>"
+	 			+ "<exi:xmlns prefix='' namespace='jabber:client'/>"
+	 			+ "<exi:xmlns prefix='streams' namespace='http://etherx.jabber.org/streams'/>"
+	 			+ "<exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
+	 			+ "</exi:streamStart>";
+	 	try {
+			byte[] exiBytes = EXIProcessor.encodeSchemaless(exiSpecific);
+			String exiHex = EXIUtils.bytesToHex(exiBytes);
+System.out.println(exiHex);
+	
+		//	decode
+		String xml = EXIProcessor.decodeSchemaless(exiBytes);
+System.out.println(xml);		
+		} catch (EXIException | TransformerException | SAXException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	 	*/
+		
+		
+		
 		// visualize XMLs sent and received 
 		System.setProperty("smack.debugEnabled", "true");
 		XMPPConnection.DEBUG_ENABLED = true;
-		
+				
 		/*try {
 			EXIUtils.generateBoth();
 		} catch (NoSuchAlgorithmException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}*/
-		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
 		EXIXMPPConnection connection = new EXIXMPPConnection(config);

@@ -121,18 +121,19 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}	
 		else System.err.println("No se ha activado EXI");
 		
-		/*
-		writer.write("<exi:streamStart from='client@im.example.com'"
-				+ " to='im.example.com'"
-				+ " version='1.0'"
-				+ " xml:lang='en'"
-				+ " xmlns:exi='http://jabber.org/protocol/compress/exi'>"
-				+ " <exi:xmlns prefix='' namespace='jabber:client'/>"
-				+ " <exi:xmlns prefix='streams' namespace='http://etherx.jabber.org/streams'/>"
-				+ " <exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
-				+ " </exi:streamStart>");
-		writer.flush();
-		*/
+		String exiSpecific = "<exi:streamStart from='"
+				+ getUser()
+	 			+ "' to='"
+	 			+ getHost()
+	 			+ "' version='1.0'"
+	 			+ " xml:lang='en'"
+	 			+ " xmlns:exi='http://jabber.org/protocol/compress/exi'>"
+	 			+ "<exi:xmlns prefix='' namespace='jabber:client'/>"
+	 			+ "<exi:xmlns prefix='streams' namespace='http://etherx.jabber.org/streams'/>"
+	 			+ "<exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
+	 			+ "</exi:streamStart>";
+		//writer.write(exiSpecific);
+		//writer.flush();
 	}
 	
 	/**
@@ -222,11 +223,13 @@ public class EXIXMPPConnection extends XMPPConnection{
 	    	File file = new File(schemaLocation);
 			String md5Hash = EXIUtils.bytesToHex(md.digest(Files.readAllBytes(file.toPath())));
 			String archivo = new String(Files.readAllBytes(file.toPath()));
-			String contentType = "ExiBody' md5Hash='" + md5Hash + "' bytes='" + file.length() + "'";
-			//TODO: arreglar la siguiente linea, pide archivos pero es schemaless!!
+			String contentType = "ExiBody";
+			
+System.out.println("archivo: " + schemaLocation);
 			content = new String(EXIProcessor.encodeSchemaless(archivo));
 			
-			encodedBytes = "<uploadSchema xmlns='http://jabber.org/protocol/compress/exi' contentType='" + contentType + "'>"
+			encodedBytes = "<uploadSchema xmlns='http://jabber.org/protocol/compress/exi'"
+					+ " contentType='" + contentType + "' md5Hash='" + md5Hash + "' bytes='" + file.length() + "'>"
 					.concat(content)
 					.concat("</uploadSchema>");
 		

@@ -297,7 +297,7 @@ public class PacketReader {
                 		else{
 	                    	List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
 	                		if(missingSchemas.size() > 0){
-	                			exiConnection.sendMissingSchemas(missingSchemas, 3);
+	                			exiConnection.sendMissingSchemas(missingSchemas, 1);
 	                		}
 	                		else{
 	                			exiConnection.startExiCompression();
