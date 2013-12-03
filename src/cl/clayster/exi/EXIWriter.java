@@ -27,31 +27,40 @@ public class EXIWriter extends BufferedWriter {
 
 	@Override
     public void write(String xml , int off, int len) throws IOException {
-    	if(!exi || xml.contains("stream:stream")){
+    	if(!exi){
     		super.write(xml, off, len);
 			return;
     	}
-    	
+    	if(xml.startsWith("</stream:stream")){
+    		xml = "<exi:streamEnd xmlns:exi='http://jabber.org/protocol/compress/exi'/>";
+    	}
+System.out.println("XML a codificar(" + xml.length() + "): " + xml);    	
     	byte[] exi = null;
     	try {
-			exi = exiProcessor.encodeToByteArray(xml);
+    		/*if(xml.startsWith("<exi:stream")){
+    			exi = EXIProcessor.encodeSchemaless(xml);
+System.out.println(EXIUtils.bytesToHex(exi));
+    		}
+    		else*/{
+    			exi = exiProcessor.encodeToByteArray(xml);
+    		}
     	}catch (SAXException | EXIException | TransformerException e){
     		e.printStackTrace();
 			super.write(xml, off, len);
 			return;
     	}
-System.out.println("XML a codificar(" + xml.length() + "): " + xml);
 System.out.println("EXI a enviar(" + exi.length + "): " + new String(exi));
+System.out.println("EXI hex: " + EXIUtils.bytesToHex(exi));
         
     	os.write(exi, off, exi.length);
     	os.flush();
 	}
 	
-		boolean isEXI() {
+	public boolean isEXI() {
 		return exi;
 	}
 
-	void setEXI(boolean usarEXI) {
+	public void setEXI(boolean usarEXI) {
 		this.exi = usarEXI;
 	}
 

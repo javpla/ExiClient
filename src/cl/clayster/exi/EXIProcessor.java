@@ -80,7 +80,6 @@ public class EXIProcessor {
 		
 		xmlReader.parse(new InputSource(new StringReader(xml)));
 		
-System.out.println("(" + xml.length() + "->" + osEXI.toByteArray().length + ")");
 		return osEXI.toByteArray();
 	}
 	

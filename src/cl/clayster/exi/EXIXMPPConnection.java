@@ -132,8 +132,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 			+ "<exi:xmlns prefix='streams' namespace='http://etherx.jabber.org/streams'/>"
 	 			+ "<exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
 	 			+ "</exi:streamStart>";
-		//writer.write(exiSpecific);
-		//writer.flush();
+		writer.write(exiSpecific);
+		writer.flush();
 	}
 	
 	/**

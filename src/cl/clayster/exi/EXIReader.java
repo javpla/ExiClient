@@ -40,14 +40,14 @@ public class EXIReader extends BufferedReader {
     		}
     		ba = new byte[len];
     		leido = is.read(ba, 0, len);
-System.out.println("Recibido(" + leido + "): " + new String(ba));
+System.err.println("Recibido(" + leido + "): " + new String(ba));
 	    	if(exi){
 	    		if(anterior != null || EXIProcessor.isEXI(ba[0])){
-System.out.println("EXI(" + leido + "): " + EXIUtils.bytesToHex(ba));
+System.err.println("EXI(" + leido + "): " + EXIUtils.bytesToHex(ba));
 	    			if(leido <= 3){
 	    				anterior = new byte[leido];
 	    				System.arraycopy(ba, 0, anterior, 0, leido);
-System.out.println("bytes guardados: " + EXIUtils.bytesToHex(anterior));
+System.err.println("bytes guardados: " + EXIUtils.bytesToHex(anterior));
 						return leido;
 	    			}
 	    			else if(anterior != null){
@@ -57,7 +57,7 @@ System.out.println("bytes guardados: " + EXIUtils.bytesToHex(anterior));
 			    	try {
 			    		//System.arraycopy(exiProcessor.decode(ba).toCharArray(), 0, cbuf, off, leido);
 			    		cbuf = exiProcessor.decode(ba).toCharArray();
-System.out.println("decoded XML(" + (leido + anterior.length) + "): " + new String(cbuf));
+System.err.println("decoded XML(" + (leido + anterior.length) + "): " + new String(cbuf));
 						anterior = null;
 						ba = null;
 			    		return leido;
@@ -67,30 +67,9 @@ System.out.println("decoded XML(" + (leido + anterior.length) + "): " + new Stri
 				}
 	    	}
 	    	System.arraycopy(new String(ba).toCharArray(), 0, cbuf, off, leido);
-System.out.println("XML(" + leido + "): " + new String(cbuf));
+System.err.println("XML(" + leido + "): " + new String(cbuf));
 			return leido;
 	    }
-    	/*
-    	leido = super.read(cbuf, off, len);
-    	if(leido <= 0)	return leido;
-    	if(exi && EXIProcessor.isEXI((byte) cbuf[off])){
-    		if(leido <= 1){
-    			anterior = new char[leido];
-System.out.println("bytes guardados: " + EXIUtils.bytesToHex(Charset.forName("UTF-8").encode(CharBuffer.wrap(anterior)).array()));
-    			System.arraycopy(cbuf, off, anterior, 0, leido);
-    			return leido;
-    		}
-            try {
-            		byte[] bytes = new String(cbuf).substring(off - anterior.length, off + len).getBytes();
-System.out.println("bytes a decodificar: " + EXIUtils.bytesToHex(bytes));
-                    cbuf = exiProcessor.decode(bytes).toCharArray();
-                    anterior = null;
-            } catch (EXIException | SAXException | TransformerException e) {
-                    e.printStackTrace();
-            }
-    	}
-    	return leido;
-    	/**/
     }
     
     
