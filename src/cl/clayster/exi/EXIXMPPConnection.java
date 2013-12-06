@@ -11,6 +11,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.prefs.Preferences;
 
 import javax.xml.transform.TransformerException;
 
@@ -37,14 +38,9 @@ import com.siemens.ct.exi.exceptions.EXIException;
 public class EXIXMPPConnection extends XMPPConnection{
 	
 	public int schemaDownloads = 0;
-	private boolean quickSetup = false;
 	
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
-	}
-	
-	public boolean getQuickSetup(){
-		return quickSetup;
 	}
 	
 	/**
@@ -55,8 +51,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 		EXIProcessor exiProcessor = null;
 		try {
 			exiProcessor = new EXIProcessor(EXIUtils.canonicalSchemaLocation);
-		} catch (EXIException e1) {
-			e1.printStackTrace();
+		} catch (EXIException e) {
+			System.err.println(e.getMessage());
 		}
 		if(exiProcessor == null){
 			super.initReaderAndWriter();
@@ -143,14 +139,15 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @throws DocumentException 
 	 * @parameter quickSetup true if quick configurations are to be proposed, false otherwise
 	 */
-	public void proposeEXICompression(boolean quickSetup) throws IOException, DocumentException{
+	public void proposeEXICompression() throws IOException, DocumentException{
 		String setupStanza = "";
-		this.quickSetup = quickSetup;
+		String configId = "";
+		boolean quickSetup = false;		
+		configId = Preferences.userRoot().get(EXIUtils.REG_KEY, null); 
+		quickSetup = (configId != null); // quickSetup is valid if there is a file to read or else it is false and normal setup stanza will be sent
+		
 		if(quickSetup){
-			String configId = EXIUtils.readFile(EXIUtils.configurationIdLocation);
-			if(configId != null){
-				setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + configId + "'/>";
-			}
+			setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + configId + "'/>";
 		}
 		else{
 			Element setupElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
@@ -162,6 +159,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	        }
 	        setupStanza = setupElement.asXML();
 		}
+		
         writer.write(setupStanza);
 	    writer.flush();
 	}
@@ -308,12 +306,12 @@ System.out.println("archivo: " + schemaLocation);
 	}
 
 	public void saveConfigId(String configId) {
-		if(configId != null && !quickSetup){
-			try {
-				EXIUtils.writeFile(EXIUtils.configurationIdLocation, configId);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		Preferences pref = Preferences.userRoot();
+		if(configId != null){
+			pref.put(EXIUtils.REG_KEY, configId);
+		}
+		else{
+			pref.remove(EXIUtils.REG_KEY);
 		}
 	}	
 	

@@ -272,7 +272,6 @@ public class PacketReader {
                     else if (parser.getName().equals("compressed")) {
                     	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
                     	exiConnection.enableEXI(true);
-                    	exiConnection.saveConfigId(parser.getAttributeValue(null, "configurationId"));
                     	// TODO: 2.2.8 Example 19. (restart stream) <-within enableEXI(boolean)
                     	/**
                     	 * 
@@ -287,27 +286,24 @@ public class PacketReader {
                     }
                     else if (parser.getName().equals("setupResponse")) {
                 		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                		if(exiConnection.getQuickSetup()){
-                			if(parser.getAttributeValue(null, "agreement") != null && parser.getAttributeValue(null, "agreement").equals("true")){
-                				exiConnection.startExiCompression();
-                			}else{
-                				exiConnection.proposeEXICompression(false);
-                			}
-                    	}
+                		if("true".equals(parser.getAttributeValue(null, "agreement"))){
+            				exiConnection.saveConfigId(parser.getAttributeValue(null, "configurationId"));
+                			exiConnection.startExiCompression();
+                		}
                 		else{
-	                    	List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
-	                		if(missingSchemas.size() > 0){
-	                			exiConnection.sendMissingSchemas(missingSchemas, 1);
-	                		}
-	                		else{
-	                			exiConnection.startExiCompression();
-	                		}
-                    	}
+                			if(parser.getAttributeValue("null", "configurationId") == null){
+                				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
+    	                		if(missingSchemas.size() > 0){
+    	                			exiConnection.sendMissingSchemas(missingSchemas, 3);
+    	                		}
+                			}
+                			exiConnection.saveConfigId(null);
+                		}
                     }
-                    else if (parser.getName().equals("downloadSchemaResponse") && parser.getAttributeValue(null, "result").equals("true")) {
+                    else if (parser.getName().equals("downloadSchemaResponse") && "true".equals(parser.getAttributeValue(null, "result"))) {
                 		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
                     	if(--exiConnection.schemaDownloads == 0){
-                    		exiConnection.startExiCompression();
+                    		exiConnection.proposeEXICompression();
                     	}
                     }
                     else if (parser.getName().equals("failure")){

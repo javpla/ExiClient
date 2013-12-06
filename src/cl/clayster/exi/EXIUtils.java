@@ -20,8 +20,10 @@ public class EXIUtils {
 	public static final String canonicalSchemaLocation = "./res/canonicalSchema.xsd"; 
 	public static final String schemasFileLocation = "./res/schemas.xml";
 	public static final String configurationIdLocation = "./res/configId.txt";
-	final protected static char[] hexArray = "0123456789abcdef".toCharArray();
-	public static String schemasFolder = "./res/";
+	public static final char[] hexArray = "0123456789abcdef".toCharArray();
+	public static final String schemasFolder = "./res/";
+	public static final String REG_KEY = "exi_config_id";	
+	
 	
 	public static String bytesToHex(byte[] bytes){
 	    char[] hexChars = new char[bytes.length * 2];

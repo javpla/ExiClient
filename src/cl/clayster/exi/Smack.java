@@ -3,7 +3,9 @@ package cl.clayster.exi;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
+import java.util.prefs.Preferences;
 
 import org.dom4j.DocumentException;
 import org.jivesoftware.smack.Chat;
@@ -76,7 +78,24 @@ System.out.println(xml);
 		}
 	 	*/
 		
+		/*
+		try {
+			String value = WinRegistry.readString (
+				    WinRegistry.HKEY_LOCAL_MACHINE,                             //HKEY
+				   "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",           //Key
+				   "ProductName");												//ValueName
+			System.out.println("Windows Distribution = " + value);
+		} catch (IllegalArgumentException | IllegalAccessException| InvocationTargetException e1) {
+			e1.printStackTrace();
+		}                  
 		
+		try {
+			WinRegistry.writeStringValue(WinRegistry.HKEY_CURRENT_USER, "EXIClient", "configId", "dsajiod2131");
+System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "EXIClient", "configId"));
+		} catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException e1) {
+			e1.printStackTrace();
+		}
+		*/
 		
 		// visualize XMLs sent and received 
 		System.setProperty("smack.debugEnabled", "true");
@@ -112,7 +131,7 @@ System.out.println(xml);
 		// Start EXI
 		//connection.enableEXI(true);
 		try {
-			connection.proposeEXICompression(true);
+			connection.proposeEXICompression();
 		} catch (DocumentException e) {
 			System.err.println("Unable to propose EXI compression.");
 			System.err.println("Reason: " + e.getMessage());
