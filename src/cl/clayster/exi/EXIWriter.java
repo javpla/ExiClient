@@ -37,20 +37,13 @@ public class EXIWriter extends BufferedWriter {
 System.out.println("XML a codificar(" + xml.length() + "): " + xml);    	
     	byte[] exi = null;
     	try {
-    		/*if(xml.startsWith("<exi:stream")){
-    			exi = EXIProcessor.encodeSchemaless(xml);
-System.out.println(EXIUtils.bytesToHex(exi));
-    		}
-    		else*/{
-    			exi = exiProcessor.encodeToByteArray(xml);
-    		}
+    		exi = exiProcessor.encodeToByteArray(xml);
     	}catch (SAXException | EXIException | TransformerException e){
     		e.printStackTrace();
 			super.write(xml, off, len);
 			return;
     	}
-System.out.println("EXI a enviar(" + exi.length + "): " + new String(exi));
-System.out.println("EXI hex: " + EXIUtils.bytesToHex(exi));
+System.out.println("Enviando EXI(" + exi.length + "): " + EXIUtils.bytesToHex(exi));
         
     	os.write(exi, off, exi.length);
     	os.flush();

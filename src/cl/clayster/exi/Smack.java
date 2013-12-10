@@ -3,9 +3,9 @@ package cl.clayster.exi;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
-import java.util.prefs.Preferences;
+
+import javax.xml.transform.TransformerException;
 
 import org.dom4j.DocumentException;
 import org.jivesoftware.smack.Chat;
@@ -19,6 +19,9 @@ import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Presence;
+import org.xml.sax.SAXException;
+
+import com.siemens.ct.exi.exceptions.EXIException;
 
 
 public class Smack implements MessageListener{
@@ -33,50 +36,13 @@ public class Smack implements MessageListener{
 	
 	
 	public static void main(String[] args) throws XMPPException, IOException{
-/********************* encode SCHEMALESS for uploadSchema ***************************************
-		String schemaLocation = "C:/Users/Javier/workspace/Personales/ExiClient/res/xml.xsd";
-    	File file = new File(schemaLocation);
-		String archivo = new String(Files.readAllBytes(file.toPath()));
 		
-System.out.println("Archivo a codificar: " + schemaLocation);
-		try {
-			byte[] exiBytes = EXIProcessor.encodeSchemaless(archivo);
-			String exiHex = EXIUtils.bytesToHex(exiBytes);
-System.out.println(exiHex);
-
-		//	decode
-		String xml = EXIProcessor.decodeSchemaless(exiBytes);
-System.out.println(xml);		
-		} catch (EXIException | TransformerException | SAXException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		boolean exi = true;
+		boolean test = false;
+		if(test){
+			encodingDecodingTest();
+			return;
 		}
-		
-		**/
-
-/********************* encode SCHEMALESS for exi specific stanzas ***************************************
-	 	String exiSpecific = " <exi:streamStart from='client@im.example.com'"
-	 			+ " to='im.example.com'"
-	 			+ " version='1.0'"
-	 			+ " xml:lang='en'"
-	 			+ " xmlns:exi='http://jabber.org/protocol/compress/exi'>"
-	 			+ "<exi:xmlns prefix='' namespace='jabber:client'/>"
-	 			+ "<exi:xmlns prefix='streams' namespace='http://etherx.jabber.org/streams'/>"
-	 			+ "<exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
-	 			+ "</exi:streamStart>";
-	 	try {
-			byte[] exiBytes = EXIProcessor.encodeSchemaless(exiSpecific);
-			String exiHex = EXIUtils.bytesToHex(exiBytes);
-System.out.println(exiHex);
-	
-		//	decode
-		String xml = EXIProcessor.decodeSchemaless(exiBytes);
-System.out.println(xml);		
-		} catch (EXIException | TransformerException | SAXException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	 	*/
 		
 		/*
 		try {
@@ -130,12 +96,14 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 		
 		// Start EXI
 		//connection.enableEXI(true);
-		try {
-			connection.proposeEXICompression();
-		} catch (DocumentException e) {
-			System.err.println("Unable to propose EXI compression.");
-			System.err.println("Reason: " + e.getMessage());
-		}
+		if(exi){
+			try{
+				connection.proposeEXICompression();
+			} catch (DocumentException e) {
+				System.err.println("Unable to propose EXI compression.");
+				System.err.println("Reason: " + e.getMessage());
+			}
+		} 
 		
 		// chatmanager to interchange messages
 		ChatManager chatmanager = connection.getChatManager();
@@ -230,6 +198,52 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 	public void processMessage(Chat chat, Message message) {
 		// TODO Auto-generated method stub
 	}
+	
+	
+	public static void encodingDecodingTest() throws IOException{
+		// TODO: schemaInformed forma bytes[] más largos que schemaless 
+		try {
+			String testXML = "<xml>"
+					+ "<auth mechanism=\"DIGEST-MD5\" xmlns=\"urn:ietf:params:xml:ns:xmpp-sasl\"></auth>"
+					+ "<response xmlns=\"urn:ietf:params:xml:ns:xmpp-sasl\">Y2hhcnNldD11dGYtOCx1c2VybmFtZT0ic21hY2t1c2VyIixyZWFsbT0iamF2aWVyLnBsYWNlbmNpbyIsbm9u"
+					+ "Y2U9IlU5Ym03YXQ2RXQwdzZoaFM2b2VxRndsbUhwWUt1ZnNxZnYrL1d0QkIiLG5jPTAwMDAwMDAxLGNub25jZT0iaFpua25wdGVMRUtLWjBucnhYcnY3ZWZ3aWlBZ2x3Y0RkbjNCR"
+					+ "WZTaCIsZGlnZXN0LXVyaT0ieG1wcC9qYXZpZXIucGxhY2VuY2lvIixtYXhidWY9NjU1MzYscmVzcG9uc2U9MzBlNDAzMGNhODA2OWRkYWM2YTNmZDg5ZTRiOWQyMjIscW9wPWF1dG"
+					+ "gsYXV0aHppZD0ic21hY2t1c2VyIg==</response>"
+					+ "<stream:stream to=\"javier.placencio\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\" version=\"1.0\">"
+					+ "<iq id=\"IeRz1-0\" type=\"set\"><bind xmlns=\"urn:ietf:params:xml:ns:xmpp-bind\"><resource>Smack</resource></bind></iq>"
+					+ "<iq id=\"IeRz1-1\" type=\"set\"><session xmlns=\"urn:ietf:params:xml:ns:xmpp-session\"/></iq><iq id=\"IeRz1-2\" type=\"get\">"
+					+ "<query xmlns=\"jabber:iq:roster\"></query></iq><presence id=\"IeRz1-3\"></presence>"
+					+ "<message id=\"IeRz1-4\" to=\"javier@javier.placencio\" from=\"smackuser@javier.placencio/Smack\" type=\"chat\"><body>Hola!</body>"
+					+ "<thread>O5YBk0</thread></message>"
+					+ "</stream:stream>"
+					+ "</xml>";
+			//testXML = EXIUtils.readFile("C:/Users/Javier/workspace/Personales/ExiClient/res/stanzaerror.xsd");
+			//System.out.println("XML: " + testXML);
+			EXIProcessor ep = new EXIProcessor(EXIUtils.canonicalSchemaLocation);
+			
+			System.out.println("encoding...");
+			byte[] schemaInformed = ep.encodeToByteArray(testXML);
+			byte[] schemaless = EXIProcessor.encodeSchemaless(testXML);
+			if(schemaInformed.equals(schemaless)){
+				System.out.println("Son iguales: " + EXIUtils.bytesToHex(schemaInformed));
+			}
+			else{
+				System.out.println("schemaInformed(" + schemaInformed.length + "): " + EXIUtils.bytesToHex(schemaInformed));
+				System.out.println("schemaless(" + schemaless.length + "): " + EXIUtils.bytesToHex(schemaless));
+				System.out.println("decoding...");
+				/*
+				String aux = ep.decode(schemaInformed);
+				System.out.println("schemaInformed(" + aux.length() + "): " + aux);
+				aux = EXIProcessor.decodeSchemaless(schemaless);
+				System.out.println("schemaless(" + aux.length() + "): " + aux);
+				/**/
+			}
+		} catch (EXIException | SAXException | TransformerException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+	}
+	
 }
 
 

@@ -40,10 +40,10 @@ public class EXIReader extends BufferedReader {
     		}
     		ba = new byte[len];
     		leido = is.read(ba, 0, len);
-System.err.println("Recibido(" + leido + "): " + new String(ba));
+System.err.println("Recibido(" + leido + "): " + EXIUtils.bytesToHex(ba));
 	    	if(exi){
 	    		if(anterior != null || EXIProcessor.isEXI(ba[0])){
-System.err.println("EXI(" + leido + "): " + EXIUtils.bytesToHex(ba));
+System.err.println("EXI(" + (leido + (anterior != null ? anterior.length : 0)) + "): " + EXIUtils.bytesToHex(ba));
 	    			if(leido <= 3){
 	    				anterior = new byte[leido];
 	    				System.arraycopy(ba, 0, anterior, 0, leido);
@@ -57,7 +57,7 @@ System.err.println("bytes guardados: " + EXIUtils.bytesToHex(anterior));
 			    	try {
 			    		//System.arraycopy(exiProcessor.decode(ba).toCharArray(), 0, cbuf, off, leido);
 			    		cbuf = exiProcessor.decode(ba).toCharArray();
-System.err.println("decoded XML(" + (leido + anterior.length) + "): " + new String(cbuf));
+System.err.println("decoded XML(" + (cbuf.length) + "): " + new String(cbuf));
 						anterior = null;
 						ba = null;
 			    		return leido;
