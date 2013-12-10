@@ -34,8 +34,8 @@ public class EXIProcessor {
 	static EXIResult exiResult;
 	static SAXSource exiSource;
 	
-	private static final CodingMode schemalessCodingMode = CodingMode.COMPRESSION;
-	private static final FidelityOptions schemalessFidelityOptions = FidelityOptions.createAll();
+	private static final CodingMode schemalessCodingMode = CodingMode.BIT_PACKED;
+	private static final FidelityOptions schemalessFidelityOptions = FidelityOptions.createDefault();
 	private static final boolean schemalessIsFragmet = false;
 	
 	public EXIProcessor(String xsdLocation) throws EXIException{
@@ -45,12 +45,18 @@ public class EXIProcessor {
 		exiFactory.setCodingMode(CodingMode.BIT_PACKED);
 		
 		if(xsdLocation != null && new File(xsdLocation).isFile()){
-			GrammarFactory grammarFactory = GrammarFactory.newInstance();
-			Grammars g = grammarFactory.createGrammars(xsdLocation);
-			exiFactory.setGrammars(g);
+			try {
+				GrammarFactory grammarFactory = GrammarFactory.newInstance();
+				Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
+				exiFactory.setGrammars(g);
+			} catch (IOException e) {
+				throw new EXIException("Error while creating Grammars.");
+			}
 		}
 		else{
-			System.out.println("Invalid Schema file location. Encoding schema-less.");
+			String message = "Invalid Canonical Schema file location: " + xsdLocation;
+System.err.println(message);
+			throw new EXIException(message);
 		}
 	}
 	
@@ -67,8 +73,9 @@ public class EXIProcessor {
 		ByteArrayOutputStream osEXI = new ByteArrayOutputStream();
 		// start encoding process
 		EXIFactory factory = DefaultEXIFactory.newInstance();
-		factory.setCodingMode(schemalessCodingMode);
+		schemalessFidelityOptions.setFidelity(FidelityOptions.FEATURE_PREFIX, true);
 		factory.setFidelityOptions(schemalessFidelityOptions);
+		factory.setCodingMode(schemalessCodingMode);
 		factory.setFragment(schemalessIsFragmet);
 		
 		XMLReader xmlReader = XMLReaderFactory.createXMLReader();
@@ -97,8 +104,9 @@ public class EXIProcessor {
 		Transformer transformer = tf.newTransformer();
 		
 		EXIFactory factory = DefaultEXIFactory.newInstance();
-		factory.setCodingMode(schemalessCodingMode);
+		schemalessFidelityOptions.setFidelity(FidelityOptions.FEATURE_PREFIX, true);
 		factory.setFidelityOptions(schemalessFidelityOptions);
+		factory.setCodingMode(schemalessCodingMode);
 		factory.setFragment(schemalessIsFragmet);
 		
 		SAXSource exiSource = new SAXSource(new InputSource(new ByteArrayInputStream(exi)));

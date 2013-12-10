@@ -38,6 +38,10 @@ import com.siemens.ct.exi.exceptions.EXIException;
 public class EXIXMPPConnection extends XMPPConnection{
 	
 	public int schemaDownloads = 0;
+	public static final int UPLOAD_BINARY = 0;
+	public static final int UPLOAD_EXI_DOCUMENT = 1;
+	public static final int UPLOAD_EXI_BODY = 2;
+	public static final int UPLOAD_URL = 3;
 	
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
@@ -275,8 +279,8 @@ System.out.println("archivo: " + schemaLocation);
 	 * 
 	 * @param missingSchemas a list containing all schemas missing in the server
 	 * @param opt how missing schemas will be sent to the server. Options are as follows
-	 * <br> 1 - upload schema as EXI body
-	 * <br> 2 - upload schema as EXI document
+	 * <br> 1 - upload schema as EXI document
+	 * <br> 2 - upload schema as EXI body
 	 * <br> 3 - send a url for the server to download the schema by itself  
 	 * <br> x - anything else to upload schema as a binary file
 	 * @throws TransformerException 
@@ -289,17 +293,16 @@ System.out.println("archivo: " + schemaLocation);
 	public void sendMissingSchemas(List<String> missingSchemas, int opt) 
 			throws NoSuchAlgorithmException, IOException, DocumentException, EXIException, SAXException, TransformerException {
 		switch(opt){
-			case 1:
+			case 1: // upload compressed EXI document
 				uploadCompressedMissingSchemas(missingSchemas);
 				break;
-			case 2:
-				// TODO
+			case 2: // TODO: upload compressed EXI body
 				uploadCompressedMissingSchemas(missingSchemas);
 				break;
-			case 3:
+			case 3:	// send URL and download on server 
 				downloadSchemas(missingSchemas);
 				break;
-			default:	
+			default: // upload binary file
 				uploadMissingSchemas(missingSchemas);
 				break;
 		}

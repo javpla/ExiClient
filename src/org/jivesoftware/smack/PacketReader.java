@@ -272,7 +272,6 @@ public class PacketReader {
                     else if (parser.getName().equals("compressed")) {
                     	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
                     	exiConnection.enableEXI(true);
-                    	// TODO: 2.2.8 Example 19. (restart stream) <-within enableEXI(boolean)
                     	/**
                     	 * 
                         // Server confirmed that it's possible to use stream compression. Start
@@ -294,10 +293,11 @@ public class PacketReader {
                 			if(parser.getAttributeValue("null", "configurationId") == null){
                 				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
     	                		if(missingSchemas.size() > 0){
-    	                			exiConnection.sendMissingSchemas(missingSchemas, 3);
+    	                			exiConnection.sendMissingSchemas(missingSchemas, EXIXMPPConnection.UPLOAD_EXI_DOCUMENT);
     	                		}
                 			}
                 			exiConnection.saveConfigId(null);
+                			exiConnection.proposeEXICompression();
                 		}
                     }
                     else if (parser.getName().equals("downloadSchemaResponse") && "true".equals(parser.getAttributeValue(null, "result"))) {
