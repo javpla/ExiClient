@@ -38,7 +38,7 @@ public class Smack implements MessageListener{
 	public static void main(String[] args) throws XMPPException, IOException{
 		
 		boolean exi = true;
-		boolean test = true;
+		boolean test = false;
 		if(test){
 			encodingDecodingTest();
 			return;
@@ -231,7 +231,7 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 				System.out.println("schemaInformed(" + schemaInformed.length + "): " + EXIUtils.bytesToHex(schemaInformed));
 				System.out.println("schemaless(" + schemaless.length + "): " + EXIUtils.bytesToHex(schemaless));
 				System.out.println("decoding...");
-				
+				/*
 				String aux = ep.decode(schemaInformed);
 				System.out.println("schemaInformed(" + aux.length() + "): " + aux);
 				aux = EXIProcessor.decodeSchemaless(schemaless);
