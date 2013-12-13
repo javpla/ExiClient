@@ -295,9 +295,10 @@ public class PacketReader {
     	                		if(missingSchemas.size() > 0){
     	                			exiConnection.sendMissingSchemas(missingSchemas, EXIXMPPConnection.UPLOAD_EXI_DOCUMENT);
     	                		}
+                				exiConnection.saveConfigId(null);
+                				Thread.sleep(1000);
+                    			exiConnection.proposeEXICompression();
                 			}
-                			exiConnection.saveConfigId(null);
-                			exiConnection.proposeEXICompression();
                 		}
                     }
                     else if (parser.getName().equals("downloadSchemaResponse") && "true".equals(parser.getAttributeValue(null, "result"))) {

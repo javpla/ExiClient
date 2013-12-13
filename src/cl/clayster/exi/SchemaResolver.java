@@ -60,17 +60,17 @@ public class SchemaResolver implements XMLEntityResolver {
 			throws XNIException, IOException {
 		
 		String namespace = resourceIdentifier.getNamespace();
-System.out.println("namespace: " + namespace);
+/*System.out.println("namespace: " + namespace);
 		String publicId = resourceIdentifier.getPublicId();
 System.out.println("\tPublicId: " + publicId);
 System.out.println("\tBaseSystemId: " + resourceIdentifier.getBaseSystemId());
 System.out.println("\tExpandedSystemId: " + resourceIdentifier.getExpandedSystemId());
 System.out.println("\tLiteralSystemId: " + resourceIdentifier.getLiteralSystemId());
-
+*/
 		if(namespace != null){
 			if(this.canonicalPaths.containsKey(namespace)){				
 				String location = this.canonicalPaths.get(namespace);
-System.out.println("->Resource returned: " + location);
+//System.out.println("->Resource returned: " + location);
 			return new XMLInputSource(resourceIdentifier.getPublicId(), location, resourceIdentifier.getBaseSystemId());
 			}
 		}

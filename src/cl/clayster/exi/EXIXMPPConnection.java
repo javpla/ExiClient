@@ -1,5 +1,6 @@
 package cl.clayster.exi;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -163,7 +164,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	        }
 	        setupStanza = setupElement.asXML();
 		}
-		
+System.out.println("Proposing EXI...\n" + setupStanza);
         writer.write(setupStanza);
 	    writer.flush();
 	}
@@ -174,69 +175,75 @@ public class EXIXMPPConnection extends XMPPConnection{
 	}
 
 	private void uploadMissingSchemas(List<String> missingSchemas) throws IOException, DocumentException, EXIException, SAXException, TransformerException, NoSuchAlgorithmException {
-		String encodedBytes, schemaLocation = null;
-		String canonicalSchemaString = EXIUtils.readFile(EXIUtils.canonicalSchemaLocation);
-		Element canonicalSchemaElement = DocumentHelper.parseText(canonicalSchemaString).getRootElement();
+		String xml, schemaLocation = null;
+		String schemasFileContent = EXIUtils.readFile(EXIUtils.schemasFileLocation);
+		Element schemasFileElement = DocumentHelper.parseText(schemasFileContent).getRootElement();
 		Element auxElement;
 		for(String ms : missingSchemas){
-			for (@SuppressWarnings("unchecked") Iterator<Element> i = canonicalSchemaElement.elementIterator("import"); i.hasNext();) {
+			for (@SuppressWarnings("unchecked") Iterator<Element> i = schemasFileElement.elementIterator("schema"); i.hasNext();) {
 				auxElement = i.next();
-				if(auxElement.attributeValue("namespace").equals(ms)){
+				if(ms.equals(auxElement.attributeValue("ns"))){
 					schemaLocation = auxElement.attributeValue("schemaLocation");
 					break;
 				}
 			}
 			if(schemaLocation == null){
-				System.err.println("error: no se ha encontrado el archivo: " + ms);
+				System.err.println("error: no se ha encontrado el archivo para " + ms);
 				return;
 			}
 			
 			String contentType = "Text", content = Base64.encode(Files.readAllBytes(Paths.get(schemaLocation)));
 			
-			encodedBytes = "<uploadSchema xmlns='http://jabber.org/protocol/compress/exi' contentType='" + contentType + "'>"
+			xml = "<uploadSchema xmlns='http://jabber.org/protocol/compress/exi' contentType='" + contentType + "'>"
 					.concat(content)
 					.concat("</uploadSchema>");
 		
-		writer.write(encodedBytes);
+		writer.write(xml);
 		writer.flush();
 		}
 	}
 	
 	private void uploadCompressedMissingSchemas(List<String> missingSchemas) throws IOException, DocumentException, EXIException, SAXException, TransformerException, NoSuchAlgorithmException {
-		String encodedBytes, schemaLocation = null;
-		String canonicalSchemaString = EXIUtils.readFile(EXIUtils.canonicalSchemaLocation);
-		Element canonicalSchemaElement = DocumentHelper.parseText(canonicalSchemaString).getRootElement();
+		String schemaLocation = null;
+		String schemasFileContent = EXIUtils.readFile(EXIUtils.schemasFileLocation);
+		Element schemasFileElement = DocumentHelper.parseText(schemasFileContent).getRootElement();
 		Element auxElement;
+		
+		byte[] ba, xmlStart, xmlEnd = "</uploadSchema>".getBytes();
+		BufferedOutputStream bos = new BufferedOutputStream(socket.getOutputStream());
 		for(String ms : missingSchemas){
-			for (@SuppressWarnings("unchecked") Iterator<Element> i = canonicalSchemaElement.elementIterator("import"); i.hasNext();) {
+			for (@SuppressWarnings("unchecked") Iterator<Element> i = schemasFileElement.elementIterator("schema"); i.hasNext();) {
 				auxElement = i.next();
-				if(auxElement.attributeValue("namespace").equals(ms)){
+				if(ms.equals(auxElement.attributeValue("ns"))){
 					schemaLocation = auxElement.attributeValue("schemaLocation");
 					break;
 				}
 			}
 			if(schemaLocation == null){
-				System.err.println("error: no se ha encontrado el archivo: " + ms);
+				System.err.println("error: no se ha encontrado el archivo para " + ms);
 				return;
 			}
 			
-			String content = Base64.encode(Files.readAllBytes(Paths.get(schemaLocation)));
 			MessageDigest md = MessageDigest.getInstance("MD5");
 	    	File file = new File(schemaLocation);
 			String md5Hash = EXIUtils.bytesToHex(md.digest(Files.readAllBytes(file.toPath())));
 			String archivo = new String(Files.readAllBytes(file.toPath()));
-			String contentType = "ExiBody";
+			String contentType = "ExiDocument";
+
+			byte[] content = EXIProcessor.encodeSchemaless(archivo);
 			
-System.out.println("archivo: " + schemaLocation);
-			content = new String(EXIProcessor.encodeSchemaless(archivo));
+			xmlStart = ("<uploadSchema xmlns='http://jabber.org/protocol/compress/exi'"
+                    + " contentType='" + contentType + "' md5Hash='" + md5Hash + "' bytes='" + file.length() + "'>").getBytes();                    
 			
-			encodedBytes = "<uploadSchema xmlns='http://jabber.org/protocol/compress/exi'"
-					+ " contentType='" + contentType + "' md5Hash='" + md5Hash + "' bytes='" + file.length() + "'>"
-					.concat(content)
-					.concat("</uploadSchema>");
-		
-		writer.write(encodedBytes);
-		writer.flush();
+			ba = new byte[xmlStart.length + content.length + xmlEnd.length];
+			System.arraycopy(xmlStart, 0, ba, 0, xmlStart.length);
+			System.arraycopy(content, 0, ba, xmlStart.length, content.length);
+			System.arraycopy(xmlEnd, 0, ba, xmlStart.length + content.length, xmlEnd.length);
+			
+System.out.println("uploadSchema message in hex (" + ba.length + "): " + EXIUtils.bytesToHex(ba));
+System.out.println("uploadSchema content in hex (" + content.length + "): " + EXIUtils.bytesToHex(content));
+			bos.write(ba);
+			bos.flush();
 		}
 	}
 	

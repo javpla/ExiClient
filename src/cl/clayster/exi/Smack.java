@@ -108,7 +108,7 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 		// chatmanager to interchange messages
 		ChatManager chatmanager = connection.getChatManager();
 		Chat newChat = chatmanager.createChat(contacto, showMsgThread);
-		newChat.sendMessage("Hola!");
+		newChat.sendMessage("aeiou ·ÈÌÛ˙ ‡ËÏÚ˘ ‰ÎÔˆ¸ AEIOU ¡…Õ”⁄ ¿»Ã“Ÿ ƒÀœ÷‹");
 		/*
 		Message newMessage = new Message();
 		newMessage.setBody("Mensaje largo y con propiedades extra. BLABLABLABLABALBALABLABDLAD ADS ABL ABDK LSABD KASB DKASD BAKLD BASKDLAB LKSAB KLAS");
@@ -201,7 +201,7 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 	
 	
 	public static void encodingDecodingTest() throws IOException{
-		// TODO: schemaInformed forma bytes[] m·s largos que schemaless 
+		System.out.println("QUICK TEST.-");
 		try {
 			String testXML = "<xml>"
 					+ "<auth mechanism=\"DIGEST-MD5\" xmlns=\"urn:ietf:params:xml:ns:xmpp-sasl\"></auth>"
@@ -221,7 +221,7 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 			//System.out.println("XML: " + testXML);
 			EXIProcessor ep = new EXIProcessor(EXIUtils.canonicalSchemaLocation);
 			
-			System.out.println("encoding...");
+			System.out.println("encoding... " + testXML);
 			byte[] schemaInformed = ep.encodeToByteArray(testXML);
 			byte[] schemaless = EXIProcessor.encodeSchemaless(testXML);
 			if(schemaInformed.equals(schemaless)){
