@@ -97,7 +97,7 @@ public class XMPPConnection extends Connection {
     /**
      * Collection of available stream compression methods offered by the server.
      */
-    private Collection<String> compressionMethods;
+    protected Collection<String> compressionMethods;
 
     /**
      * Set to true by packet writer if the server acknowledged the compression
@@ -966,7 +966,7 @@ public class XMPPConnection extends Connection {
      * then negotiation of stream compression can only happen after TLS was negotiated. If TLS
      * compression is being used the stream compression should not be used.
      */
-    private void requestStreamCompression(String method) {
+    protected void requestStreamCompression(String method) {
         try {
             writer.write("<compress xmlns='http://jabber.org/protocol/compress'>");
             writer.write("<method>" + method + "</method></compress>");

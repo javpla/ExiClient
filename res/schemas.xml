@@ -1,6 +1,6 @@
-<setup xmlns='http://jabber.org/protocol/compress/exi' version='1' strict='true' blockSize='1024' valueMaxLength='32' valuePartitionCapacity='100'>
+<setup xmlns='http://jabber.org/protocol/compress/exi' version='1' strict='false' blockSize='1000000' valueMaxLength='32' valuePartitionCapacity='100'>
+	<schema ns='http://www.w3.org/XML/1998/namespace' bytes='4726' md5Hash='2e2cf9072dc058dcda41b7ee77a5cb54' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\res\xml.xsd' url=''/>
 	<schema ns='jabber:client' bytes='6914' md5Hash='b75569d6ab074cb678bb10f50dc44db6' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\res\jabber-client.xsd' url='AAAAAAAAAAAAA'/>
 	<schema ns='jabber:x:event' bytes='1013' md5Hash='305f4bef3c118b9d3d11d96aea753026' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\res\x-event.xsd' url='https://dl.dropboxusercontent.com/u/29425691/a.djio'/>
 	<schema ns='urn:ietf:params:xml:ns:xmpp-stanzas' bytes='3080' md5Hash='9ad48ff02d0c1258cbc5830d6af7a835' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\res\stanzaerror.xsd' url='https://dl.dropboxusercontent.com/u/29425691/stanzaerror.xsd'/>
-	<schema ns='http://www.w3.org/XML/1998/namespace' bytes='4726' md5Hash='2e2cf9072dc058dcda41b7ee77a5cb54' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\res\xml.xsd' url=''/>
 </setup>

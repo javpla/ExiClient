@@ -286,8 +286,8 @@ public class PacketReader {
                     else if (parser.getName().equals("setupResponse")) {
                 		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
                 		if("true".equals(parser.getAttributeValue(null, "agreement"))){
-            				exiConnection.saveConfigId(parser.getAttributeValue(null, "configurationId"));
-                			exiConnection.startExiCompression();
+            				exiConnection.setConfigId(parser.getAttributeValue(null, "configurationId"));
+                			exiConnection.requestStreamCompression("exi");
                 		}
                 		else{
                 			if(parser.getAttributeValue("null", "configurationId") == null){
@@ -295,7 +295,7 @@ public class PacketReader {
     	                		if(missingSchemas.size() > 0){
     	                			exiConnection.sendMissingSchemas(missingSchemas, EXIXMPPConnection.UPLOAD_EXI_DOCUMENT);
     	                		}
-                				exiConnection.saveConfigId(null);
+                				exiConnection.setConfigId(null);
                 				Thread.sleep(1000);
                     			exiConnection.proposeEXICompression();
                 			}
@@ -306,10 +306,6 @@ public class PacketReader {
                     	if(--exiConnection.schemaDownloads == 0){
                     		exiConnection.proposeEXICompression();
                     	}
-                    }
-                    else if (parser.getName().equals("failure")){
-                		// TODO: continuar sin compresión
-System.out.println("There was a failure during EXI negotiation.");
                     }
                     /************************ fin EXI code ************************/
                     

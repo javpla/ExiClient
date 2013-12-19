@@ -52,12 +52,26 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * Defines the reader and writer which are capable of sending both normal XMPP messages and EXI messages depending on which one is enabled.
 	 */
 	@Override
-	public void initReaderAndWriter() throws XMPPException {
+	protected void initReaderAndWriter() throws XMPPException {
 		EXIProcessor exiProcessor = null;
 		try {
-			exiProcessor = new EXIProcessor(EXIUtils.canonicalSchemaLocation);
+			String configId = Preferences.userRoot().get(EXIUtils.REG_KEY, null);
+			if(configId != null){
+				int strictIndex = configId.lastIndexOf('-') + 1;
+				Boolean strict = configId.charAt(strictIndex) == '1';
+				Integer blockSize = Integer.valueOf(configId.substring(strictIndex + 1));
+				exiProcessor = new EXIProcessor(EXIUtils.canonicalSchemaLocation, blockSize, strict);
+			}
+			else{
+				exiProcessor = new EXIProcessor(EXIUtils.canonicalSchemaLocation, null, null);
+			}
 		} catch (EXIException e) {
 			System.err.println(e.getMessage());
+		} catch (NumberFormatException e){	
+			// error en el formato del configId. Se borra y se intenta nuevamente con blockSize y strict por defecto. 
+			setConfigId(null);
+			initReaderAndWriter();
+			return;
 		}
 		if(exiProcessor == null){
 			super.initReaderAndWriter();
@@ -65,9 +79,6 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 		try {
             if (compressionHandler == null) {
-            	
-                //reader = new EXIReader(new InputStreamReader(socket.getInputStream(), EXIProcessor.CHARSET), exiProcessor);
-                //writer = new EXIWriter(new OutputStreamWriter(socket.getOutputStream(), EXIProcessor.CHARSET), exiProcessor);
             	reader = new EXIReader(socket.getInputStream(), exiProcessor);
                 writer = new EXIWriter(socket.getOutputStream(), exiProcessor);
             }
@@ -145,11 +156,14 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @parameter quickSetup true if quick configurations are to be proposed, false otherwise
 	 */
 	public void proposeEXICompression() throws IOException, DocumentException{
+		if(!compressionMethods.contains("exi")){
+			System.err.println("The server does not support EXI compression.");
+			return;
+		}
 		String setupStanza = "";
-		String configId = "";
-		boolean quickSetup = false;		
-		configId = Preferences.userRoot().get(EXIUtils.REG_KEY, null); 
-		quickSetup = (configId != null); // quickSetup is valid if there is a file to read or else it is false and normal setup stanza will be sent
+		String configId = Preferences.userRoot().get(EXIUtils.REG_KEY, null);
+		boolean quickSetup = false;
+		quickSetup = (configId != null); // quickSetup is valid if there is a value in registry or else it is false and normal setup stanza will be sent
 		
 		if(quickSetup){
 			setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + configId + "'/>";
@@ -164,13 +178,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	        }
 	        setupStanza = setupElement.asXML();
 		}
-System.out.println("Proposing EXI...\n" + setupStanza);
         writer.write(setupStanza);
-	    writer.flush();
-	}
-
-	public void startExiCompression() throws IOException {
-		writer.write("<compress xmlns=\'http://jabber.org/protocol/compress\'><method>exi</method></compress>");
 	    writer.flush();
 	}
 
@@ -230,7 +238,7 @@ System.out.println("Proposing EXI...\n" + setupStanza);
 			String archivo = new String(Files.readAllBytes(file.toPath()));
 			String contentType = "ExiDocument";
 
-			byte[] content = EXIProcessor.encodeSchemaless(archivo);
+			byte[] content = EXIProcessor.encodeSchemaless(archivo, false);
 			
 			xmlStart = ("<uploadSchema xmlns='http://jabber.org/protocol/compress/exi'"
                     + " contentType='" + contentType + "' md5Hash='" + md5Hash + "' bytes='" + file.length() + "'>").getBytes();                    
@@ -315,7 +323,7 @@ System.out.println("uploadSchema content in hex (" + content.length + "): " + EX
 		}
 	}
 
-	public void saveConfigId(String configId) {
+	public void setConfigId(String configId) {
 		Preferences pref = Preferences.userRoot();
 		if(configId != null){
 			pref.put(EXIUtils.REG_KEY, configId);
@@ -323,6 +331,6 @@ System.out.println("uploadSchema content in hex (" + content.length + "): " + EX
 		else{
 			pref.remove(EXIUtils.REG_KEY);
 		}
-	}	
+	}
 	
 }

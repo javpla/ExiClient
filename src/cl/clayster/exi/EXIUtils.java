@@ -19,10 +19,11 @@ public class EXIUtils {
 	
 	public static final String canonicalSchemaLocation = "./res/canonicalSchema.xsd"; 
 	public static final String schemasFileLocation = "./res/schemas.xml";
-	public static final String configurationIdLocation = "./res/configId.txt";
 	public static final char[] hexArray = "0123456789abcdef".toCharArray();
 	public static final String schemasFolder = "./res/";
 	public static final String REG_KEY = "exi_config_id";	
+	public static final String strict = "false";
+	public static final String blockSize = "1000000";
 	
 	
 	public static String bytesToHex(byte[] bytes){
@@ -109,7 +110,7 @@ public class EXIUtils {
             
             
             stanzasWriter.write("<setup xmlns=\'http://jabber.org/protocol/compress/exi\'"
-            		+ " version=\'1\' strict=\'true\' blockSize=\'1024\'"
+            		+ " version=\'1\' strict=\'" + strict + "\' blockSize=\'" + blockSize + "\'"
             		+ " valueMaxLength=\'32\' valuePartitionCapacity=\'100\'>");
             canonicalSchemaWriter.write("<?xml version='1.0' encoding='UTF-8'?> \n\n<xs:schema \n\txmlns:xs='http://www.w3.org/2001/XMLSchema' \n\ttargetNamespace='urn:xmpp:exi:cs' \n\txmlns='urn:xmpp:exi:cs' \n\telementFormDefault='qualified'>\n");
             for(String ns : namespaces){

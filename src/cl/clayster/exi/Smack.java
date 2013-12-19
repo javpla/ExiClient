@@ -21,6 +21,8 @@ import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Presence;
 import org.xml.sax.SAXException;
 
+import com.siemens.ct.exi.EncodingOptions;
+import com.siemens.ct.exi.FidelityOptions;
 import com.siemens.ct.exi.exceptions.EXIException;
 
 
@@ -38,9 +40,29 @@ public class Smack implements MessageListener{
 	public static void main(String[] args) throws XMPPException, IOException{
 		
 		boolean exi = true;
-		boolean test = false;
+		boolean test = true;
 		if(test){
-			encodingDecodingTest();
+			//encodingDecodingTest();
+			String txt = "<?xml version=\"1.0\"?>"
+			+ "<exi:streamStart xmlns:exi='http://jabber.org/protocol/compress/exi' version=\"1.0\" to=\"jabber.example.org\" xml:lang=\"en\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\" >"
+			+ "<exi:xmlns prefix=\"stream\" namespace=\"http://etherx.jabber.org/streams\" />"
+			+ "<exi:xmlns prefix=\"\" namespace=\"jabber:client\" />"
+			+ "<exi:xmlns prefix=\"xml\" namespace=\"http://www.w3.org/XML/1998/namespace\" />"
+			+ "</exi:streamStart>";
+			try {
+				EncodingOptions eo = EncodingOptions.createDefault();
+				eo.setOption(EncodingOptions.INCLUDE_COOKIE);
+				eo.setOption(EncodingOptions.INCLUDE_OPTIONS);
+				String exiHex = EXIUtils.bytesToHex(EXIProcessor.encodeSchemaless(txt, eo, FidelityOptions.createDefault()));
+				System.out.println("Con EXI Options(" + exiHex.length() + "):");
+				System.out.println(exiHex);
+				
+				exiHex = EXIUtils.bytesToHex(EXIProcessor.encodeSchemaless(txt, false));
+				System.out.println("Sin EXI Options(" + exiHex.length() + "):");
+				System.out.println(exiHex);
+			} catch (EXIException | SAXException e) {
+				e.printStackTrace();
+			}
 			return;
 		}
 		
@@ -95,7 +117,6 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 		connection.login(usuario, password);
 		
 		// Start EXI
-		//connection.enableEXI(true);
 		if(exi){
 			try{
 				connection.proposeEXICompression();
@@ -174,6 +195,7 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 				newChat.sendMessage(msg);
         }
 		connection.disconnect();
+		return;
 	}
 	
 	// repeat like a parrot to every user starting a conversation (except from contacto, he has another messagelistener)
@@ -219,11 +241,11 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 					+ "</xml>";
 			//testXML = EXIUtils.readFile("C:/Users/Javier/workspace/Personales/ExiClient/res/stanzaerror.xsd");
 			//System.out.println("XML: " + testXML);
-			EXIProcessor ep = new EXIProcessor(EXIUtils.canonicalSchemaLocation);
+			EXIProcessor ep = new EXIProcessor(EXIUtils.canonicalSchemaLocation, 1024, false);
 			
 			System.out.println("encoding... " + testXML);
 			byte[] schemaInformed = ep.encodeToByteArray(testXML);
-			byte[] schemaless = EXIProcessor.encodeSchemaless(testXML);
+			byte[] schemaless = EXIProcessor.encodeSchemaless(testXML, false);
 			if(schemaInformed.equals(schemaless)){
 				System.out.println("Son iguales: " + EXIUtils.bytesToHex(schemaInformed));
 			}
