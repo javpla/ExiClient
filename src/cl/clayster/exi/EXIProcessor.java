@@ -16,16 +16,20 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXNotRecognizedException;
+import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 
 import com.siemens.ct.exi.CodingMode;
+import com.siemens.ct.exi.Constants;
 import com.siemens.ct.exi.EXIFactory;
 import com.siemens.ct.exi.EncodingOptions;
 import com.siemens.ct.exi.FidelityOptions;
 import com.siemens.ct.exi.GrammarFactory;
 import com.siemens.ct.exi.api.sax.EXIResult;
 import com.siemens.ct.exi.api.sax.EXISource;
+import com.siemens.ct.exi.api.sax.SAXDecoder;
 import com.siemens.ct.exi.exceptions.EXIException;
 import com.siemens.ct.exi.grammars.Grammars;
 import com.siemens.ct.exi.helpers.DefaultEXIFactory;
@@ -42,7 +46,7 @@ public class EXIProcessor {
 	static final int defaultBlockSize = 1000000;
 	static final boolean defaultStrict = false;
 	
-	public EXIProcessor(String xsdLocation, Integer blockSize, Boolean strict) throws EXIException{
+	public EXIProcessor(String canonicalSchemaLocation, Integer blockSize, Boolean strict) throws EXIException{
 		// create default factory and EXI grammar for schema
 		exiFactory = DefaultEXIFactory.newInstance();
 		if(strict == null)	strict = defaultStrict;
@@ -50,20 +54,65 @@ public class EXIProcessor {
 		exiFactory.setCodingMode(CodingMode.BIT_PACKED);
 		exiFactory.setBlockSize(blockSize != null ? blockSize : defaultBlockSize);
 		
-		if(xsdLocation != null && new File(xsdLocation).isFile()){
+		if(canonicalSchemaLocation != null && new File(canonicalSchemaLocation).isFile()){
 			try {
 				GrammarFactory grammarFactory = GrammarFactory.newInstance();
-				Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
+				Grammars g = grammarFactory.createGrammars(canonicalSchemaLocation, new SchemaResolver(EXIUtils.schemasFolder));
 				exiFactory.setGrammars(g);
 			} catch (IOException e) {
 				throw new EXIException("Error while creating Grammars.");
 			}
 		}
 		else{
-			String message = "Invalid Canonical Schema file location: " + xsdLocation;
+			String message = "Invalid Canonical Schema file location: " + canonicalSchemaLocation;
 System.err.println(message);
 			throw new EXIException(message);
 		}
+	}
+	
+	public static byte[] encodeEXIBody(String xml) throws EXIException, IOException, SAXException{
+		byte[] exi = encodeSchemaless(xml, false);
+		// With default options, the header is only 1 byte long: Distinguishing bits (10), Presence of EXI Options (0) and EXI Version (00000)
+		System.arraycopy(exi, 1, exi, 0, exi.length - 1);
+		return exi;
+	}
+	
+	/**
+	 * Decodes an EXI body byte array using no schema files.
+	 * 
+	 * @param exi the EXI stanza to be decoded
+	 * @return a String containing the decoded XML
+	 * @throws IOException
+	 * @throws EXIException
+	 * @throws UnsupportedEncodingException 
+	 * @throws SAXException
+	 */
+	public static String decodeExiBodySchemaless(byte[] exi) throws TransformerException, EXIException, UnsupportedEncodingException{
+		TransformerFactory tf = TransformerFactory.newInstance();
+		Transformer transformer = tf.newTransformer();
+		
+		EXIFactory factory = DefaultEXIFactory.newInstance();
+		defaultFidelityOptions.setFidelity(FidelityOptions.FEATURE_PREFIX, true);
+		factory.setFidelityOptions(defaultFidelityOptions);
+		factory.setCodingMode(defaultCodingMode);
+		factory.setFragment(defaultIsFragmet);
+		factory.setBlockSize(defaultBlockSize);
+		
+		SAXSource exiSource = new SAXSource(new InputSource(new ByteArrayInputStream(exi)));
+		SAXDecoder saxDecoder = (SAXDecoder) factory.createEXIReader();
+		try {
+			saxDecoder.setFeature(Constants.W3C_EXI_FEATURE_BODY_ONLY, Boolean.TRUE);
+		} catch (SAXNotRecognizedException e) {
+			e.printStackTrace();
+		} catch (SAXNotSupportedException e) {
+			e.printStackTrace();
+		}
+		exiSource.setXMLReader(saxDecoder);
+
+		ByteArrayOutputStream xmlDecoded = new ByteArrayOutputStream();
+		transformer.transform(exiSource, new StreamResult(xmlDecoded));
+
+		return xmlDecoded.toString("UTF-8");
 	}
 	
 
@@ -86,7 +135,6 @@ System.err.println(message);
 		factory.setCodingMode(defaultCodingMode);
 		factory.setFragment(defaultIsFragmet);
 		factory.setBlockSize(defaultBlockSize);
-		
 		
 		if(cookie)	factory.getEncodingOptions().setOption(EncodingOptions.INCLUDE_COOKIE);
 		

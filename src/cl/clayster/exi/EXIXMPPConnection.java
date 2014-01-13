@@ -14,6 +14,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.prefs.Preferences;
 
+import javax.xml.stream.XMLStreamException;
 import javax.xml.transform.TransformerException;
 
 import org.apache.xerces.impl.dv.util.Base64;
@@ -44,8 +45,16 @@ public class EXIXMPPConnection extends XMPPConnection{
 	public static final int UPLOAD_EXI_BODY = 2;
 	public static final int UPLOAD_URL = 3;
 	
+	protected boolean usingEXI = false;
+	
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
+		try {
+			EXIUtils.generateBoth(EXIUtils.schemasFolder);
+		} catch (NoSuchAlgorithmException | IOException e1) {
+			e1.printStackTrace();
+			return;
+		}
 	}
 	
 	/**
@@ -109,10 +118,11 @@ public class EXIXMPPConnection extends XMPPConnection{
                             "EXI_XMPPError establishing connection with server."),
                     ioe);
         }
-		
         // If debugging is enabled, we open a window and write out all network traffic.
         initDebugger();
 	}
+	
+	
 	
 	
 	/**
@@ -121,7 +131,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @param enable true to enable EXI messages (false to disable)
 	 * @throws IOException 
 	 */
-	public void enableEXI(boolean enable) throws IOException{
+	public void enableEXI(boolean enable){
+		this.usingEXI = enable;
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
 			((EXIReader) ((ObservableReader) reader).wrappedReader).setEXI(enable);
 			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).setEXI(enable);
@@ -129,10 +140,12 @@ public class EXIXMPPConnection extends XMPPConnection{
 		else if(reader instanceof EXIReader && writer instanceof EXIWriter){
 			((EXIReader) reader).setEXI(enable);
 			((EXIWriter) writer).setEXI(enable);
-			System.out.println("sdada");
+			System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
 		}	
 		else System.err.println("No se ha activado EXI");
-		
+	}
+	
+	public void openEXIStream() throws IOException{
 		String exiSpecific = "<exi:streamStart from='"
 				+ getUser()
 	 			+ "' to='"
@@ -153,13 +166,13 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * Reads the schemas stanzas file, removes unnecessary attributes (which need to be present) and generates the Setup stanza to inform about the schemas needed.
 	 * @throws IOException If there are problems reading the schemas stanzas file
 	 * @throws DocumentException 
-	 * @parameter quickSetup true if quick configurations are to be proposed, false otherwise
 	 */
-	public void proposeEXICompression() throws IOException, DocumentException{
+	public void proposeEXICompression(){
 		if(!compressionMethods.contains("exi")){
 			System.err.println("The server does not support EXI compression.");
 			return;
 		}
+		
 		String setupStanza = "";
 		String configId = Preferences.userRoot().get(EXIUtils.REG_KEY, null);
 		boolean quickSetup = false;
@@ -169,17 +182,26 @@ public class EXIXMPPConnection extends XMPPConnection{
 			setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + configId + "'/>";
 		}
 		else{
-			Element setupElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
-	 		Element auxSchema;
-	        for (@SuppressWarnings("unchecked") Iterator<Element> i = setupElement.elementIterator("schema"); i.hasNext();) {
-	        	auxSchema = i.next();
-	        	auxSchema.remove(auxSchema.attribute("url"));
-	        	auxSchema.remove(auxSchema.attribute("schemaLocation"));
-	        }
-	        setupStanza = setupElement.asXML();
+			try {
+				Element setupElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
+		 		Element auxSchema;
+		        for (@SuppressWarnings("unchecked") Iterator<Element> i = setupElement.elementIterator("schema"); i.hasNext();) {
+		        	auxSchema = i.next();
+		        	auxSchema.remove(auxSchema.attribute("url"));
+		        	auxSchema.remove(auxSchema.attribute("schemaLocation"));
+		        }
+		        setupStanza = setupElement.asXML();
+			} catch (DocumentException e) {
+				System.err.println("Unable to propose EXI compression. " + e.getMessage());
+			}
+	        
 		}
-        writer.write(setupStanza);
-	    writer.flush();
+        try {
+			writer.write(setupStanza);
+			writer.flush();
+		} catch (IOException e) {
+			System.err.println("Error while writing <setup> stanza: " + e.getMessage());
+		}
 	}
 
 	private void uploadMissingSchemas(List<String> missingSchemas) throws IOException, DocumentException, EXIException, SAXException, TransformerException, NoSuchAlgorithmException {
@@ -211,7 +233,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 	}
 	
-	private void uploadCompressedMissingSchemas(List<String> missingSchemas) throws IOException, DocumentException, EXIException, SAXException, TransformerException, NoSuchAlgorithmException {
+	private void uploadCompressedMissingSchemas(List<String> missingSchemas, boolean exiBody) throws IOException, DocumentException, EXIException, SAXException, TransformerException, NoSuchAlgorithmException, XMLStreamException {
 		String schemaLocation = null;
 		String schemasFileContent = EXIUtils.readFile(EXIUtils.schemasFileLocation);
 		Element schemasFileElement = DocumentHelper.parseText(schemasFileContent).getRootElement();
@@ -238,7 +260,14 @@ public class EXIXMPPConnection extends XMPPConnection{
 			String archivo = new String(Files.readAllBytes(file.toPath()));
 			String contentType = "ExiDocument";
 
-			byte[] content = EXIProcessor.encodeSchemaless(archivo, false);
+			byte[] content = new byte[]{};
+			if(exiBody){
+				contentType = "ExiBody";
+				content = EXIProcessor.encodeEXIBody(archivo);
+			}
+			else{
+				content = EXIProcessor.encodeSchemaless(archivo, false);
+			}
 			
 			xmlStart = ("<uploadSchema xmlns='http://jabber.org/protocol/compress/exi'"
                     + " contentType='" + contentType + "' md5Hash='" + md5Hash + "' bytes='" + file.length() + "'>").getBytes();                    
@@ -248,8 +277,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 			System.arraycopy(content, 0, ba, xmlStart.length, content.length);
 			System.arraycopy(xmlEnd, 0, ba, xmlStart.length + content.length, xmlEnd.length);
 			
-System.out.println("uploadSchema message in hex (" + ba.length + "): " + EXIUtils.bytesToHex(ba));
-System.out.println("uploadSchema content in hex (" + content.length + "): " + EXIUtils.bytesToHex(content));
+System.out.println("Message Content in hex (" + content.length + "): " + EXIUtils.bytesToHex(content));
 			bos.write(ba);
 			bos.flush();
 		}
@@ -304,15 +332,16 @@ System.out.println("uploadSchema content in hex (" + content.length + "): " + EX
 	 * @throws DocumentException 
 	 * @throws IOException 
 	 * @throws NoSuchAlgorithmException 
+	 * @throws XMLStreamException 
 	 */
 	public void sendMissingSchemas(List<String> missingSchemas, int opt) 
-			throws NoSuchAlgorithmException, IOException, DocumentException, EXIException, SAXException, TransformerException {
+			throws NoSuchAlgorithmException, IOException, DocumentException, EXIException, SAXException, TransformerException, XMLStreamException {
 		switch(opt){
 			case 1: // upload compressed EXI document
-				uploadCompressedMissingSchemas(missingSchemas);
+				uploadCompressedMissingSchemas(missingSchemas, false);
 				break;
-			case 2: // TODO: upload compressed EXI body
-				uploadCompressedMissingSchemas(missingSchemas);
+			case 2: // upload compressed EXI body
+				uploadCompressedMissingSchemas(missingSchemas, true);
 				break;
 			case 3:	// send URL and download on server 
 				downloadSchemas(missingSchemas);
@@ -331,6 +360,10 @@ System.out.println("uploadSchema content in hex (" + content.length + "): " + EX
 		else{
 			pref.remove(EXIUtils.REG_KEY);
 		}
+	}
+	
+	public boolean getUsingEXI(){
+		return this.usingEXI;
 	}
 	
 }

@@ -1,13 +1,14 @@
 package cl.clayster.exi;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.util.Collection;
 
 import javax.xml.transform.TransformerException;
 
-import org.dom4j.DocumentException;
 import org.jivesoftware.smack.Chat;
 import org.jivesoftware.smack.ChatManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
@@ -28,21 +29,46 @@ import com.siemens.ct.exi.exceptions.EXIException;
 
 public class Smack implements MessageListener{
 	
-	static String xml = "<challenge ns=\"urn:ietf:params:xml:ns:xmpp-sasl\">cmVhbG09Imphdmllci5wbGFjZW5jaW8iLG5vbmNlPSIralNIbjZ6TXpwMjR6dk42N3RtY216QmtZYXA3VXV5eWJWRElya0JwIixxb3A9ImF1dGgiLGNoYXJzZXQ9dXRmLTgsYWxnb3JpdGhtPW1kNS1zZXNz</challenge>";
-	//static String xml = "<message id=\"WLDXv-25\" to=\"smackuser@javier.placencio/Smack\" from=\"javier@javier.placencio/Spark 2.6.3\" type=\"chat\"><!--comentario--><body>blablablaaaa blaa </body><thread>lfLRoe</thread><x xmlns=\"jabber:x:event\"><offline/><composing/></x></message>";
-	static final String servidor = "javier.placencio";
-	static final String contacto = "javier" + "@" + servidor;	// usuario al cual se le env√≠an mensajes
-	static final String usuario = "smackuser";
-	static final String password = "smackuser";
 	
+	static final String servidor = "exi.clayster.cl";
+	static final String contacto = "javier.placencio@clayster.cl";	// usuario al cual se le env√≠an mensajes
+	static final String usuario = "exiuser";
+	static final String password = "exiuser";
+	static boolean exi = true;
+	/*
 	
+	static final String servidor = "clayster.cl";
+	static final String contacto = "gogonet1@jabber.se";	// usuario al cual se le env√≠an mensajes
+	static final String usuario = "javier.placencio";
+	static final String password = "pla123";
+	static boolean exi = false;
+	/**/
 	
 	public static void main(String[] args) throws XMPPException, IOException{
-		
-		boolean exi = true;
-		boolean test = true;
+		boolean test = false;
 		if(test){
-			//encodingDecodingTest();
+			String archivo = new String(Files.readAllBytes(new File("C:/Users/Javier/workspace/Personales/ExiClient/res/xml.xsd").toPath()));
+			try {
+				byte[] exiBody = EXIProcessor.encodeEXIBody(archivo);
+				System.out.println("EXI Body: " + EXIUtils.bytesToHex(exiBody));
+				String xml = EXIProcessor.decodeExiBodySchemaless(exiBody);
+			//	System.out.println("XML: " + xml);
+				
+				byte[] exiDoc = EXIProcessor.encodeSchemaless(archivo, false);
+				System.out.println("EXI Document: " + EXIUtils.bytesToHex(exiDoc));
+				xml = EXIProcessor.decodeSchemaless(exiDoc);
+				System.out.println("XML: " + xml);
+				
+			} catch (EXIException | SAXException e) {
+				e.printStackTrace();
+			} catch (TransformerException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			return;
+		}
+		if(test){
 			String txt = "<?xml version=\"1.0\"?>"
 			+ "<exi:streamStart xmlns:exi='http://jabber.org/protocol/compress/exi' version=\"1.0\" to=\"jabber.example.org\" xml:lang=\"en\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\" >"
 			+ "<exi:xmlns prefix=\"stream\" namespace=\"http://etherx.jabber.org/streams\" />"
@@ -118,18 +144,13 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 		
 		// Start EXI
 		if(exi){
-			try{
-				connection.proposeEXICompression();
-			} catch (DocumentException e) {
-				System.err.println("Unable to propose EXI compression.");
-				System.err.println("Reason: " + e.getMessage());
-			}
+			connection.proposeEXICompression();
 		} 
 		
 		// chatmanager to interchange messages
 		ChatManager chatmanager = connection.getChatManager();
 		Chat newChat = chatmanager.createChat(contacto, showMsgThread);
-		newChat.sendMessage("aeiou ·ÈÌÛ˙ ‡ËÏÚ˘ ‰ÎÔˆ¸ AEIOU ¡…Õ”⁄ ¿»Ã“Ÿ ƒÀœ÷‹");
+		//newChat.sendMessage("aeiou ·ÈÌÛ˙ ‡ËÏÚ˘ ‰ÎÔˆ¸ AEIOU ¡…Õ”⁄ ¿»Ã“Ÿ ƒÀœ÷‹");
 		/*
 		Message newMessage = new Message();
 		newMessage.setBody("Mensaje largo y con propiedades extra. BLABLABLABLABALBALABLABDLAD ADS ABL ABDK LSABD KASB DKASD BAKLD BASKDLAB LKSAB KLAS");
@@ -179,14 +200,17 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 				connection.sendPacket(presence);
 				continue;
 			}
-			if(msg.equalsIgnoreCase("iq")){
+			if(msg.startsWith("iq")){
 				IQ iq = new IQ() {
 					
 					@Override
 					public String getChildElementXML() {
-						return "<query xmlns=\"jabber:iq:roster\"></query>";
+						//return "<query xmlns=\"jabber:iq:roster\"></query>";
+						return "<req xmlns='urn:xmpp:sn' seqnr='1' momentary='true'/>";
 					}
 				};
+				iq.setTo("gogonet1@jabber.se");
+				iq.setFrom(usuario + "@" + servidor);
 				iq.setType(IQ.Type.GET);
 				connection.sendPacket(iq);
 				continue;
@@ -219,51 +243,6 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 	@Override
 	public void processMessage(Chat chat, Message message) {
 		// TODO Auto-generated method stub
-	}
-	
-	
-	public static void encodingDecodingTest() throws IOException{
-		System.out.println("QUICK TEST.-");
-		try {
-			String testXML = "<xml>"
-					+ "<auth mechanism=\"DIGEST-MD5\" xmlns=\"urn:ietf:params:xml:ns:xmpp-sasl\"></auth>"
-					+ "<response xmlns=\"urn:ietf:params:xml:ns:xmpp-sasl\">Y2hhcnNldD11dGYtOCx1c2VybmFtZT0ic21hY2t1c2VyIixyZWFsbT0iamF2aWVyLnBsYWNlbmNpbyIsbm9u"
-					+ "Y2U9IlU5Ym03YXQ2RXQwdzZoaFM2b2VxRndsbUhwWUt1ZnNxZnYrL1d0QkIiLG5jPTAwMDAwMDAxLGNub25jZT0iaFpua25wdGVMRUtLWjBucnhYcnY3ZWZ3aWlBZ2x3Y0RkbjNCR"
-					+ "WZTaCIsZGlnZXN0LXVyaT0ieG1wcC9qYXZpZXIucGxhY2VuY2lvIixtYXhidWY9NjU1MzYscmVzcG9uc2U9MzBlNDAzMGNhODA2OWRkYWM2YTNmZDg5ZTRiOWQyMjIscW9wPWF1dG"
-					+ "gsYXV0aHppZD0ic21hY2t1c2VyIg==</response>"
-					+ "<stream:stream to=\"javier.placencio\" xmlns=\"jabber:client\" xmlns:stream=\"http://etherx.jabber.org/streams\" version=\"1.0\">"
-					+ "<iq id=\"IeRz1-0\" type=\"set\"><bind xmlns=\"urn:ietf:params:xml:ns:xmpp-bind\"><resource>Smack</resource></bind></iq>"
-					+ "<iq id=\"IeRz1-1\" type=\"set\"><session xmlns=\"urn:ietf:params:xml:ns:xmpp-session\"/></iq><iq id=\"IeRz1-2\" type=\"get\">"
-					+ "<query xmlns=\"jabber:iq:roster\"></query></iq><presence id=\"IeRz1-3\"></presence>"
-					+ "<message id=\"IeRz1-4\" to=\"javier@javier.placencio\" from=\"smackuser@javier.placencio/Smack\" type=\"chat\"><body>Hola!</body>"
-					+ "<thread>O5YBk0</thread></message>"
-					+ "</stream:stream>"
-					+ "</xml>";
-			//testXML = EXIUtils.readFile("C:/Users/Javier/workspace/Personales/ExiClient/res/stanzaerror.xsd");
-			//System.out.println("XML: " + testXML);
-			EXIProcessor ep = new EXIProcessor(EXIUtils.canonicalSchemaLocation, 1024, false);
-			
-			System.out.println("encoding... " + testXML);
-			byte[] schemaInformed = ep.encodeToByteArray(testXML);
-			byte[] schemaless = EXIProcessor.encodeSchemaless(testXML, false);
-			if(schemaInformed.equals(schemaless)){
-				System.out.println("Son iguales: " + EXIUtils.bytesToHex(schemaInformed));
-			}
-			else{
-				System.out.println("schemaInformed(" + schemaInformed.length + "): " + EXIUtils.bytesToHex(schemaInformed));
-				System.out.println("schemaless(" + schemaless.length + "): " + EXIUtils.bytesToHex(schemaless));
-				System.out.println("decoding...");
-				/*
-				String aux = ep.decode(schemaInformed);
-				System.out.println("schemaInformed(" + aux.length() + "): " + aux);
-				aux = EXIProcessor.decodeSchemaless(schemaless);
-				System.out.println("schemaless(" + aux.length() + "): " + aux);
-				/**/
-			}
-		} catch (EXIException | SAXException | TransformerException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
 	}
 	
 }

@@ -267,11 +267,12 @@ public class PacketReader {
                         connection.getSASLAuthentication().authenticated();
                     }
                     
-                    /************************ EXI code ************************/
+                    //TODO:/************************ EXI code ************************/
                     
                     else if (parser.getName().equals("compressed")) {
                     	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
                     	exiConnection.enableEXI(true);
+                    	exiConnection.openEXIStream();
                     	/**
                     	 * 
                         // Server confirmed that it's possible to use stream compression. Start
@@ -293,7 +294,7 @@ public class PacketReader {
                 			if(parser.getAttributeValue("null", "configurationId") == null){
                 				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
     	                		if(missingSchemas.size() > 0){
-    	                			exiConnection.sendMissingSchemas(missingSchemas, EXIXMPPConnection.UPLOAD_EXI_DOCUMENT);
+    	                			exiConnection.sendMissingSchemas(missingSchemas, EXIXMPPConnection.UPLOAD_EXI_BODY);
     	                		}
                 				exiConnection.setConfigId(null);
                 				Thread.sleep(1000);

@@ -36,7 +36,9 @@ public class EXIReader extends BufferedReader {
     	
     	synchronized (lock) {
     		if(!exi){
-    			return super.read(cbuf, off, len);
+    			leido = super.read(cbuf, off, len);
+System.err.println("Recibido(" + leido + "): " + new String(cbuf, off, len));    			
+    			return leido;
     		}
     		ba = new byte[len];
     		leido = is.read(ba, 0, len);

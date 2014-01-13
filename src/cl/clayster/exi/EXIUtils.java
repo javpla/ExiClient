@@ -18,9 +18,10 @@ import java.util.List;
 public class EXIUtils {
 	
 	public static final String canonicalSchemaLocation = "./res/canonicalSchema.xsd"; 
-	public static final String schemasFileLocation = "./res/schemas.xml";
+	public static String schemasFileLocation = "./res/schemas.xml";
+	public static String schemasFolder = "./res/";
+	
 	public static final char[] hexArray = "0123456789abcdef".toCharArray();
-	public static final String schemasFolder = "./res/";
 	public static final String REG_KEY = "exi_config_id";	
 	public static final String strict = "false";
 	public static final String blockSize = "1000000";
@@ -38,16 +39,16 @@ public class EXIUtils {
 	}
 
 	/**
-	 * Looks for all schema files (*.xsd) in the given folder and creates two new files: 
-	 * a canonical schema file which imports all existing schema files;
-	 * and an xml file called schema.xml which contains each schema namespace, file size in bytes and its md5Hash code 
+	 * Looks for all schema files (*.xsd) in the given folder and creates two new files:<br> 
+	 * <b>canonicalSchema.xsd</b> which imports all schema files in the given folder;<br>
+	 * <b>schema.xml</b> which contains each schema namespace, file size in bytes, and its md5Hash code 
 	 *   
 	 * 
-	 * @param folderLocation
+	 * @param folderLocation Location of the folder with the schemas to be used 
 	 * @throws NoSuchAlgorithmException
 	 * @throws IOException
 	 */
-	public static void generateBoth() throws NoSuchAlgorithmException, IOException{
+	public static void generateBoth(String schemasFolder) throws NoSuchAlgorithmException, IOException{
 		File folder = new File(schemasFolder);
         File[] listOfFiles = folder.listFiles();
         File file;
@@ -99,7 +100,8 @@ public class EXIUtils {
 					namespaces.add(n, namespace);
 					schemasStanzas.put(namespace, "<schema ns='" + namespace + "' bytes='" + file.length() + "' md5Hash='" + md5Hash 
 							+ "' schemaLocation='" + file.getCanonicalPath() + "' url=''/>");
-					canonicalSchemaStanzas.put(namespace, "<xs:import namespace='" + namespace + "' schemaLocation='" + file.getCanonicalPath() + "'/>");
+					//canonicalSchemaStanzas.put(namespace, "<xs:import namespace='" + namespace + "' schemaLocation='" + file.getCanonicalPath() + "'/>");
+					canonicalSchemaStanzas.put(namespace, "<xs:import namespace='" + namespace + "'/>");
             	}
 			}
             //variables to write the stanzas and canonicalSchema files

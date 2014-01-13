@@ -27,26 +27,21 @@ public class EXIWriter extends BufferedWriter {
 
 	@Override
     public void write(String xml , int off, int len) throws IOException {
+System.out.println("XML(" + xml.length() + "): " + xml);
     	if(!exi){
     		super.write(xml, off, len);
 			return;
     	}
-    	if(xml.startsWith("</stream:stream")){
-    		xml = "<exi:streamEnd xmlns:exi='http://jabber.org/protocol/compress/exi'/>";
-    	}
-System.out.println("XML a codificar(" + xml.length() + "): " + xml);    	
-    	byte[] exi = null;
     	try {
-    		exi = exiProcessor.encodeToByteArray(xml);
+        	byte[] exi = exiProcessor.encodeToByteArray(xml);
+System.out.println("codificando...\nEnviando EXI(" + exi.length + "): " + EXIUtils.bytesToHex(exi));
+        	os.write(exi, off, exi.length);
+        	os.flush();
     	}catch (SAXException | EXIException | TransformerException e){
     		e.printStackTrace();
 			super.write(xml, off, len);
 			return;
     	}
-System.out.println("Enviando EXI(" + exi.length + "): " + EXIUtils.bytesToHex(exi));
-        
-    	os.write(exi, off, exi.length);
-    	os.flush();
 	}
 	
 	public boolean isEXI() {
@@ -57,5 +52,25 @@ System.out.println("Enviando EXI(" + exi.length + "): " + EXIUtils.bytesToHex(ex
 		this.exi = usarEXI;
 	}
 
-	
+	/**
+	 * To open the alternative binding EXI stream only
+	 */
+	public void openAlternativeBindingStream(){
+		// TODO: ¿setup o streamStart?
+		String xml = "<?xml version=\"1.0\"?>"
+				+ "<exi:streamStart xmlns:exi='http://jabber.org/protocol/compress/exi' version=\"1.0\" to=\"jabber.example.org\" xml:lang=\"en\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\" >"
+				+ "<exi:xmlns prefix=\"stream\" namespace=\"http://etherx.jabber.org/streams\" />"
+				+ "<exi:xmlns prefix=\"\" namespace=\"jabber:client\" />"
+				+ "<exi:xmlns prefix=\"xml\" namespace=\"http://www.w3.org/XML/1998/namespace\" />"
+				+ "</exi:streamStart>";
+		byte[] exi;
+		try {
+			exi = EXIProcessor.encodeSchemaless(xml, true);
+System.out.println("Enviando EXI schemaless(" + exi.length + "): " + EXIUtils.bytesToHex(exi));
+        	os.write(exi);
+        	os.flush();
+		} catch (IOException | EXIException | SAXException e) {
+			e.printStackTrace();
+		}
+	}
 }

@@ -20,12 +20,17 @@
 
 package org.jivesoftware.smack;
 
-import org.jivesoftware.smack.packet.Packet;
-
 import java.io.IOException;
 import java.io.Writer;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+
+import org.jivesoftware.smack.packet.Packet;
+import org.jivesoftware.smack.util.ObservableWriter;
+
+import cl.clayster.exi.EXIWriter;
+import cl.clayster.exi.EXIXMPPAlternativeConnection;
+import cl.clayster.exi.EXIXMPPConnection;
 
 /**
  * Writes packets to a XMPP server. Packets are sent using a dedicated thread. Packet
@@ -188,8 +193,14 @@ public class PacketWriter {
 
             // Close the stream.
             try {
-                writer.write("</stream:stream>");
-                writer.flush();
+            	if((this.connection instanceof EXIXMPPConnection && ((EXIXMPPConnection) this.connection).getUsingEXI())
+            			|| (this.connection instanceof EXIXMPPAlternativeConnection && ((EXIXMPPAlternativeConnection) this.connection).getUsingEXI())){
+            		writer.write("<exi:streamEnd xmlns:exi='http://jabber.org/protocol/compress/exi'/>");
+            	}
+            	else{
+            		writer.write("</stream:stream>");
+            	}
+            	writer.flush();
             }
             catch (Exception e) {
                 // Do nothing
@@ -225,13 +236,25 @@ public class PacketWriter {
      * @throws IOException If an error occurs while sending the stanza to the server.
      */
     void openStream() throws IOException {
-        StringBuilder stream = new StringBuilder();
-        stream.append("<stream:stream");
-        stream.append(" to=\"").append(connection.getServiceName()).append("\"");
-        stream.append(" xmlns=\"jabber:client\"");
-        stream.append(" xmlns:stream=\"http://etherx.jabber.org/streams\"");
-        stream.append(" version=\"1.0\">");
-        writer.write(stream.toString());
-        writer.flush();
+    	if(this.connection instanceof EXIXMPPAlternativeConnection){
+    		if(writer instanceof ObservableWriter){
+    			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).openAlternativeBindingStream();
+    		}
+    		else if(writer instanceof EXIWriter){
+    			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).openAlternativeBindingStream();
+    			System.out.println("EXIWriter alone (not wrapped into ObservableWriter)");
+    		}	
+    	}
+    	else{
+	        StringBuilder stream = new StringBuilder();
+	        stream.append("<stream:stream");
+	        stream.append(" to=\"").append(connection.getServiceName()).append("\"");
+	        stream.append(" xmlns=\"jabber:client\"");
+	        stream.append(" xmlns:stream=\"http://etherx.jabber.org/streams\"");
+	        stream.append(" version=\"1.0\">");
+	        writer.write(stream.toString());
+	        writer.flush();
+    	}
     }
+    
 }
