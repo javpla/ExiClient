@@ -982,7 +982,7 @@ public class XMPPConnection extends Connection {
      *
      * @throws Exception if there is an exception starting stream compression.
      */
-    void startStreamCompression() throws Exception {
+    protected void startStreamCompression() throws Exception {
         serverAckdCompression = true;
         // Initialize the reader and writer with the new secured version
         initReaderAndWriter();

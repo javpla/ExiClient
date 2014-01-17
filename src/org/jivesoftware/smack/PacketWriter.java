@@ -193,8 +193,8 @@ public class PacketWriter {
 
             // Close the stream.
             try {
-            	if((this.connection instanceof EXIXMPPConnection && ((EXIXMPPConnection) this.connection).getUsingEXI())
-            			|| (this.connection instanceof EXIXMPPAlternativeConnection && ((EXIXMPPAlternativeConnection) this.connection).getUsingEXI())){
+            	if((this.connection instanceof EXIXMPPConnection && ((EXIXMPPConnection) this.connection).isUsingEXI())
+            			|| (this.connection instanceof EXIXMPPAlternativeConnection && ((EXIXMPPAlternativeConnection) this.connection).isUsingEXI())){
             		writer.write("<exi:streamEnd xmlns:exi='http://jabber.org/protocol/compress/exi'/>");
             	}
             	else{

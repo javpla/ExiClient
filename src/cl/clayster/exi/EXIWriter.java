@@ -34,7 +34,10 @@ System.out.println("XML(" + xml.length() + "): " + xml);
     	}
     	try {
         	byte[] exi = exiProcessor.encodeToByteArray(xml);
-System.out.println("codificando...\nEnviando EXI(" + exi.length + "): " + EXIUtils.bytesToHex(exi));
+System.out.println("Enviando EXI(" + xml.length() + "->" + exi.length + "): " + EXIUtils.bytesToHex(exi));
+
+System.out.println("decodificado: " + exiProcessor.decodeByteArray(exi));
+
         	os.write(exi, off, exi.length);
         	os.flush();
     	}catch (SAXException | EXIException | TransformerException e){
@@ -50,6 +53,10 @@ System.out.println("codificando...\nEnviando EXI(" + exi.length + "): " + EXIUti
 
 	public void setEXI(boolean usarEXI) {
 		this.exi = usarEXI;
+	}
+	
+	void setExiProcessor(EXIProcessor ep){
+		this.exiProcessor = ep;
 	}
 
 	/**

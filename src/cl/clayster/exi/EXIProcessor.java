@@ -36,39 +36,85 @@ import com.siemens.ct.exi.helpers.DefaultEXIFactory;
 
 public class EXIProcessor {
 	
-	static EXIFactory exiFactory;
-	static EXIResult exiResult;
-	static SAXSource exiSource;
+	EXIFactory exiFactory;
+	EXIResult exiResult;
+	SAXSource exiSource;
 	
-	private static final CodingMode defaultCodingMode = CodingMode.BIT_PACKED;
-	private static final FidelityOptions defaultFidelityOptions = FidelityOptions.createDefault();
+	static final int defaultAlignmentCode = 0;	// 0:bit-packed, 1:byte-packed, 2:pre-compression, 3:compression
+	static final CodingMode defaultCodingMode = CodingMode.BIT_PACKED;
+	static final FidelityOptions defaultFidelityOptions = FidelityOptions.createDefault();
 	static final boolean defaultIsFragmet = false;
 	static final int defaultBlockSize = 1000000;
 	static final boolean defaultStrict = false;
+	static final int defaultValueMaxLength = -1;
+	static final int defaultValuePartitionCapacity = -1;
 	
-	public EXIProcessor(String canonicalSchemaLocation, Integer blockSize, Boolean strict) throws EXIException{
+	/**
+	 * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and <b>default values</b> for its configuration.
+	 * @param xsdLocation
+	 * @throws EXIException
+	 */
+	public EXIProcessor(String xsdLocation) throws EXIException{
 		// create default factory and EXI grammar for schema
 		exiFactory = DefaultEXIFactory.newInstance();
-		if(strict == null)	strict = defaultStrict;
-		exiFactory.setFidelityOptions(strict ? FidelityOptions.createStrict():FidelityOptions.createAll());
+		defaultFidelityOptions.setFidelity(FidelityOptions.FEATURE_PREFIX, true);
+		exiFactory.setFidelityOptions(defaultStrict ? FidelityOptions.createStrict() : defaultFidelityOptions);
 		exiFactory.setCodingMode(CodingMode.BIT_PACKED);
-		exiFactory.setBlockSize(blockSize != null ? blockSize : defaultBlockSize);
+		exiFactory.setBlockSize(defaultBlockSize);
+		exiFactory.setValueMaxLength(defaultValueMaxLength);
+		exiFactory.setValuePartitionCapacity(defaultValuePartitionCapacity);
 		
-		if(canonicalSchemaLocation != null && new File(canonicalSchemaLocation).isFile()){
-			try {
+		if(xsdLocation != null && new File(xsdLocation).isFile()){
+			try{
 				GrammarFactory grammarFactory = GrammarFactory.newInstance();
-				Grammars g = grammarFactory.createGrammars(canonicalSchemaLocation, new SchemaResolver(EXIUtils.schemasFolder));
+				Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
 				exiFactory.setGrammars(g);
-			} catch (IOException e) {
+			} catch (IOException e){
+				e.printStackTrace();
 				throw new EXIException("Error while creating Grammars.");
 			}
 		}
 		else{
-			String message = "Invalid Canonical Schema file location: " + canonicalSchemaLocation;
+			String message = "Invalid Canonical Schema file location: " + xsdLocation;
 System.err.println(message);
 			throw new EXIException(message);
 		}
 	}
+	
+	/**
+	 * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and the respective parameters in exiConfig for its configuration.
+	 * @param xsdLocation	location of the Canonical schema file
+	 * @param exiConfig	EXISetupConfiguration instance with the necessary EXI options
+	 * @throws EXIException
+	 */
+	public EXIProcessor(String xsdLocation, EXISetupConfiguration exiConfig) throws EXIException{
+		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
+		// create factory and EXI grammar for given schema
+		exiFactory = DefaultEXIFactory.newInstance();
+		exiFactory.setCodingMode(exiConfig.getAlignment());
+		exiFactory.setBlockSize(exiConfig.getBlockSize());
+		exiFactory.setFidelityOptions(exiConfig.getFo());
+		exiFactory.setValueMaxLength(exiConfig.getValueMaxLength());
+		exiFactory.setValuePartitionCapacity(exiConfig.getValuePartitionCapacity());
+		
+		if(xsdLocation != null && new File(xsdLocation).isFile()){
+			try{
+				GrammarFactory grammarFactory = GrammarFactory.newInstance();
+				Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
+				exiFactory.setGrammars(g);
+			} catch (IOException e){
+				e.printStackTrace();
+				throw new EXIException("Error while creating Grammars.");
+			}
+		}
+		else{
+			String message = "Invalid Canonical Schema file location: " + xsdLocation;
+System.err.println(message);
+			throw new EXIException(message);
+		}
+	}
+	
+	
 	
 	public static byte[] encodeEXIBody(String xml) throws EXIException, IOException, SAXException{
 		byte[] exi = encodeSchemaless(xml, false);
@@ -245,7 +291,7 @@ System.err.println(message);
 		return baos.toByteArray();
 	}
 	
-	protected String decode(byte[] exiBytes) throws IOException, EXIException, SAXException, TransformerException{
+	protected String decodeByteArray(byte[] exiBytes) throws IOException, EXIException, TransformerException{
 		// decoding		
 		exiSource = new EXISource(exiFactory);
 		XMLReader exiReader = exiSource.getXMLReader();

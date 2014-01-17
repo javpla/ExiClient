@@ -9,8 +9,6 @@ import java.io.UnsupportedEncodingException;
 
 import javax.xml.transform.TransformerException;
 
-import org.xml.sax.SAXException;
-
 import com.siemens.ct.exi.exceptions.EXIException;
 
 public class EXIReader extends BufferedReader {
@@ -57,12 +55,12 @@ System.err.println("bytes guardados: " + EXIUtils.bytesToHex(anterior));
 	    		}
 		    	try {
 		    		//System.arraycopy(exiProcessor.decode(ba).toCharArray(), 0, cbuf, off, leido);
-			    		cbuf = exiProcessor.decode(ba).toCharArray();
+			    		cbuf = exiProcessor.decodeByteArray(ba).toCharArray();
 System.err.println("decoded XML(" + (cbuf.length) + "): " + new String(cbuf));
 					anterior = null;
 					ba = null;
 		    		return leido;
-		    	} catch (EXIException | SAXException | TransformerException e) {
+		    	} catch (EXIException | TransformerException e) {
 		    		e.printStackTrace();
 		    	}
 			}
@@ -80,6 +78,10 @@ System.err.println("XML(" + leido + "): " + new String(cbuf));
 
 	void setEXI(boolean usarEXI) {
 		this.exi = usarEXI;
+	}
+	
+	void setExiProcessor(EXIProcessor ep){
+		this.exiProcessor = ep;
 	}
 
 }

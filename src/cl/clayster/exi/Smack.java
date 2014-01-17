@@ -5,7 +5,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
-import java.util.Collection;
 
 import javax.xml.transform.TransformerException;
 
@@ -13,8 +12,6 @@ import org.jivesoftware.smack.Chat;
 import org.jivesoftware.smack.ChatManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.MessageListener;
-import org.jivesoftware.smack.Roster;
-import org.jivesoftware.smack.RosterListener;
 import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.IQ;
@@ -22,6 +19,7 @@ import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Presence;
 import org.xml.sax.SAXException;
 
+import com.siemens.ct.exi.CodingMode;
 import com.siemens.ct.exi.EncodingOptions;
 import com.siemens.ct.exi.FidelityOptions;
 import com.siemens.ct.exi.exceptions.EXIException;
@@ -31,7 +29,7 @@ public class Smack implements MessageListener{
 	
 	
 	static final String servidor = "exi.clayster.cl";
-	static final String contacto = "javier.placencio@clayster.cl";	// usuario al cual se le envían mensajes
+	static final String contacto = "javier@exi.clayster.cl";	// usuario al cual se le envían mensajes
 	static final String usuario = "exiuser";
 	static final String password = "exiuser";
 	static boolean exi = true;
@@ -92,40 +90,16 @@ public class Smack implements MessageListener{
 			return;
 		}
 		
-		/*
-		try {
-			String value = WinRegistry.readString (
-				    WinRegistry.HKEY_LOCAL_MACHINE,                             //HKEY
-				   "SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion",           //Key
-				   "ProductName");												//ValueName
-			System.out.println("Windows Distribution = " + value);
-		} catch (IllegalArgumentException | IllegalAccessException| InvocationTargetException e1) {
-			e1.printStackTrace();
-		}                  
-		
-		try {
-			WinRegistry.writeStringValue(WinRegistry.HKEY_CURRENT_USER, "EXIClient", "configId", "dsajiod2131");
-System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_CURRENT_USER, "EXIClient", "configId"));
-		} catch (IllegalArgumentException | IllegalAccessException | InvocationTargetException e1) {
-			e1.printStackTrace();
-		}
-		*/
-		
 		// visualize XMLs sent and received 
 		System.setProperty("smack.debugEnabled", "true");
 		XMPPConnection.DEBUG_ENABLED = true;
-				
-		/*try {
-			EXIUtils.generateBoth();
-		} catch (NoSuchAlgorithmException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}*/
+		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
 		EXIXMPPConnection connection = new EXIXMPPConnection(config);
 		connection.connect();
 		
+		/**
 		// get list of contacts (Roster)
 		Roster roster = connection.getRoster();
 		roster.addRosterListener(new RosterListener() {	// presence updates
@@ -139,12 +113,18 @@ System.out.println("EXI configId = " + WinRegistry.readString(WinRegistry.HKEY_C
 			@Override
 			public void entriesAdded(Collection<String> arg0) {}
 		});
+		*/
 		
 		connection.login(usuario, password);
 		
 		// Start EXI
 		if(exi){
-			connection.proposeEXICompression();
+			if(!connection.proposeEXICompressionQuickSetup()){
+				EXISetupConfiguration exiConfig = new EXISetupConfiguration();
+				exiConfig.setAlignment(CodingMode.COMPRESSION);
+				exiConfig.setBlockSize(2048);
+				connection.proposeEXICompression(exiConfig);
+			}
 		} 
 		
 		// chatmanager to interchange messages

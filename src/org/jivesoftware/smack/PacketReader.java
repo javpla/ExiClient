@@ -271,8 +271,7 @@ public class PacketReader {
                     
                     else if (parser.getName().equals("compressed")) {
                     	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                    	exiConnection.enableEXI(true);
-                    	exiConnection.openEXIStream();
+                    	exiConnection.startStreamCompression();
                     	/**
                     	 * 
                         // Server confirmed that it's possible to use stream compression. Start
@@ -298,7 +297,7 @@ public class PacketReader {
     	                		}
                 				exiConnection.setConfigId(null);
                 				Thread.sleep(1000);
-                    			exiConnection.proposeEXICompression();
+                				if(!exiConnection.proposeEXICompressionQuickSetup())	exiConnection.proposeEXICompression();
                 			}
                 		}
                     }

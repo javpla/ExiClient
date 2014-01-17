@@ -23,8 +23,8 @@ public class EXIUtils {
 	
 	public static final char[] hexArray = "0123456789abcdef".toCharArray();
 	public static final String REG_KEY = "exi_config_id";	
-	public static final String strict = "false";
-	public static final String blockSize = "1000000";
+	public static final String DEFAULT_STRICT = "false";
+	public static final String DEFAULT_BLOCKSIZE = "1000000";
 	
 	
 	public static String bytesToHex(byte[] bytes){
@@ -48,7 +48,7 @@ public class EXIUtils {
 	 * @throws NoSuchAlgorithmException
 	 * @throws IOException
 	 */
-	public static void generateBoth(String schemasFolder) throws NoSuchAlgorithmException, IOException{
+	public static void generateBoth(String schemasFolder, EXISetupConfiguration config) throws NoSuchAlgorithmException, IOException{
 		File folder = new File(schemasFolder);
         File[] listOfFiles = folder.listFiles();
         File file;
@@ -104,16 +104,22 @@ public class EXIUtils {
 					canonicalSchemaStanzas.put(namespace, "<xs:import namespace='" + namespace + "'/>");
             	}
 			}
-            //variables to write the stanzas and canonicalSchema files
+            
+            // variables to write the stanzas and canonicalSchema files
             File stanzasFile = new File(schemasFileLocation);
             BufferedWriter stanzasWriter = new BufferedWriter(new FileWriter(stanzasFile));
             File canonicalSchema = new File(canonicalSchemaLocation);
             BufferedWriter canonicalSchemaWriter = new BufferedWriter(new FileWriter(canonicalSchema));
             
+            // configuration parameters
+            String alignment = " alignment=\'" + config.getAlignmentString() + "\'";
+            String strict = " strict=\'" + config.isStrict() + "\'";
+            String blockSize = " blockSize=\'" + config.getBlockSize() + "\'";
+            String valueMaxLength = " valueMaxLength=\'" + config.getValueMaxLength() + "\'";
+            String valuePartitionCapacity = " valuePartitionCapacity=\'" + config.getValuePartitionCapacity() + "\'";
             
             stanzasWriter.write("<setup xmlns=\'http://jabber.org/protocol/compress/exi\'"
-            		+ " version=\'1\' strict=\'" + strict + "\' blockSize=\'" + blockSize + "\'"
-            		+ " valueMaxLength=\'32\' valuePartitionCapacity=\'100\'>");
+            		+ " version=\'1\'" + alignment + strict + blockSize + valueMaxLength + valuePartitionCapacity + ">");
             canonicalSchemaWriter.write("<?xml version='1.0' encoding='UTF-8'?> \n\n<xs:schema \n\txmlns:xs='http://www.w3.org/2001/XMLSchema' \n\ttargetNamespace='urn:xmpp:exi:cs' \n\txmlns='urn:xmpp:exi:cs' \n\telementFormDefault='qualified'>\n");
             for(String ns : namespaces){
             	stanzasWriter.write("\n\t" + schemasStanzas.get(ns));
