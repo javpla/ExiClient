@@ -293,7 +293,7 @@ public class PacketReader {
                 			if(parser.getAttributeValue("null", "configurationId") == null){
                 				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
     	                		if(missingSchemas.size() > 0){
-    	                			exiConnection.sendMissingSchemas(missingSchemas, EXIXMPPConnection.UPLOAD_EXI_BODY);
+    	                			exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOpt());
     	                		}
                 				exiConnection.setConfigId(null);
                 				Thread.sleep(1000);

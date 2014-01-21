@@ -46,16 +46,27 @@ public class EXIXMPPConnection extends XMPPConnection{
 	public static final int UPLOAD_EXI_BODY = 2;
 	public static final int UPLOAD_URL = 3;
 	
+	private int uploadSchemaOpt;
 	protected boolean usingEXI = false;
 	
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
+		uploadSchemaOpt = UPLOAD_BINARY;
 		try {
 			EXIUtils.generateBoth(EXIUtils.schemasFolder, new EXISetupConfiguration());
 		} catch (NoSuchAlgorithmException | IOException e1) {
 			e1.printStackTrace();
 			return;
 		}
+	}
+	
+	public int getUploadSchemaOpt(){
+		return uploadSchemaOpt;
+	}
+	
+	public void setUploadSchemaOpt(int option){
+		if(option < 0 || option > 3)	option = UPLOAD_BINARY;
+		uploadSchemaOpt = option;
 	}
 	
 	EXISetupConfiguration parseQuickConfigId(String configId){
@@ -182,8 +193,9 @@ public class EXIXMPPConnection extends XMPPConnection{
 		else if(reader instanceof EXIReader && writer instanceof EXIWriter){
 			((EXIReader) reader).setExiProcessor(ep);
 			((EXIWriter) writer).setExiProcessor(ep);
-			System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
+			//System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
 		}
+		else System.err.println("No se ha podido establecer el EXI Processor: Instances of reader and writer are not treated.");
 	}
 
 	/**
@@ -192,7 +204,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @param enable true to enable EXI messages (false to disable)
 	 * @throws IOException 
 	 */
-	public void enableEXI(boolean enable){
+	protected void enableEXI(boolean enable){
 		this.usingEXI = enable;
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
 			((EXIReader) ((ObservableReader) reader).wrappedReader).setEXI(enable);
@@ -201,12 +213,12 @@ public class EXIXMPPConnection extends XMPPConnection{
 		else if(reader instanceof EXIReader && writer instanceof EXIWriter){
 			((EXIReader) reader).setEXI(enable);
 			((EXIWriter) writer).setEXI(enable);
-			System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
+			//System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
 		}	
-		else System.err.println("No se ha activado EXI");
+		else System.err.println("No se ha podido establecer el EXI Processor: Instances of reader and writer are not treated.");
 	}
 	
-	public void openEXIStream() throws IOException{
+	private void openEXIStream() throws IOException{
 		enableEXI(true);
 		String exiSpecific = "<exi:streamStart from='"
 				+ getUser()
@@ -261,8 +273,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @throws IOException If there are problems reading the schemas stanzas file
 	 * @throws DocumentException 
 	 */
-	public void proposeEXICompression(){
-		proposeEXICompression(null);
+	public boolean proposeEXICompression(){
+		return proposeEXICompression(null);
 	}
 	
 	EXISetupConfiguration exiConfig;
@@ -272,21 +284,21 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * this class' construction will be used.
 	 * @param config contains the desired configurations
 	 */
-	public void proposeEXICompression(EXISetupConfiguration config){
+	public boolean proposeEXICompression(EXISetupConfiguration config){
 		if(!compressionMethods.contains("exi")){
 			System.err.println("The server does not support EXI compression.");
-			return;
+			return false;
 		}
 		if(config != null){
 			try {
 				EXIUtils.generateBoth(EXIUtils.schemasFolder, config);
 				exiConfig = config;
-			} catch (NoSuchAlgorithmException e1) {
-				e1.printStackTrace();
-				return;
-			} catch (IOException e1) {
-				e1.printStackTrace();
-				return;
+			} catch (NoSuchAlgorithmException e) {
+				e.printStackTrace();
+				return false;
+			} catch (IOException e) {
+				e.printStackTrace();
+				return false;
 			}
 		}
 		String setupStanza = "";
@@ -299,14 +311,15 @@ public class EXIXMPPConnection extends XMPPConnection{
 	        	auxSchema.remove(auxSchema.attribute("schemaLocation"));
 	        }
 	        setupStanza = setupElement.asXML();
+	        writer.write(setupStanza);
+			writer.flush();
+			return true;
 		} catch (DocumentException e) {
 			System.err.println("Unable to propose EXI compression. " + e.getMessage());
-		}
-		try {
-			writer.write(setupStanza);
-			writer.flush();
+			return false;
 		} catch (IOException e) {
 			System.err.println("Error while writing <setup> stanza: " + e.getMessage());
+			return false;
 		}
 	}
 
