@@ -52,12 +52,13 @@ public class EXIXMPPConnection extends XMPPConnection{
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
 		uploadSchemaOpt = UPLOAD_BINARY;
-		try {
-			EXIUtils.generateBoth(EXIUtils.schemasFolder, new EXISetupConfiguration());
-		} catch (NoSuchAlgorithmException | IOException e1) {
-			e1.printStackTrace();
-			return;
-		}
+		if(!new File(EXIUtils.schemasFileLocation).exists())
+			try {
+				EXIUtils.generateBoth(EXIUtils.schemasFolder, new EXISetupConfiguration());
+			} catch (NoSuchAlgorithmException | IOException e1) {
+				e1.printStackTrace();
+				return;
+			}
 	}
 	
 	public int getUploadSchemaOpt(){
@@ -69,40 +70,49 @@ public class EXIXMPPConnection extends XMPPConnection{
 		uploadSchemaOpt = option;
 	}
 	
+	/**
+	 * Gets an EXI configuration id and parses it to return an <code>EXISetupConfiguration</code> class
+	 * @param configId a unique configuration id for a previously used EXI configuration
+	 * @return the respective EXI Configuration class, or null if there was any problem
+	 */
 	EXISetupConfiguration parseQuickConfigId(String configId){
 		EXISetupConfiguration exiConfig = null;
 		if(configId != null){
 			exiConfig = new EXISetupConfiguration();
 			exiConfig.setId(configId);
-			// next comments tell what is done by EXIFilter when it processes a successful setup stanza
-			// the first 36 chars (indexes 0-35) are just the UUID, number 37 is '_' (index 36)
-			Integer alignment = Character.getNumericValue(configId.charAt(37)); //The next digit (index 37) represents the alignment (0=bit-packed, 1=byte-packed, 2=pre-compression, 3=compression)
-			if(alignment < 0 || alignment > 3)	alignment = EXIProcessor.defaultAlignmentCode;
-			Boolean strict = configId.charAt(38) == '1';	//The next digit (index 38) represents if it is strict or not
-			configId = configId.substring(39);
-			Integer blockSize = Integer.valueOf(configId.substring(0, configId.indexOf('_')));	// next number represents blocksize (until the next '_')
-			configId = configId.substring(configId.indexOf('_') + 1);
-			Integer valueMaxLength = Integer.valueOf(configId.substring(0, configId.indexOf('_')));	// next number between dashes is valueMaxLength
-			Integer valuePartitionCapacity = Integer.valueOf(configId.substring(configId.indexOf('_') + 1)); // last number is valuePartitionCapacity
+			try{
+				// next comments tell what is done by EXIFilter when it processes a successful setup stanza
+				// the first 36 chars (indexes 0-35) are just the UUID, number 37 is '_' (index 36)
+				Integer alignment = Character.getNumericValue(configId.charAt(37)); //The next digit (index 37) represents the alignment (0=bit-packed, 1=byte-packed, 2=pre-compression, 3=compression)
+				if(alignment < 0 || alignment > 3)	alignment = EXIProcessor.defaultAlignmentCode;
+				Boolean strict = configId.charAt(38) == '1';	//The next digit (index 38) represents if it is strict or not
+				configId = configId.substring(39);
+				Integer blockSize = Integer.valueOf(configId.substring(0, configId.indexOf('_')));	// next number represents blocksize (until the next '_')
+				configId = configId.substring(configId.indexOf('_') + 1);
+				Integer valueMaxLength = Integer.valueOf(configId.substring(0, configId.indexOf('_')));	// next number between dashes is valueMaxLength
+				Integer valuePartitionCapacity = Integer.valueOf(configId.substring(configId.indexOf('_') + 1)); // last number is valuePartitionCapacity
 			
-			switch((int) alignment){
-				case 1:
-					exiConfig.setAlignment(CodingMode.BYTE_PACKED);
-					break;
-				case 2:
-					exiConfig.setAlignment(CodingMode.PRE_COMPRESSION);
-					break;
-				case 3:
-					exiConfig.setAlignment(CodingMode.COMPRESSION);
-					break;
-				default:
-					exiConfig.setAlignment(CodingMode.BIT_PACKED);
-					break;
-			};
-			exiConfig.setStrict(strict);
-			exiConfig.setBlockSize(blockSize);
-			exiConfig.setValueMaxLength(valueMaxLength);
-			exiConfig.setValuePartitionCapacity(valuePartitionCapacity);
+				switch((int) alignment){
+					case 1:
+						exiConfig.setAlignment(CodingMode.BYTE_PACKED);
+						break;
+					case 2:
+						exiConfig.setAlignment(CodingMode.PRE_COMPRESSION);
+						break;
+					case 3:
+						exiConfig.setAlignment(CodingMode.COMPRESSION);
+						break;
+					default:
+						exiConfig.setAlignment(CodingMode.BIT_PACKED);
+						break;
+				};
+				exiConfig.setStrict(strict);
+				exiConfig.setBlockSize(blockSize);
+				exiConfig.setValueMaxLength(valueMaxLength);
+				exiConfig.setValuePartitionCapacity(valuePartitionCapacity);
+			} catch(Exception e){
+				return null;
+			}
 		}
 		return exiConfig;
 	}

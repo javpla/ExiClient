@@ -21,20 +21,12 @@ import cl.clayster.exi.EXIXMPPConnection;
 import com.siemens.ct.exi.CodingMode;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
-public class NoSchemasOnServer {
-	
-	static final String servidor = "exi.clayster.cl";
-	static final String contacto = "javier@exi.clayster.cl";	// usuario al cual se le envían mensajes
-	static final String usuario = "exiuser";
-	static final String password = "exiuser";
-	static final String openfireBase = "C:/Users/Javier/workspace/Personales/openfire/target/openfire";
-	static final String resFolder = "/plugins/exi/res";
+public class NoSchemasOnServerTest {
 	static EXIXMPPConnection connection;
-	
 	
 	@Before
 	public void eliminarSchemas(){
-		File folder = new File(openfireBase + resFolder);
+		File folder = new File(TestUtils.OPENFIRE_BASE + TestUtils.RES_FOLDER);
         File[] listOfFiles = folder.listFiles();
         if(listOfFiles != null){
             File file;
@@ -49,11 +41,11 @@ public class NoSchemasOnServer {
 	
 	@Before
 	public void connectar() {		
-		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
+		ConnectionConfiguration config = new ConnectionConfiguration(TestUtils.SERVER);
 		connection = new EXIXMPPConnection(config);
 		try {
 			connection.connect();
-			connection.login(usuario, password);
+			connection.login(TestUtils.USER, TestUtils.PASSWORD);
 		} catch (XMPPException e) {
 			fail(e.getMessage());
 		}
@@ -62,14 +54,7 @@ public class NoSchemasOnServer {
 	@After
 	public void desconectar() {		
 		if(connection.isConnected())	connection.disconnect();
-		
-		File folder = new File("C:/Users/Javier/workspace/Personales/openfire/target/openfire/plugins/exi/res/exiSchemas");
-        File[] listOfFiles = folder.listFiles();
-        if(listOfFiles != null)
-        	for (int i = 0; i < listOfFiles.length; i++) {
-        		listOfFiles[i].delete();
-        	}
-		folder.delete();
+		TestUtils.deleteFolder("C:/Users/Javier/workspace/Personales/openfire/target/openfire/plugins/exi/res/exiSchemas");
 	}
 	
 	@Test
@@ -77,50 +62,56 @@ public class NoSchemasOnServer {
 		connection.setConfigId(null);
 		boolean quickSetup = connection.proposeEXICompressionQuickSetup();
 		
-		// wait for the negotiation to take place before continuing with the rest of the tests
+		// wait for the negotiation to take place before continuing with the rest of the test (sending a message and disconnecting)
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		Message msg = new Message(contacto);
-		msg.setBody("quick Setup Sin");
+		Message msg = new Message(TestUtils.CONTACT);
+		msg.setBody("quick Setup sin configId (no EXI)");
 		connection.sendPacket(msg);
 		
-		assertTrue(!quickSetup && connection.isConnected());
+		assertTrue(!quickSetup);
+		assertTrue(connection.isConnected());
+		assertTrue(connection.isUsingEXI());
 	}
 	
 	@Test
 	public void bDefaultSetup(){
 		boolean propose = connection.proposeEXICompression();
-		// wait for the negotiation to take place before continuing with the rest of the tests
+		// wait for the negotiation to take place before continuing with the rest of the test (sending a message and disconnecting)
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		Message msg = new Message(contacto);
+		Message msg = new Message(TestUtils.CONTACT);
 		msg.setBody("default setup");
 		connection.sendPacket(msg);
 		
-		assertTrue(propose && connection.isConnected());
+		assertTrue(propose);
+		assertTrue(connection.isConnected());
+		assertTrue(connection.isUsingEXI());
 	}
 	
 	@Test
 	public void cQuickSetupCon(){
 		boolean quickSetup = connection.proposeEXICompressionQuickSetup();
 		
-		// wait for the negotiation to take place before continuing with the rest of the tests
+		// wait for the negotiation to take place before continuing with the rest of the test (sending a message and disconnecting)
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		Message msg = new Message(contacto);
-		msg.setBody("quick setup Con");
+		Message msg = new Message(TestUtils.CONTACT);
+		msg.setBody("quick setup con configId (si se usa EXI)");
 		connection.sendPacket(msg);
 		
-		assertTrue(quickSetup && connection.isConnected());
+		assertTrue(quickSetup);
+		assertTrue(connection.isConnected());
+		assertTrue(connection.isUsingEXI());
 	}
 	
 	@Test
@@ -130,24 +121,26 @@ public class NoSchemasOnServer {
 		config.setBlockSize(2048);
 		
 		boolean propose = connection.proposeEXICompression(config);
-		// wait for the negotiation to take place before continuing with the rest of the tests
+		// wait for the negotiation to take place before continuing with the rest of the test (sending a message and disconnecting)
 		try {
 			Thread.sleep(5000);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		Message msg = new Message(contacto);
+		Message msg = new Message(TestUtils.CONTACT);
 		msg.setBody("custom setup (compression y blocksize=2048)");
 		connection.sendPacket(msg);
 		
-		assertTrue(propose && connection.isConnected());
+		assertTrue(propose);
+		assertTrue(connection.isConnected());
+		assertTrue(connection.isUsingEXI());
 	}
 	
 	@AfterClass
 	public static void disconnect() {		
 		if(connection.isConnected())	connection.disconnect();
 		// eliminar archivos
-		File folder = new File(openfireBase + resFolder);
+		File folder = new File(TestUtils.OPENFIRE_BASE + TestUtils.RES_FOLDER);
         File[] listOfFiles = folder.listFiles();
         if(listOfFiles != null){
             File file;

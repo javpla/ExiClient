@@ -20,56 +20,15 @@ import com.siemens.ct.exi.CodingMode;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class AllOKTest {
-	
-	static final String servidor = "exi.clayster.cl";
-	static final String contacto = "javier@exi.clayster.cl";	// usuario al cual se le envían mensajes
-	static final String usuario = "exiuser";
-	static final String password = "exiuser";
 	static EXIXMPPConnection connection;
 	
-/*	
-	@BeforeClass
-	public static void copiarSchemas(){
-		File folder = new File("./res/all_schemas");
-        File[] listOfFiles = folder.listFiles();
-        File file;
-        Path source, aux;
-		for (int i = 0; i < listOfFiles.length; i++) {
-        	file = listOfFiles[i];
-        	
-        	source = file.toPath();
-        	aux = new File("./res").toPath();
-        	if (file.isFile() && !file.getName().endsWith("canonicalSchema.xsd")) {
-        		try {
-        			Files.copy(source, aux.resolve(source.getFileName()));
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-        	}
-		}
-	}
-	
-	@AfterClass
-	public static void eliminarSchemas(){
-		File folder = new File("./res");
-        File[] listOfFiles = folder.listFiles();
-        File file;
-		for (int i = 0; i < listOfFiles.length; i++) {
-        	file = listOfFiles[i];
-        	if (file.isFile()) {
-        		file.delete();
-        	}
-		}
-	}
-*/
-
 	@Before
 	public void connectar() {		
-		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
+		ConnectionConfiguration config = new ConnectionConfiguration(TestUtils.SERVER);
 		connection = new EXIXMPPConnection(config);
 		try {
 			connection.connect();
-			connection.login(usuario, password);
+			connection.login(TestUtils.USER, TestUtils.PASSWORD);
 		} catch (XMPPException e) {
 			fail(e.getMessage());
 		}
@@ -93,7 +52,7 @@ public class AllOKTest {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		Message msg = new Message(contacto);
+		Message msg = new Message(TestUtils.CONTACT);
 		msg.setBody("quick Setup Sin");
 		connection.sendPacket(msg);
 		
@@ -109,7 +68,7 @@ public class AllOKTest {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		Message msg = new Message(contacto);
+		Message msg = new Message(TestUtils.CONTACT);
 		msg.setBody("default setup");
 		connection.sendPacket(msg);
 		
@@ -126,7 +85,7 @@ public class AllOKTest {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		Message msg = new Message(contacto);
+		Message msg = new Message(TestUtils.CONTACT);
 		msg.setBody("quick setup Con");
 		connection.sendPacket(msg);
 		
@@ -146,7 +105,7 @@ public class AllOKTest {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		Message msg = new Message(contacto);
+		Message msg = new Message(TestUtils.CONTACT);
 		msg.setBody("custom setup (compression y blocksize=2048)");
 		connection.sendPacket(msg);
 		

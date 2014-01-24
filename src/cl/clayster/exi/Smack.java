@@ -119,12 +119,11 @@ public class Smack implements MessageListener{
 		
 		// Start EXI
 		if(exi){
-			if(!connection.proposeEXICompressionQuickSetup()){
-				EXISetupConfiguration exiConfig = new EXISetupConfiguration();
-				exiConfig.setAlignment(CodingMode.COMPRESSION);
-				exiConfig.setBlockSize(2048);
-				connection.proposeEXICompression(exiConfig);
-			}
+			EXISetupConfiguration exiConfig = new EXISetupConfiguration();
+			exiConfig.setAlignment(CodingMode.COMPRESSION);
+			exiConfig.setBlockSize(2048);
+			connection.setUploadSchemaOpt(EXIXMPPConnection.UPLOAD_URL);
+			connection.proposeEXICompression(exiConfig);
 		} 
 		
 		// chatmanager to interchange messages

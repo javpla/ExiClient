@@ -40,6 +40,7 @@ System.err.println("Recibido(" + leido + "): " + new String(cbuf, off, len));
     		}
     		ba = new byte[len];
     		leido = is.read(ba, 0, len);
+    		if(leido == -1)	return leido;
 System.err.println("Recibido(" + leido + "): " + EXIUtils.bytesToHex(ba));
 	    	if(exi && anterior != null || EXIProcessor.isEXI(ba[0])){
 System.err.println("EXI(" + (leido + (anterior != null ? anterior.length : 0)) + "): " + EXIUtils.bytesToHex(ba));
