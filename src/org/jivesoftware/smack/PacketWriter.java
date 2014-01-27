@@ -29,7 +29,6 @@ import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.util.ObservableWriter;
 
 import cl.clayster.exi.EXIWriter;
-import cl.clayster.exi.EXIXMPPAlternativeConnection;
 import cl.clayster.exi.EXIXMPPConnection;
 
 /**
@@ -193,8 +192,7 @@ public class PacketWriter {
 
             // Close the stream.
             try {
-            	if((this.connection instanceof EXIXMPPConnection && ((EXIXMPPConnection) this.connection).isUsingEXI())
-            			|| (this.connection instanceof EXIXMPPAlternativeConnection && ((EXIXMPPAlternativeConnection) this.connection).isUsingEXI())){
+            	if((this.connection instanceof EXIXMPPConnection && ((EXIXMPPConnection) this.connection).isUsingEXI())){
             		writer.write("<exi:streamEnd xmlns:exi='http://jabber.org/protocol/compress/exi'/>");
             	}
             	else{
@@ -236,7 +234,7 @@ public class PacketWriter {
      * @throws IOException If an error occurs while sending the stanza to the server.
      */
     void openStream() throws IOException {
-    	if(this.connection instanceof EXIXMPPAlternativeConnection){
+    	if(this.connection instanceof EXIXMPPConnection && ((EXIXMPPConnection)this.connection).isAlternativeBinding()){
     		if(writer instanceof ObservableWriter){
     			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).openAlternativeBindingStream();
     		}

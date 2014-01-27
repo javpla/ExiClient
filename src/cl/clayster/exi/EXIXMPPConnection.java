@@ -29,7 +29,6 @@ import org.jivesoftware.smack.util.ObservableReader;
 import org.jivesoftware.smack.util.ObservableWriter;
 import org.xml.sax.SAXException;
 
-import com.siemens.ct.exi.CodingMode;
 import com.siemens.ct.exi.exceptions.EXIException;
 
 /**
@@ -47,11 +46,14 @@ public class EXIXMPPConnection extends XMPPConnection{
 	public static final int UPLOAD_URL = 3;
 	
 	private int uploadSchemaOpt;
-	protected boolean usingEXI = false;
+	private boolean usingEXI = false;
+	private boolean isAlternativeBinding = false;
+	private EXISetupConfiguration exiConfig;
 	
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
 		uploadSchemaOpt = UPLOAD_BINARY;
+		exiConfig = new EXISetupConfiguration();
 		if(!new File(EXIUtils.schemasFileLocation).exists())
 			try {
 				EXIUtils.generateBoth(EXIUtils.schemasFolder, new EXISetupConfiguration());
@@ -70,53 +72,169 @@ public class EXIXMPPConnection extends XMPPConnection{
 		uploadSchemaOpt = option;
 	}
 	
+	public boolean isAlternativeBinding() {
+		return isAlternativeBinding;
+	}
+
+	public void setAlternativeBinding(boolean isAlternativeBinding) {
+		this.isAlternativeBinding = isAlternativeBinding;
+	}
+
 	/**
-	 * Gets an EXI configuration id and parses it to return an <code>EXISetupConfiguration</code> class
-	 * @param configId a unique configuration id for a previously used EXI configuration
-	 * @return the respective EXI Configuration class, or null if there was any problem
+	 * Uses the last configuration in order to skip the handshake. 
+	 * @return	<b>true</b> if there is a previous configuration available, <b>false</b> otherwise 
 	 */
-	EXISetupConfiguration parseQuickConfigId(String configId){
-		EXISetupConfiguration exiConfig = null;
-		if(configId != null){
-			exiConfig = new EXISetupConfiguration();
-			exiConfig.setId(configId);
-			try{
-				// next comments tell what is done by EXIFilter when it processes a successful setup stanza
-				// the first 36 chars (indexes 0-35) are just the UUID, number 37 is '_' (index 36)
-				Integer alignment = Character.getNumericValue(configId.charAt(37)); //The next digit (index 37) represents the alignment (0=bit-packed, 1=byte-packed, 2=pre-compression, 3=compression)
-				if(alignment < 0 || alignment > 3)	alignment = EXIProcessor.defaultAlignmentCode;
-				Boolean strict = configId.charAt(38) == '1';	//The next digit (index 38) represents if it is strict or not
-				configId = configId.substring(39);
-				Integer blockSize = Integer.valueOf(configId.substring(0, configId.indexOf('_')));	// next number represents blocksize (until the next '_')
-				configId = configId.substring(configId.indexOf('_') + 1);
-				Integer valueMaxLength = Integer.valueOf(configId.substring(0, configId.indexOf('_')));	// next number between dashes is valueMaxLength
-				Integer valuePartitionCapacity = Integer.valueOf(configId.substring(configId.indexOf('_') + 1)); // last number is valuePartitionCapacity
-			
-				switch((int) alignment){
-					case 1:
-						exiConfig.setAlignment(CodingMode.BYTE_PACKED);
-						break;
-					case 2:
-						exiConfig.setAlignment(CodingMode.PRE_COMPRESSION);
-						break;
-					case 3:
-						exiConfig.setAlignment(CodingMode.COMPRESSION);
-						break;
-					default:
-						exiConfig.setAlignment(CodingMode.BIT_PACKED);
-						break;
-				};
-				exiConfig.setStrict(strict);
-				exiConfig.setBlockSize(blockSize);
-				exiConfig.setValueMaxLength(valueMaxLength);
-				exiConfig.setValuePartitionCapacity(valuePartitionCapacity);
-			} catch(Exception e){
-				return null;
+	public boolean proposeEXICompressionQuickSetup(){
+		if(!compressionMethods.contains("exi")){
+			System.err.println("The server does not support EXI compression.");
+			return false;
+		}
+		
+		String setupStanza = "";
+		String configId = Preferences.userRoot().get(EXIUtils.REG_KEY, null);
+		boolean quickSetup = false;
+		quickSetup = (configId != null); // quickSetup is valid if there is a value in registry or else it is false and normal setup stanza will be sent
+		
+		if(quickSetup){
+			exiConfig = EXIUtils.parseQuickConfigId(configId);
+			setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + configId + "'/>";
+			try {
+				writer.write(setupStanza);
+				writer.flush();
+				return true;
+			} catch (IOException e) {
+				System.err.println("Error while writing <setup> stanza: " + e.getMessage());
+				return false;
 			}
 		}
-		return exiConfig;
+		else{
+			return false;
+		}
 	}
 	
+	/**
+	 * Sends a default EXI setup proposition to the server (if the server supports EXI compression).
+	 * Reads the schemas stanzas file, and generates the Setup stanza to inform the server about the schemas needed for EXI compression.
+	 * @throws IOException If there are problems reading the schemas stanzas file
+	 * @throws DocumentException 
+	 */
+	public boolean proposeEXICompression(){
+		return proposeEXICompression(null);
+	}
+	
+	/**
+	 * Sends an EXI setup proposition to the server (if the server supports EXI compression). If the parameter is null, the schemas file created with 
+	 * this class' construction will be used.
+	 * @param config contains the desired configurations
+	 */
+	public boolean proposeEXICompression(EXISetupConfiguration config){
+		if(!compressionMethods.contains("exi")){
+			System.err.println("The server does not support EXI compression.");
+			return false;
+		}
+		if(config != null){
+			try {
+				EXIUtils.generateBoth(EXIUtils.schemasFolder, config);
+				exiConfig = config;
+			} catch (NoSuchAlgorithmException e) {
+				e.printStackTrace();
+				return false;
+			} catch (IOException e) {
+				e.printStackTrace();
+				return false;
+			}
+		}
+		String setupStanza = "";
+		try {
+			Element setupElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
+	 		Element auxSchema;
+	        for (@SuppressWarnings("unchecked") Iterator<Element> i = setupElement.elementIterator("schema"); i.hasNext();) {
+	        	auxSchema = i.next();
+	        	auxSchema.remove(auxSchema.attribute("url"));
+	        	auxSchema.remove(auxSchema.attribute("schemaLocation"));
+	        }
+	        setupStanza = setupElement.asXML();
+	        writer.write(setupStanza);
+			writer.flush();
+			return true;
+		} catch (DocumentException e) {
+			System.err.println("Unable to propose EXI compression. " + e.getMessage());
+			return false;
+		} catch (IOException e) {
+			System.err.println("Error while writing <setup> stanza: " + e.getMessage());
+			return false;
+		}
+	}
+	
+	@Override
+	public void startStreamCompression() throws XMPPException, IOException, EXIException{
+		serverAckdCompression = true;
+		
+		if(exiConfig != null){
+			setEXIProcessor(new EXIProcessor(EXIUtils.canonicalSchemaLocation, exiConfig));
+		}
+		// enable EXIProcessor and send start stream tag
+		openEXIStream();
+		
+		// Notify that compression is being used
+	    synchronized (this) {
+	        this.notify();
+	    }
+	}
+	
+	
+	
+	
+
+	/**
+	 * Send schemas that are missing in the server.
+	 * 
+	 * @param missingSchemas a list containing all schemas missing in the server
+	 * @param opt how missing schemas will be sent to the server. Options are as follows
+	 * <br> 1 - upload schema as EXI document
+	 * <br> 2 - upload schema as EXI body
+	 * <br> 3 - send a url for the server to download the schema by itself  
+	 * <br> x - anything else to upload schema as a binary file
+	 * @throws TransformerException 
+	 * @throws SAXException 
+	 * @throws EXIException 
+	 * @throws DocumentException 
+	 * @throws IOException 
+	 * @throws NoSuchAlgorithmException 
+	 * @throws XMLStreamException 
+	 */
+	public void sendMissingSchemas(List<String> missingSchemas, int opt) 
+			throws NoSuchAlgorithmException, IOException, DocumentException, EXIException, SAXException, TransformerException, XMLStreamException {
+		switch(opt){
+			case 1: // upload compressed EXI document
+				uploadCompressedMissingSchemas(missingSchemas, false);
+				break;
+			case 2: // upload compressed EXI body
+				uploadCompressedMissingSchemas(missingSchemas, true);
+				break;
+			case 3:	// send URL and download on server 
+				downloadSchemas(missingSchemas);
+				break;
+			default: // upload binary file
+				uploadMissingSchemas(missingSchemas);
+				break;
+		}
+	}
+
+	public void setConfigId(String configId) {
+		Preferences pref = Preferences.userRoot();
+		if(configId != null){
+			pref.put(EXIUtils.REG_KEY, configId);
+		}
+		else{
+			pref.remove(EXIUtils.REG_KEY);
+		}
+	}
+
+	public boolean isUsingEXI(){
+		return this.usingEXI;
+	}
+
 	/**
 	 * Defines the reader and writer which are capable of sending both normal XMPP messages and EXI messages depending on which one is enabled.
 	 */
@@ -124,7 +242,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	protected void initReaderAndWriter() throws XMPPException {
 		EXIProcessor exiProcessor = null;
 		try {
-			exiConfig = parseQuickConfigId(Preferences.userRoot().get(EXIUtils.REG_KEY, null));
+			exiConfig = EXIUtils.parseQuickConfigId(Preferences.userRoot().get(EXIUtils.REG_KEY, null));
 			if(exiConfig != null){
 				exiProcessor = new EXIProcessor(EXIUtils.canonicalSchemaLocation, exiConfig);
 			}
@@ -179,22 +297,6 @@ public class EXIXMPPConnection extends XMPPConnection{
         initDebugger();
 	}
 	
-	@Override
-	public void startStreamCompression() throws XMPPException, IOException, EXIException{
-		serverAckdCompression = true;
-        
-		if(exiConfig != null){
-			setEXIProcessor(new EXIProcessor(EXIUtils.canonicalSchemaLocation, exiConfig));
-		}	
-		
-		openEXIStream();
-    	
-    	// Notify that compression is being used
-        synchronized (this) {
-            this.notify();
-        }
-	}
-	
 	private void setEXIProcessor(EXIProcessor ep) {
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
 			((EXIReader) ((ObservableReader) reader).wrappedReader).setExiProcessor(ep);
@@ -214,7 +316,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @param enable true to enable EXI messages (false to disable)
 	 * @throws IOException 
 	 */
-	protected void enableEXI(boolean enable){
+	private void enableEXI(boolean enable){
 		this.usingEXI = enable;
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
 			((EXIReader) ((ObservableReader) reader).wrappedReader).setEXI(enable);
@@ -245,93 +347,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 		writer.flush();
 	}
 	
-	/**
-	 * Uses the last configuration in order to skip the handshake. 
-	 * @return	<b>true</b> if there is a previous configuration available, <b>false</b> otherwise 
-	 */
-	public boolean proposeEXICompressionQuickSetup(){
-		if(!compressionMethods.contains("exi")){
-			System.err.println("The server does not support EXI compression.");
-			return false;
-		}
-		
-		String setupStanza = "";
-		String configId = Preferences.userRoot().get(EXIUtils.REG_KEY, null);
-		boolean quickSetup = false;
-		quickSetup = (configId != null); // quickSetup is valid if there is a value in registry or else it is false and normal setup stanza will be sent
-		
-		if(quickSetup){
-			exiConfig = parseQuickConfigId(configId);
-			setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + configId + "'/>";
-			try {
-				writer.write(setupStanza);
-				writer.flush();
-				return true;
-			} catch (IOException e) {
-				System.err.println("Error while writing <setup> stanza: " + e.getMessage());
-				return false;
-			}
-		}
-		else{
-			return false;
-		}
-	}
 	
-	/**
-	 * Sends a default EXI setup proposition to the server (if the server supports EXI compression).
-	 * Reads the schemas stanzas file, and generates the Setup stanza to inform the server about the schemas needed for EXI compression.
-	 * @throws IOException If there are problems reading the schemas stanzas file
-	 * @throws DocumentException 
-	 */
-	public boolean proposeEXICompression(){
-		return proposeEXICompression(null);
-	}
-	
-	EXISetupConfiguration exiConfig;
-	
-	/**
-	 * Sends an EXI setup proposition to the server (if the server supports EXI compression). If the parameter is null, the schemas file created with 
-	 * this class' construction will be used.
-	 * @param config contains the desired configurations
-	 */
-	public boolean proposeEXICompression(EXISetupConfiguration config){
-		if(!compressionMethods.contains("exi")){
-			System.err.println("The server does not support EXI compression.");
-			return false;
-		}
-		if(config != null){
-			try {
-				EXIUtils.generateBoth(EXIUtils.schemasFolder, config);
-				exiConfig = config;
-			} catch (NoSuchAlgorithmException e) {
-				e.printStackTrace();
-				return false;
-			} catch (IOException e) {
-				e.printStackTrace();
-				return false;
-			}
-		}
-		String setupStanza = "";
-		try {
-			Element setupElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
-	 		Element auxSchema;
-	        for (@SuppressWarnings("unchecked") Iterator<Element> i = setupElement.elementIterator("schema"); i.hasNext();) {
-	        	auxSchema = i.next();
-	        	auxSchema.remove(auxSchema.attribute("url"));
-	        	auxSchema.remove(auxSchema.attribute("schemaLocation"));
-	        }
-	        setupStanza = setupElement.asXML();
-	        writer.write(setupStanza);
-			writer.flush();
-			return true;
-		} catch (DocumentException e) {
-			System.err.println("Unable to propose EXI compression. " + e.getMessage());
-			return false;
-		} catch (IOException e) {
-			System.err.println("Error while writing <setup> stanza: " + e.getMessage());
-			return false;
-		}
-	}
 
 	private void uploadMissingSchemas(List<String> missingSchemas) throws IOException, DocumentException, EXIException, SAXException, TransformerException, NoSuchAlgorithmException {
 		String xml, schemaLocation = null;
@@ -445,54 +461,4 @@ System.out.println("Message Content in hex (" + content.length + "): " + EXIUtil
 			}
 		}	
 	}
-
-	/**
-	 * Send schemas that are missing in the server.
-	 * 
-	 * @param missingSchemas a list containing all schemas missing in the server
-	 * @param opt how missing schemas will be sent to the server. Options are as follows
-	 * <br> 1 - upload schema as EXI document
-	 * <br> 2 - upload schema as EXI body
-	 * <br> 3 - send a url for the server to download the schema by itself  
-	 * <br> x - anything else to upload schema as a binary file
-	 * @throws TransformerException 
-	 * @throws SAXException 
-	 * @throws EXIException 
-	 * @throws DocumentException 
-	 * @throws IOException 
-	 * @throws NoSuchAlgorithmException 
-	 * @throws XMLStreamException 
-	 */
-	public void sendMissingSchemas(List<String> missingSchemas, int opt) 
-			throws NoSuchAlgorithmException, IOException, DocumentException, EXIException, SAXException, TransformerException, XMLStreamException {
-		switch(opt){
-			case 1: // upload compressed EXI document
-				uploadCompressedMissingSchemas(missingSchemas, false);
-				break;
-			case 2: // upload compressed EXI body
-				uploadCompressedMissingSchemas(missingSchemas, true);
-				break;
-			case 3:	// send URL and download on server 
-				downloadSchemas(missingSchemas);
-				break;
-			default: // upload binary file
-				uploadMissingSchemas(missingSchemas);
-				break;
-		}
-	}
-
-	public void setConfigId(String configId) {
-		Preferences pref = Preferences.userRoot();
-		if(configId != null){
-			pref.put(EXIUtils.REG_KEY, configId);
-		}
-		else{
-			pref.remove(EXIUtils.REG_KEY);
-		}
-	}
-	
-	public boolean isUsingEXI(){
-		return this.usingEXI;
-	}
-	
 }
