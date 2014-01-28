@@ -22,12 +22,10 @@ public class EXIReader extends BufferedReader {
 	
 	private byte[] anterior;	// bytes recibidos anteriormente (mensaje EXI incompleto)
 	
-    public EXIReader(InputStream in, EXIProcessor exiProcessor) throws UnsupportedEncodingException {
+	public EXIReader(InputStream in) throws UnsupportedEncodingException {
     	super(new InputStreamReader(in, "UTF-8"));
-    	this.exiProcessor = exiProcessor;
     	this.is = new BufferedInputStream(in);
     }
-    
     
     @Override
     public int read(char[] cbuf, int off, int len) throws IOException {

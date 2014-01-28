@@ -96,7 +96,13 @@ public class Smack implements MessageListener{
 		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
-		EXIXMPPConnection connection = new EXIXMPPConnection(config);
+		//config.setCompressionEnabled(true);
+		
+		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
+		exiConfig.setAlignment(CodingMode.COMPRESSION);
+		exiConfig.setBlockSize(2048);
+		
+		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig);
 		connection.connect();
 		
 		/**
@@ -116,15 +122,6 @@ public class Smack implements MessageListener{
 		*/
 		
 		connection.login(usuario, password);
-		
-		// Start EXI
-		if(exi){
-			EXISetupConfiguration exiConfig = new EXISetupConfiguration();
-			exiConfig.setAlignment(CodingMode.COMPRESSION);
-			exiConfig.setBlockSize(2048);
-			connection.setUploadSchemaOpt(EXIXMPPConnection.UPLOAD_URL);
-			connection.proposeEXICompression(exiConfig);
-		} 
 		
 		// chatmanager to interchange messages
 		ChatManager chatmanager = connection.getChatManager();

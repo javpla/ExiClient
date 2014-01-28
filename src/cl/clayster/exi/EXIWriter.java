@@ -19,12 +19,11 @@ public class EXIWriter extends BufferedWriter {
 	private EXIProcessor exiProcessor;
 	private BufferedOutputStream os;
 
-	public EXIWriter(OutputStream out, EXIProcessor exiProcessor) throws UnsupportedEncodingException {
+	public EXIWriter(OutputStream out) throws UnsupportedEncodingException {
 		super(new OutputStreamWriter(out, "UTF-8"));
 		os = new BufferedOutputStream(out);
-		this.exiProcessor = exiProcessor;
 	}
-
+	
 	@Override
     public void write(String xml , int off, int len) throws IOException {
 System.out.println("XML(" + xml.length() + "): " + xml);

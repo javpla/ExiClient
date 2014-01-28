@@ -49,6 +49,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	private boolean usingEXI = false;
 	private boolean isAlternativeBinding = false;
 	private EXISetupConfiguration exiConfig;
+	private EXIProcessor exiProcessor;
 	
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
@@ -61,6 +62,32 @@ public class EXIXMPPConnection extends XMPPConnection{
 				e1.printStackTrace();
 				return;
 			}
+	}
+	
+	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
+		super(config);
+		// TODO: siempre se usara compresion EXI
+		config.setCompressionEnabled(true);
+		uploadSchemaOpt = UPLOAD_BINARY;
+		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
+		this.exiConfig = exiConfig;
+		if(!new File(EXIUtils.schemasFileLocation).exists())
+			try {
+				EXIUtils.generateBoth(EXIUtils.schemasFolder, new EXISetupConfiguration());
+			} catch (NoSuchAlgorithmException | IOException e1) {
+				e1.printStackTrace();
+				return;
+			}
+	}
+	
+	@Override
+	protected boolean useCompression() {
+		// If stream compression was offered by the server and we want to use
+        // compression then send compression request to the server
+        if (authenticated) {
+            throw new IllegalStateException("Compression should be negotiated before authentication.");
+        }
+        return proposeEXICompression();
 	}
 	
 	public int getUploadSchemaOpt(){
@@ -119,7 +146,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @throws DocumentException 
 	 */
 	public boolean proposeEXICompression(){
-		return proposeEXICompression(null);
+		return proposeEXICompression(exiConfig);
 	}
 	
 	/**
@@ -167,12 +194,24 @@ public class EXIXMPPConnection extends XMPPConnection{
 	}
 	
 	@Override
-	public void startStreamCompression() throws XMPPException, IOException, EXIException{
+	public void requestStreamCompression(String method) {
+		if("exi".equalsIgnoreCase(method)){
+			try {
+				exiProcessor = new EXIProcessor(EXIUtils.canonicalSchemaLocation, exiConfig);
+			} catch (EXIException e) {
+				System.err.println("Unable to create EXI Processor.");
+				return;
+			}
+		}
+		super.requestStreamCompression(method);
+	};
+	
+	@Override
+	public void startStreamCompression() throws XMPPException, IOException{
 		serverAckdCompression = true;
 		
-		if(exiConfig != null){
-			setEXIProcessor(new EXIProcessor(EXIUtils.canonicalSchemaLocation, exiConfig));
-		}
+		// Very important function set the EXI Processor to the EXIWriter and EXIReader!!
+		setEXIProcessor();
 		// enable EXIProcessor and send start stream tag
 		openEXIStream();
 		
@@ -240,49 +279,39 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 */
 	@Override
 	protected void initReaderAndWriter() throws XMPPException {
-		EXIProcessor exiProcessor = null;
 		try {
-			exiConfig = EXIUtils.parseQuickConfigId(Preferences.userRoot().get(EXIUtils.REG_KEY, null));
-			if(exiConfig != null){
-				exiProcessor = new EXIProcessor(EXIUtils.canonicalSchemaLocation, exiConfig);
+			EXISetupConfiguration quickExiConfig = EXIUtils.parseQuickConfigId(Preferences.userRoot().get(EXIUtils.REG_KEY, null));
+			if(quickExiConfig != null){
+				exiConfig = quickExiConfig;
 			}
-			else{
-				exiProcessor = new EXIProcessor(EXIUtils.canonicalSchemaLocation);
-			}
-		} catch (EXIException e) {
-			System.err.println(e.getMessage());
 		} catch (NumberFormatException e){	
 			// error en el formato del configId. Se borra y se intenta nuevamente con blockSize y strict por defecto.
 			setConfigId(null);
 			initReaderAndWriter();
 			return;
 		}
-		if(exiProcessor == null){
-			super.initReaderAndWriter();
-			throw new XMPPException("Unable to create EXI processor. Continuing using normal XMPP only.");
-		}
 		try {
             if (compressionHandler == null) {
-            	reader = new EXIReader(socket.getInputStream(), exiProcessor);
-                writer = new EXIWriter(socket.getOutputStream(), exiProcessor);
+            	reader = new EXIReader(socket.getInputStream());
+                writer = new EXIWriter(socket.getOutputStream());
             }
             else {
                 try {
                     OutputStream os = compressionHandler.getOutputStream(socket.getOutputStream());
                     //writer = new EXIWriter(new OutputStreamWriter(os, EXIProcessor.CHARSET), exiProcessor);
-                    writer = new EXIWriter(os, exiProcessor);
+                    writer = new EXIWriter(os);
 
                     InputStream is = compressionHandler.getInputStream(socket.getInputStream());
                     //reader = new EXIReader(new InputStreamReader(is, EXIProcessor.CHARSET), exiProcessor);
-                    reader = new EXIReader(is, exiProcessor);
+                    reader = new EXIReader(is);
                 }
                 catch (Exception e) {
                     e.printStackTrace();
                     compressionHandler = null;
                     //reader = new EXIReader(new InputStreamReader(socket.getInputStream(), EXIProcessor.CHARSET), exiProcessor);
-                    reader = new EXIReader(socket.getInputStream(), exiProcessor);
+                    reader = new EXIReader(socket.getInputStream());
                     //writer = new EXIWriter(new OutputStreamWriter(socket.getOutputStream(), EXIProcessor.CHARSET), exiProcessor);
-                    writer = new EXIWriter(socket.getOutputStream(), exiProcessor);
+                    writer = new EXIWriter(socket.getOutputStream());
                 }
             }
         }
@@ -297,14 +326,14 @@ public class EXIXMPPConnection extends XMPPConnection{
         initDebugger();
 	}
 	
-	private void setEXIProcessor(EXIProcessor ep) {
+	private void setEXIProcessor(){
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
-			((EXIReader) ((ObservableReader) reader).wrappedReader).setExiProcessor(ep);
-			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).setExiProcessor(ep);
+			((EXIReader) ((ObservableReader) reader).wrappedReader).setExiProcessor(exiProcessor);
+			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).setExiProcessor(exiProcessor);
 		}
 		else if(reader instanceof EXIReader && writer instanceof EXIWriter){
-			((EXIReader) reader).setExiProcessor(ep);
-			((EXIWriter) writer).setExiProcessor(ep);
+			((EXIReader) reader).setExiProcessor(exiProcessor);
+			((EXIWriter) writer).setExiProcessor(exiProcessor);
 			//System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
 		}
 		else System.err.println("No se ha podido establecer el EXI Processor: Instances of reader and writer are not treated.");

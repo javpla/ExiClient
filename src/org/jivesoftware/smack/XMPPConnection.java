@@ -938,7 +938,7 @@ public class XMPPConnection extends Connection {
      *
      * @return true if stream compression negotiation was successful.
      */
-    private boolean useCompression() {
+    protected boolean useCompression() {
         // If stream compression was offered by the server and we want to use
         // compression then send compression request to the server
         if (authenticated) {
