@@ -291,13 +291,22 @@ public class PacketReader {
                 		}
                 		else{
                 			if(parser.getAttributeValue("null", "configurationId") == null){
-                				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
-    	                		if(missingSchemas.size() > 0){
-    	                			exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOpt());
-    	                		}
-                				exiConnection.setConfigId(null);
-                				Thread.sleep(1000);
-                				if(!exiConnection.proposeEXICompressionQuickSetup())	exiConnection.proposeEXICompression();
+                				if(exiConnection.sentMissingSchemas){
+                					// TODO: missing schemas have been sent, schemaless EXI compression will be used
+                					System.err.println("Error while uploading schema files.");
+                				}
+                				else{
+                					// it is the first intent to send the missing schemas
+	                				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
+	    	                		if(missingSchemas.size() > 0){
+	    	                			exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOpt());
+	    	                		}
+	                				exiConnection.setConfigId(null);
+	                				Thread.sleep(1000);
+	                				if(!exiConnection.proposeEXICompressionQuickSetup()){
+	                					exiConnection.proposeEXICompression();
+	                				}
+                				}
                 			}
                 		}
                     }
@@ -306,6 +315,9 @@ public class PacketReader {
                     	if(--exiConnection.schemaDownloads == 0){
                     		exiConnection.proposeEXICompression();
                     	}
+                    }
+                    else if(parser.getName().equals("streamStart") || parser.getName().equals("exi:streamStart")){
+                    	System.out.println("blablablabalbla");
                     }
                     /************************ fin EXI code ************************/
                     

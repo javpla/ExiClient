@@ -4,7 +4,7 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
 	<classpathentry kind="lib" path="lib/dom4j-1.6.1.jar"/>
 	<classpathentry kind="lib" path="lib/org.xbill.dns_2.1.4.jar"/>
-	<classpathentry kind="lib" path="lib/xpp.jar"/>
+	<classpathentry kind="lib" path="lib/xpp.jar" sourcepath="C:/Users/Javier/Downloads/mxp1"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/xerces"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/exificient"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>

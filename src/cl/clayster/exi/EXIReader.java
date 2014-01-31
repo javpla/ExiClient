@@ -14,7 +14,7 @@ import com.siemens.ct.exi.exceptions.EXIException;
 public class EXIReader extends BufferedReader {
 	 
 	private boolean exi = false;
-	private EXIProcessor exiProcessor;
+	private EXIBaseProcessor ep;
 	private int leido = 0;
 	
 	private BufferedInputStream is;
@@ -33,37 +33,35 @@ public class EXIReader extends BufferedReader {
     	synchronized (lock) {
     		if(!exi){
     			leido = super.read(cbuf, off, len);
-System.err.println("Recibido(" + leido + "): " + new String(cbuf, off, len));    			
+System.err.println("exi=false. Recibido (" + leido + "): " + new String(cbuf, off, len));			
     			return leido;
     		}
     		ba = new byte[len];
     		leido = is.read(ba, 0, len);
     		if(leido == -1)	return leido;
 System.err.println("Recibido(" + leido + "): " + EXIUtils.bytesToHex(ba));
-	    	if(exi && anterior != null || EXIProcessor.isEXI(ba[0])){
+	    	if(exi && (EXIProcessor.isEXI(ba[0]) || EXIProcessor.hasEXICookie(ba) || anterior != null)){
 System.err.println("EXI(" + (leido + (anterior != null ? anterior.length : 0)) + "): " + EXIUtils.bytesToHex(ba));
-    			if(leido <= 3){
-    				anterior = new byte[leido];
-    				System.arraycopy(ba, 0, anterior, 0, leido);
-System.err.println("bytes guardados: " + EXIUtils.bytesToHex(anterior));
-					return leido;
-    			}
-    			else if(anterior != null){
+    			if(anterior != null){	// agregar lo guardado anteriormente a lo leido ahora
 	    			System.arraycopy(ba, 0, ba, anterior.length, ba.length - anterior.length);
 	    			System.arraycopy(anterior, 0, ba, 0, anterior.length);
 	    		}
 		    	try {
-		    		//System.arraycopy(exiProcessor.decode(ba).toCharArray(), 0, cbuf, off, leido);
-			    		cbuf = exiProcessor.decodeByteArray(ba).toCharArray();
+			    	cbuf = ep.decodeByteArray(ba).substring(38).toCharArray();
 System.err.println("decoded XML(" + (cbuf.length) + "): " + new String(cbuf));
 					anterior = null;
 					ba = null;
-		    		return leido;
+					return leido;
 		    	} catch (EXIException | TransformerException e) {
-		    		e.printStackTrace();
+		    		// EXI incompleto, los bytes leidos se guardan en anterior
+		    		anterior = new byte[leido];
+    				System.arraycopy(ba, 0, anterior, 0, leido);
+System.err.println("bytes guardados: " + EXIUtils.bytesToHex(anterior));
+					return leido;
 		    	}
 			}
 	    	System.arraycopy(new String(ba).toCharArray(), 0, cbuf, off, leido);
+	    	
 System.err.println("XML(" + leido + "): " + new String(cbuf));
 			return leido;
 	    }
@@ -76,11 +74,13 @@ System.err.println("XML(" + leido + "): " + new String(cbuf));
 
 
 	void setEXI(boolean usarEXI) {
-		this.exi = usarEXI;
+		synchronized (lock) {
+			this.exi = usarEXI;
+		}
 	}
 	
-	void setExiProcessor(EXIProcessor ep){
-		this.exiProcessor = ep;
+	void setExiProcessor(EXIBaseProcessor ep){
+		this.ep = ep;
 	}
 
 }

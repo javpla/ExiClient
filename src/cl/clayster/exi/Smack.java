@@ -104,6 +104,7 @@ public class Smack implements MessageListener{
 		
 		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig);
 		connection.connect();
+		connection.login(usuario, password);
 		
 		/**
 		// get list of contacts (Roster)
@@ -120,8 +121,6 @@ public class Smack implements MessageListener{
 			public void entriesAdded(Collection<String> arg0) {}
 		});
 		*/
-		
-		connection.login(usuario, password);
 		
 		// chatmanager to interchange messages
 		ChatManager chatmanager = connection.getChatManager();

@@ -16,7 +16,7 @@ import com.siemens.ct.exi.exceptions.EXIException;
 public class EXIWriter extends BufferedWriter {
 
 	private boolean exi = false;
-	private EXIProcessor exiProcessor;
+	private EXIBaseProcessor exiProcessor;
 	private BufferedOutputStream os;
 
 	public EXIWriter(OutputStream out) throws UnsupportedEncodingException {
@@ -51,29 +51,7 @@ System.out.println("Enviando EXI(" + xml.length() + " => " + exi.length + "): " 
 		this.exi = usarEXI;
 	}
 	
-	void setExiProcessor(EXIProcessor ep){
-		this.exiProcessor = ep;
-	}
-
-	/**
-	 * To open the alternative binding EXI stream only
-	 */
-	public void openAlternativeBindingStream(){
-		// TODO: ¿setup o streamStart?
-		String xml = "<?xml version=\"1.0\"?>"
-				+ "<exi:streamStart xmlns:exi='http://jabber.org/protocol/compress/exi' version=\"1.0\" to=\"jabber.example.org\" xml:lang=\"en\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\" >"
-				+ "<exi:xmlns prefix=\"stream\" namespace=\"http://etherx.jabber.org/streams\" />"
-				+ "<exi:xmlns prefix=\"\" namespace=\"jabber:client\" />"
-				+ "<exi:xmlns prefix=\"xml\" namespace=\"http://www.w3.org/XML/1998/namespace\" />"
-				+ "</exi:streamStart>";
-		byte[] exi;
-		try {
-			exi = EXIProcessor.encodeSchemaless(xml, true);
-System.out.println("Enviando EXI schemaless(" + exi.length + "): " + EXIUtils.bytesToHex(exi));
-        	os.write(exi);
-        	os.flush();
-		} catch (IOException | EXIException | SAXException e) {
-			e.printStackTrace();
-		}
+	void setExiProcessor(EXIBaseProcessor exiProcessor){
+		this.exiProcessor = exiProcessor;
 	}
 }

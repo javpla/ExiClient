@@ -39,21 +39,26 @@ import com.siemens.ct.exi.exceptions.EXIException;
  */
 public class EXIXMPPConnection extends XMPPConnection{
 	
-	public int schemaDownloads = 0;
 	public static final int UPLOAD_BINARY = 0;
 	public static final int UPLOAD_EXI_DOCUMENT = 1;
 	public static final int UPLOAD_EXI_BODY = 2;
 	public static final int UPLOAD_URL = 3;
 	
-	private int uploadSchemaOpt;
+	private int uploadSchemaOpt = UPLOAD_BINARY;
 	private boolean usingEXI = false;
-	private boolean isAlternativeBinding = false;
 	private EXISetupConfiguration exiConfig;
-	private EXIProcessor exiProcessor;
+	protected EXIBaseProcessor exiProcessor;
 	
+	public int schemaDownloads = 0;
+	public boolean sentMissingSchemas = false;
+	
+	/**
+	 * This constructor does not use EXI compression while logging in, unless <b>config</b> has compressionEnabled set to true 
+	 * (in which case EXISetupConfiguration will have default values). To start EXI compression manually, {@link EXIXMPPConnection.proposeEXICompression} method must be called.
+	 * @param config configurations to connect to the server
+	 */
 	public EXIXMPPConnection(ConnectionConfiguration config) {
 		super(config);
-		uploadSchemaOpt = UPLOAD_BINARY;
 		exiConfig = new EXISetupConfiguration();
 		if(!new File(EXIUtils.schemasFileLocation).exists())
 			try {
@@ -62,13 +67,19 @@ public class EXIXMPPConnection extends XMPPConnection{
 				e1.printStackTrace();
 				return;
 			}
+		
 	}
 	
+	/**
+	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in. 
+	 * @param config configurations to connect to the server
+	 * @param exiConfig EXI parameters to be used. Default values will be used if exiConfig is <b>null</b>
+	 */
 	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
 		super(config);
-		// TODO: siempre se usara compresion EXI
+		// se usara compresion EXI al hacer login
 		config.setCompressionEnabled(true);
-		uploadSchemaOpt = UPLOAD_BINARY;
+		
 		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
 		this.exiConfig = exiConfig;
 		if(!new File(EXIUtils.schemasFileLocation).exists())
@@ -82,11 +93,6 @@ public class EXIXMPPConnection extends XMPPConnection{
 	
 	@Override
 	protected boolean useCompression() {
-		// If stream compression was offered by the server and we want to use
-        // compression then send compression request to the server
-        if (authenticated) {
-            throw new IllegalStateException("Compression should be negotiated before authentication.");
-        }
         return proposeEXICompression();
 	}
 	
@@ -98,14 +104,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 		if(option < 0 || option > 3)	option = UPLOAD_BINARY;
 		uploadSchemaOpt = option;
 	}
-	
-	public boolean isAlternativeBinding() {
-		return isAlternativeBinding;
-	}
 
-	public void setAlternativeBinding(boolean isAlternativeBinding) {
-		this.isAlternativeBinding = isAlternativeBinding;
-	}
 
 	/**
 	 * Uses the last configuration in order to skip the handshake. 
@@ -207,7 +206,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	};
 	
 	@Override
-	public void startStreamCompression() throws XMPPException, IOException{
+	public void startStreamCompression() throws IOException{
 		serverAckdCompression = true;
 		
 		// Very important function set the EXI Processor to the EXIWriter and EXIReader!!
@@ -244,6 +243,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 */
 	public void sendMissingSchemas(List<String> missingSchemas, int opt) 
 			throws NoSuchAlgorithmException, IOException, DocumentException, EXIException, SAXException, TransformerException, XMLStreamException {
+		sentMissingSchemas = true;
 		switch(opt){
 			case 1: // upload compressed EXI document
 				uploadCompressedMissingSchemas(missingSchemas, false);
@@ -326,6 +326,9 @@ public class EXIXMPPConnection extends XMPPConnection{
         initDebugger();
 	}
 	
+	/**
+	 * Sets the current exiProcessor in this class as the current EXIProcessor in EXIWriter and EXIReader 
+	 */
 	private void setEXIProcessor(){
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
 			((EXIReader) ((ObservableReader) reader).wrappedReader).setExiProcessor(exiProcessor);
@@ -336,7 +339,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 			((EXIWriter) writer).setExiProcessor(exiProcessor);
 			//System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
 		}
-		else System.err.println("No se ha podido establecer el EXI Processor: Instances of reader and writer are not treated.");
+		
+		else System.err.println("Unable to create EXI Processor: Instances of reader and writer are not treated. (EXIXMPPConnection.setEXIProcessor)");
 	}
 
 	/**
@@ -356,12 +360,12 @@ public class EXIXMPPConnection extends XMPPConnection{
 			((EXIWriter) writer).setEXI(enable);
 			//System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
 		}	
-		else System.err.println("No se ha podido establecer el EXI Processor: Instances of reader and writer are not treated.");
+		else System.err.println("Unable to create EXI Processor: Instances of reader and writer are not treated. (EXIXMPPConnection.enableEXI)");
 	}
 	
 	private void openEXIStream() throws IOException{
 		enableEXI(true);
-		String exiSpecific = "<exi:streamStart from='"
+		String exiStreamStart = "<exi:streamStart from='"
 				+ getUser()
 	 			+ "' to='"
 	 			+ getHost()
@@ -372,7 +376,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 			+ "<exi:xmlns prefix='streams' namespace='http://etherx.jabber.org/streams'/>"
 	 			+ "<exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
 	 			+ "</exi:streamStart>";
-		writer.write(exiSpecific);
+		writer.write(exiStreamStart);
 		writer.flush();
 	}
 	

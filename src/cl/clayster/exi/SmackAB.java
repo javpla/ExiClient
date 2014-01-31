@@ -30,20 +30,16 @@ public class SmackAB implements MessageListener{
 		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
+		//config.setCompressionEnabled(true);
 		
-		config.setCompressionEnabled(true);
-		
-		EXIXMPPConnection connection = new EXIXMPPConnection(config);
-		connection.connect();
-		connection.login(usuario, password);
-		
-		// Start EXI Alternative Binding
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
 		exiConfig.setAlignment(CodingMode.COMPRESSION);
 		exiConfig.setBlockSize(2048);
-		connection.setUploadSchemaOpt(EXIXMPPConnection.UPLOAD_BINARY);
 		
-		connection.proposeEXICompression(); 
+		EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, exiConfig);
+		connection.connect();
+		
+		//connection.login(usuario, password);
 		
 		// chatmanager to interchange messages
 		ChatManager chatmanager = connection.getChatManager();

@@ -19,9 +19,11 @@ import com.siemens.ct.exi.CodingMode;
 
 public class EXIUtils {
 	
-	public static final String canonicalSchemaLocation = "./res/canonicalSchema.xsd"; 
-	public static String schemasFileLocation = "./res/schemas.xml";
-	public static String schemasFolder = "./res/";
+	public static final String canonicalSchemaLocation = "./res/canonicalSchema.xsd";
+	public static final String canonicalSchemalessLocation = "./res/canonicalSchemaless.xsd";
+	public static final String schemasFileLocation = "./res/schemas.xml";
+	public static final String schemasFolder = "./res/";
+	
 	
 	public static final char[] hexArray = "0123456789abcdef".toCharArray();
 	public static final String REG_KEY = "exi_config_id";	
@@ -212,4 +214,13 @@ public class EXIUtils {
 		return exiConfig;
 	}
 	
+	static void createSchemalessCanonicalSchemaFile() throws IOException{
+		EXIUtils.writeFile(EXIUtils.canonicalSchemalessLocation, "<?xml version='1.0' encoding='UTF-8'?>"
+				+ "<xs:schema"
+				+ " xmlns:xs='http://www.w3.org/2001/XMLSchema'"
+				+ " targetNamespace='urn:xmpp:exi:cs'"
+				+ " xmlns='urn:xmpp:exi:cs'"
+				+ " elementFormDefault='qualified'>"
+				+ "</xs:schema>");
+	}
 }

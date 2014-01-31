@@ -26,9 +26,8 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 import org.jivesoftware.smack.packet.Packet;
-import org.jivesoftware.smack.util.ObservableWriter;
 
-import cl.clayster.exi.EXIWriter;
+import cl.clayster.exi.EXIXMPPAlternativeConnection;
 import cl.clayster.exi.EXIXMPPConnection;
 
 /**
@@ -234,14 +233,8 @@ public class PacketWriter {
      * @throws IOException If an error occurs while sending the stanza to the server.
      */
     void openStream() throws IOException {
-    	if(this.connection instanceof EXIXMPPConnection && ((EXIXMPPConnection)this.connection).isAlternativeBinding()){
-    		if(writer instanceof ObservableWriter){
-    			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).openAlternativeBindingStream();
-    		}
-    		else if(writer instanceof EXIWriter){
-    			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).openAlternativeBindingStream();
-    			System.out.println("EXIWriter alone (not wrapped into ObservableWriter)");
-    		}	
+    	if(this.connection instanceof EXIXMPPAlternativeConnection){
+    		((EXIXMPPAlternativeConnection)this.connection).openStream();
     	}
     	else{
 	        StringBuilder stream = new StringBuilder();
