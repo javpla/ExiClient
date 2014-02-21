@@ -299,7 +299,7 @@ public class PacketReader {
                 					// it is the first intent to send the missing schemas
 	                				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
 	    	                		if(missingSchemas.size() > 0){
-	    	                			exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOpt());
+	    	                			exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOption());
 	    	                		}
 	                				exiConnection.setConfigId(null);
 	                				Thread.sleep(1000);
@@ -310,10 +310,15 @@ public class PacketReader {
                 			}
                 		}
                     }
-                    else if (parser.getName().equals("downloadSchemaResponse") && "true".equals(parser.getAttributeValue(null, "result"))) {
-                		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                    	if(--exiConnection.schemaDownloads == 0){
-                    		exiConnection.proposeEXICompression();
+                    else if (parser.getName().equals("downloadSchemaResponse")){
+                    	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
+                    	if("true".equals(parser.getAttributeValue(null, "result"))) {
+	                    	if(--exiConnection.schemaDownloads == 0){
+	                    		exiConnection.proposeEXICompression();
+	                    	}
+                    	}
+                    	else{
+                    		// nothing, XMPP connection will continue
                     	}
                     }
                     else if(parser.getName().equals("streamStart") || parser.getName().equals("exi:streamStart")){

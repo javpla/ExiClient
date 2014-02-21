@@ -1,4 +1,4 @@
-<setup xmlns='http://jabber.org/protocol/compress/exi' version='1' alignment='compression' strict='false' blockSize='2048' valueMaxLength='-1' valuePartitionCapacity='-1'>
+<setup xmlns='http://jabber.org/protocol/compress/exi' version='1' alignment='bit-packed' strict='false' blockSize='1000000' valueMaxLength='0' valuePartitionCapacity='-1'>
 	<schema ns='http://www.w3.org/XML/1998/namespace' bytes='4726' md5Hash='2e2cf9072dc058dcda41b7ee77a5cb54' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\res\xml.xsd' url=''/>
 	<schema ns='jabber:client' bytes='6914' md5Hash='b75569d6ab074cb678bb10f50dc44db6' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\res\jabber-client.xsd' url=''/>
 	<schema ns='jabber:x:event' bytes='1013' md5Hash='305f4bef3c118b9d3d11d96aea753026' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\res\x-event.xsd' url=''/>

@@ -39,12 +39,13 @@ import com.siemens.ct.exi.exceptions.EXIException;
  */
 public class EXIXMPPConnection extends XMPPConnection{
 	
+	public static final int ABORT_COMPRESSION = -1;
 	public static final int UPLOAD_BINARY = 0;
 	public static final int UPLOAD_EXI_DOCUMENT = 1;
 	public static final int UPLOAD_EXI_BODY = 2;
 	public static final int UPLOAD_URL = 3;
 	
-	private int uploadSchemaOpt = UPLOAD_BINARY;
+	private int uploadSchemaOption = UPLOAD_BINARY;
 	private boolean usingEXI = false;
 	private EXISetupConfiguration exiConfig;
 	protected EXIBaseProcessor exiProcessor;
@@ -96,13 +97,13 @@ public class EXIXMPPConnection extends XMPPConnection{
         return proposeEXICompression();
 	}
 	
-	public int getUploadSchemaOpt(){
-		return uploadSchemaOpt;
+	public int getUploadSchemaOption(){
+		return uploadSchemaOption;
 	}
 	
-	public void setUploadSchemaOpt(int option){
-		if(option < 0 || option > 3)	option = UPLOAD_BINARY;
-		uploadSchemaOpt = option;
+	public void setUploadSchemaOption(int option){
+		if(option < -1 || option > 3)	option = UPLOAD_BINARY;
+		uploadSchemaOption = option;
 	}
 
 
@@ -245,6 +246,9 @@ public class EXIXMPPConnection extends XMPPConnection{
 			throws NoSuchAlgorithmException, IOException, DocumentException, EXIException, SAXException, TransformerException, XMLStreamException {
 		sentMissingSchemas = true;
 		switch(opt){
+			case -1:	// abort EXI compression, continue using normal XMPP
+				System.out.println("EXI compression aborted. Continuing with normal XMPP communication.");
+				break;
 			case 1: // upload compressed EXI document
 				uploadCompressedMissingSchemas(missingSchemas, false);
 				break;

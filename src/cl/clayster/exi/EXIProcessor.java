@@ -128,18 +128,35 @@ public class EXIProcessor extends EXIBaseProcessor{
 	}
 	
 	protected String decode(InputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{                
-	        // decoding
-	        exiSource = new EXISource(exiFactory);
-	        XMLReader exiReader = exiSource.getXMLReader();
+        // decoding
+        exiSource = new EXISource(exiFactory);
+        XMLReader exiReader = exiSource.getXMLReader();
+
+        TransformerFactory tf = TransformerFactory.newInstance();
+        Transformer transformer = tf.newTransformer();
+        
+        exiSource = new SAXSource(new InputSource(exiIS));
+        exiSource.setXMLReader(exiReader);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        transformer.transform(exiSource, new StreamResult(baos));                
+        return baos.toString("UTF-8");
+    }
 	
-	        TransformerFactory tf = TransformerFactory.newInstance();
-	        Transformer transformer = tf.newTransformer();
-	        
-	        exiSource = new SAXSource(new InputSource(exiIS));
-	        exiSource.setXMLReader(exiReader);
-	
-	        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	        transformer.transform(exiSource, new StreamResult(baos));                
-	        return baos.toString("UTF-8");
-	    }
+	protected ByteArrayInputStream decodeToStream(InputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{                
+        // decoding
+        exiSource = new EXISource(exiFactory);
+        XMLReader exiReader = exiSource.getXMLReader();
+
+        TransformerFactory tf = TransformerFactory.newInstance();
+        Transformer transformer = tf.newTransformer();
+        
+        exiSource = new SAXSource(new InputSource(exiIS));
+        exiSource.setXMLReader(exiReader);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        transformer.transform(exiSource, new StreamResult(baos));
+       
+        return new ByteArrayInputStream(baos.toByteArray());
+    }
 }

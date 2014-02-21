@@ -56,7 +56,7 @@ public class UploadSchemasTest {
 	
 	@Test
 	public void aUploadBinary(){
-		connection.setUploadSchemaOpt(EXIXMPPConnection.UPLOAD_BINARY);
+		connection.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY);
 		boolean propose = connection.proposeEXICompression();
 		// wait for the negotiation to take place before continuing with the rest of the test (sending a message and disconnecting)
 		try {
@@ -75,7 +75,7 @@ public class UploadSchemasTest {
 	
 	@Test
 	public void bUploadExiBody(){
-		connection.setUploadSchemaOpt(EXIXMPPConnection.UPLOAD_EXI_BODY);
+		connection.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_EXI_BODY);
 		boolean propose = connection.proposeEXICompression();
 		// wait for the negotiation to take place before continuing with the rest of the test (sending a message and disconnecting)
 		try {
@@ -94,7 +94,7 @@ public class UploadSchemasTest {
 	
 	@Test
 	public void cUploadExiDocument(){
-		connection.setUploadSchemaOpt(EXIXMPPConnection.UPLOAD_EXI_DOCUMENT);
+		connection.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_EXI_DOCUMENT);
 		boolean propose = connection.proposeEXICompression();
 		// wait for the negotiation to take place before continuing with the rest of the test (sending a message and disconnecting)
 		try {
@@ -113,7 +113,7 @@ public class UploadSchemasTest {
 	
 	@Test
 	public void dUploadURL(){
-		connection.setUploadSchemaOpt(EXIXMPPConnection.UPLOAD_URL);
+		connection.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_URL);
 		boolean propose = connection.proposeEXICompression();
 		// wait for the negotiation to take place before continuing with the rest of the test (sending a message and disconnecting)
 		try {

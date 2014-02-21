@@ -29,7 +29,7 @@ public class SmackAB implements MessageListener{
 		XMPPConnection.DEBUG_ENABLED = true;
 		
 		//create a connection to localhost on a specific port and login
-		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
+		ConnectionConfiguration config = new ConnectionConfiguration(servidor, 15222);
 		//config.setCompressionEnabled(true);
 		
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration();

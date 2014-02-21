@@ -28,7 +28,7 @@ import com.siemens.ct.exi.exceptions.EXIException;
 public class Smack implements MessageListener{
 	
 	
-	static final String servidor = "exi.clayster.cl";
+	static final String servidor = "localhost";
 	static final String contacto = "javier@exi.clayster.cl";	// usuario al cual se le envían mensajes
 	static final String usuario = "exiuser";
 	static final String password = "exiuser";
