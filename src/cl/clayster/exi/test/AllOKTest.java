@@ -7,7 +7,6 @@ import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.Message;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -72,8 +71,13 @@ public class AllOKTest {
 		msg.setBody("default setup");
 		connection.sendPacket(msg);
 		
-		assertTrue(connection.isConnected());
+		assertTrue(connection.isConnected() && connection.isUsingEXI());
+		
 	}
+	
+	// TODO:
+	// eventhandler para leer mensajes enviados y recibidos en XML y en binario (o si no hay nada hay null)
+	//  y otro cluster de pruebas para un mensaje especifico y comparar sus tamaños durante la sesion y diferentes opciones
 	
 	@Test
 	public void cQuickSetupCon(){
@@ -111,10 +115,4 @@ public class AllOKTest {
 		
 		assertTrue(connection.isConnected());
 	}
-	
-	@AfterClass
-	public static void disconnect() {		
-		if(connection.isConnected())	connection.disconnect();
-	}
-
 }

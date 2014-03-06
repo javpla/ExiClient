@@ -234,7 +234,7 @@ public class PacketWriter {
      */
     void openStream() throws IOException {
     	if(this.connection instanceof EXIXMPPAlternativeConnection){
-    		((EXIXMPPAlternativeConnection)this.connection).openStream();
+    		((EXIXMPPAlternativeConnection)this.connection).startAlternativeBinding();
     	}
     	else{
 	        StringBuilder stream = new StringBuilder();
