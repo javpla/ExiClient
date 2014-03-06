@@ -22,10 +22,22 @@ public class EXISetupConfiguration {
 	private int valueMaxLength;
 	private int valuePartitionCapacity;
 	
+	private boolean quickSetup;
+	
+	/**
+	 * Constructs a new EXISetupConfigurations and initializates it with Default Values.
+	 * @param quickSetup indicates whether or not to try quick EXI configuration setup first
+	 */
+	public EXISetupConfiguration(boolean quickSetup){
+		this.quickSetup = quickSetup;
+		setDefaultValues();
+	}
+	
 	/**
 	 * Constructs a new EXISetupConfigurations and initializates it with Default Values.
 	 */
 	public EXISetupConfiguration(){
+		this.quickSetup = false;
 		setDefaultValues();
 	}
 	
@@ -111,6 +123,16 @@ public class EXISetupConfiguration {
 		this.valuePartitionCapacity = valuePartitionCapacity;
 	}
 	
+	
+	
+	public boolean isQuickSetup() {
+		return quickSetup;
+	}
+
+	public void setQuickSetup(boolean quickSetup) {
+		this.quickSetup = quickSetup;
+	}
+
 	@Override
 	public String toString(){
 		return "EXISetupConfiguration:"

@@ -96,9 +96,9 @@ public class Smack implements MessageListener{
 		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
-		//config.setCompressionEnabled(true);
+		config.setCompressionEnabled(true);
 		
-		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
+		EXISetupConfiguration exiConfig = new EXISetupConfiguration(true);
 		exiConfig.setAlignment(CodingMode.COMPRESSION);
 		exiConfig.setBlockSize(2048);
 		

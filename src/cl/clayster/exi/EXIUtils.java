@@ -14,6 +14,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.prefs.Preferences;
 
 import com.siemens.ct.exi.CodingMode;
 
@@ -222,5 +223,19 @@ public class EXIUtils {
 				+ " xmlns='urn:xmpp:exi:cs'"
 				+ " elementFormDefault='qualified'>"
 				+ "</xs:schema>");
+	}
+	
+	/**
+	 * Saves a register with the value given as a parameter or deletes it if the parameter is null
+	 * @param configId value of the register or null to remove
+	 */
+	public static void saveConfigId(String configId) {
+		Preferences pref = Preferences.userRoot();
+		if(configId != null){
+			pref.put(EXIUtils.REG_KEY, configId);
+		}
+		else{
+			pref.remove(EXIUtils.REG_KEY);
+		}
 	}
 }

@@ -47,45 +47,25 @@ public class EXIXMPPConnection extends XMPPConnection{
 	
 	private int uploadSchemaOption = UPLOAD_BINARY;
 	private boolean usingEXI = false;
-	private EXISetupConfiguration exiConfig;
+	protected EXISetupConfiguration exiConfig;
 	protected EXIBaseProcessor exiProcessor;
 	
 	public int schemaDownloads = 0;
 	public boolean sentMissingSchemas = false;
 	
 	/**
-	 * This constructor does not use EXI compression while logging in, unless <b>config</b> has compressionEnabled set to true 
-	 * (in which case EXISetupConfiguration will have default values). To start EXI compression manually, {@link EXIXMPPConnection.proposeEXICompression} method must be called.
-	 * @param config configurations to connect to the server
-	 */
-	public EXIXMPPConnection(ConnectionConfiguration config) {
-		super(config);
-		exiConfig = new EXISetupConfiguration();
-		if(!new File(EXIUtils.schemasFileLocation).exists())
-			try {
-				EXIUtils.generateBoth(EXIUtils.schemasFolder, new EXISetupConfiguration());
-			} catch (NoSuchAlgorithmException | IOException e1) {
-				e1.printStackTrace();
-				return;
-			}
-		
-	}
-	
-	/**
 	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in. 
 	 * @param config configurations to connect to the server
-	 * @param exiConfig EXI parameters to be used. Default values will be used if exiConfig is <b>null</b>
+	 * @param exiConfig EXI parameters to be used. <b>Default values</b> will be used if exiConfig is null
 	 */
 	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
 		super(config);
-		// se usara compresion EXI al hacer login
-		config.setCompressionEnabled(true);
 		
 		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
 		this.exiConfig = exiConfig;
 		if(!new File(EXIUtils.schemasFileLocation).exists())
 			try {
-				EXIUtils.generateBoth(EXIUtils.schemasFolder, new EXISetupConfiguration());
+				EXIUtils.generateBoth(EXIUtils.schemasFolder, exiConfig);
 			} catch (NoSuchAlgorithmException | IOException e1) {
 				e1.printStackTrace();
 				return;
@@ -94,7 +74,16 @@ public class EXIXMPPConnection extends XMPPConnection{
 	
 	@Override
 	protected boolean useCompression() {
-        return proposeEXICompression();
+		if(!compressionMethods.contains("exi")){
+			System.err.println("The server does not support EXI compression.");
+			return false;
+		}
+		
+		// maybe use quick setup
+		if(exiConfig.isQuickSetup()){
+			exiConfig.setQuickSetup(false);
+		}
+        return proposeEXICompressionQuickSetup() ? true : proposeEXICompression();
 	}
 	
 	public int getUploadSchemaOption(){
@@ -111,12 +100,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * Uses the last configuration in order to skip the handshake. 
 	 * @return	<b>true</b> if there is a previous configuration available, <b>false</b> otherwise 
 	 */
-	public boolean proposeEXICompressionQuickSetup(){
-		if(!compressionMethods.contains("exi")){
-			System.err.println("The server does not support EXI compression.");
-			return false;
-		}
-		
+	public boolean proposeEXICompressionQuickSetup(){		
 		String setupStanza = "";
 		String configId = Preferences.userRoot().get(EXIUtils.REG_KEY, null);
 		boolean quickSetup = false;
@@ -126,8 +110,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 			exiConfig = EXIUtils.parseQuickConfigId(configId);
 			setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + configId + "'/>";
 			try {
-				writer.write(setupStanza);
-				writer.flush();
+				send(setupStanza);
 				return true;
 			} catch (IOException e) {
 				System.err.println("Error while writing <setup> stanza: " + e.getMessage());
@@ -140,49 +123,12 @@ public class EXIXMPPConnection extends XMPPConnection{
 	}
 	
 	/**
-	 * Sends a default EXI setup proposition to the server (if the server supports EXI compression).
-	 * Reads the schemas stanzas file, and generates the Setup stanza to inform the server about the schemas needed for EXI compression.
-	 * @throws IOException If there are problems reading the schemas stanzas file
-	 * @throws DocumentException 
+	 * Sends an EXI setup proposition to the server (is called only if the compression is supported)
 	 */
-	public boolean proposeEXICompression(){
-		return proposeEXICompression(exiConfig);
-	}
-	
-	/**
-	 * Sends an EXI setup proposition to the server (if the server supports EXI compression). If the parameter is null, the schemas file created with 
-	 * this class' construction will be used.
-	 * @param config contains the desired configurations
-	 */
-	public boolean proposeEXICompression(EXISetupConfiguration config){
-		if(!compressionMethods.contains("exi")){
-			System.err.println("The server does not support EXI compression.");
-			return false;
-		}
-		if(config != null){
-			try {
-				EXIUtils.generateBoth(EXIUtils.schemasFolder, config);
-				exiConfig = config;
-			} catch (NoSuchAlgorithmException e) {
-				e.printStackTrace();
-				return false;
-			} catch (IOException e) {
-				e.printStackTrace();
-				return false;
-			}
-		}
-		String setupStanza = "";
+	public boolean proposeEXICompression(){		
 		try {
-			Element setupElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
-	 		Element auxSchema;
-	        for (@SuppressWarnings("unchecked") Iterator<Element> i = setupElement.elementIterator("schema"); i.hasNext();) {
-	        	auxSchema = i.next();
-	        	auxSchema.remove(auxSchema.attribute("url"));
-	        	auxSchema.remove(auxSchema.attribute("schemaLocation"));
-	        }
-	        setupStanza = setupElement.asXML();
-	        writer.write(setupStanza);
-			writer.flush();
+			String setupStanza = parseSetupStanza();
+	        send(setupStanza);
 			return true;
 		} catch (DocumentException e) {
 			System.err.println("Unable to propose EXI compression. " + e.getMessage());
@@ -191,6 +137,22 @@ public class EXIXMPPConnection extends XMPPConnection{
 			System.err.println("Error while writing <setup> stanza: " + e.getMessage());
 			return false;
 		}
+	}
+	
+	protected String parseSetupStanza() throws DocumentException{
+		Element setupElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
+ 		Element auxSchema;
+        for (@SuppressWarnings("unchecked") Iterator<Element> i = setupElement.elementIterator("schema"); i.hasNext();) {
+        	auxSchema = i.next();
+        	auxSchema.remove(auxSchema.attribute("url"));
+        	auxSchema.remove(auxSchema.attribute("schemaLocation"));
+        }
+        return setupElement.asXML();
+	}
+	
+	protected void send(String message) throws IOException{
+		writer.write(message);
+		writer.flush();
 	}
 	
 	@Override
@@ -206,8 +168,12 @@ public class EXIXMPPConnection extends XMPPConnection{
 		super.requestStreamCompression(method);
 	};
 	
+	public void startStreamCompression1() throws Exception{
+		startStreamCompression();
+	}
+	
 	@Override
-	public void startStreamCompression() throws IOException{
+	protected void startStreamCompression() throws Exception{
 		serverAckdCompression = true;
 		
 		// Very important function set the EXI Processor to the EXIWriter and EXIReader!!
@@ -263,18 +229,9 @@ public class EXIXMPPConnection extends XMPPConnection{
 				break;
 		}
 	}
-
-	public void setConfigId(String configId) {
-		Preferences pref = Preferences.userRoot();
-		if(configId != null){
-			pref.put(EXIUtils.REG_KEY, configId);
-		}
-		else{
-			pref.remove(EXIUtils.REG_KEY);
-		}
-	}
-
-	public boolean isUsingEXI(){
+	
+	@Override
+	public boolean isUsingCompression(){
 		return this.usingEXI;
 	}
 
@@ -290,7 +247,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 			}
 		} catch (NumberFormatException e){	
 			// error en el formato del configId. Se borra y se intenta nuevamente con blockSize y strict por defecto.
-			setConfigId(null);
+			EXIUtils.saveConfigId(null);
 			initReaderAndWriter();
 			return;
 		}
@@ -353,7 +310,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @param enable true to enable EXI messages (false to disable)
 	 * @throws IOException 
 	 */
-	private void enableEXI(boolean enable){
+	protected void enableEXI(boolean enable){
 		this.usingEXI = enable;
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
 			((EXIReader) ((ObservableReader) reader).wrappedReader).setEXI(enable);
@@ -367,7 +324,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 		else System.err.println("Unable to create EXI Processor: Instances of reader and writer are not treated. (EXIXMPPConnection.enableEXI)");
 	}
 	
-	private void openEXIStream() throws IOException{
+	protected void openEXIStream() throws IOException{
 		enableEXI(true);
 		String exiStreamStart = "<exi:streamStart from='"
 				+ getUser()
@@ -380,8 +337,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 			+ "<exi:xmlns prefix='streams' namespace='http://etherx.jabber.org/streams'/>"
 	 			+ "<exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
 	 			+ "</exi:streamStart>";
-		writer.write(exiStreamStart);
-		writer.flush();
+		send(exiStreamStart);
 	}
 	
 	
@@ -410,8 +366,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 					.concat(content)
 					.concat("</uploadSchema>");
 		
-		writer.write(xml);
-		writer.flush();
+		send(xml);
 		}
 	}
 	
@@ -486,8 +441,7 @@ System.out.println("Message Content in hex (" + content.length + "): " + EXIUtil
 			}
 			if(!url.equals("")){
 				msg = "<downloadSchema xmlns='http://jabber.org/protocol/compress/exi' url='" + url + "'/>";
-				writer.write(msg);
-				writer.flush();
+				send(msg);
 				schemaDownloads++;
 			}
 			else{

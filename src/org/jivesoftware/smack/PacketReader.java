@@ -36,6 +36,8 @@ import org.xmlpull.mxp1.MXParser;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
+import cl.clayster.exi.EXIUtils;
+import cl.clayster.exi.EXIXMPPAlternativeConnection;
 import cl.clayster.exi.EXIXMPPConnection;
 
 /**
@@ -267,11 +269,11 @@ public class PacketReader {
                         connection.getSASLAuthentication().authenticated();
                     }
                     
-                    //TODO:/************************ EXI code ************************/
+                    //TODO/************************ EXI code ************************/
                     
                     else if (parser.getName().equals("compressed")) {
                     	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                    	exiConnection.startStreamCompression();
+                    	exiConnection.startStreamCompression1();
                     	/**
                     	 * 
                         // Server confirmed that it's possible to use stream compression. Start
@@ -286,7 +288,7 @@ public class PacketReader {
                     else if (parser.getName().equals("setupResponse")) {
                 		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
                 		if("true".equals(parser.getAttributeValue(null, "agreement"))){
-            				exiConnection.setConfigId(parser.getAttributeValue(null, "configurationId"));
+            				EXIUtils.saveConfigId(parser.getAttributeValue(null, "configurationId"));
                 			exiConnection.requestStreamCompression("exi");
                 		}
                 		else{
@@ -301,12 +303,15 @@ public class PacketReader {
 	    	                		if(missingSchemas.size() > 0){
 	    	                			exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOption());
 	    	                		}
-	                				exiConnection.setConfigId(null);
+	                				EXIUtils.saveConfigId(null);
 	                				Thread.sleep(1000);
 	                				if(!exiConnection.proposeEXICompressionQuickSetup()){
 	                					exiConnection.proposeEXICompression();
 	                				}
                 				}
+                			}
+                			else{
+                				exiConnection.proposeEXICompression();
                 			}
                 		}
                     }
@@ -321,8 +326,8 @@ public class PacketReader {
                     		// nothing, XMPP connection will continue
                     	}
                     }
-                    else if(parser.getName().equals("streamStart") || parser.getName().equals("exi:streamStart")){
-                    	System.out.println("blablablabalbla");
+                    else if(parser.getName().equals("exi:streamStart")){
+                    	((EXIXMPPAlternativeConnection) connection).negotiateConfigurations(); 
                     }
                     /************************ fin EXI code ************************/
                     

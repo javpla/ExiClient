@@ -33,7 +33,7 @@ public class EXIReader extends BufferedReader {
     	synchronized (lock) {
     		if(!exi){
     			leido = super.read(cbuf, off, len);
-System.err.println("exi=false. Recibido (" + leido + "): " + new String(cbuf, off, len));			
+System.err.println("RECIBIDO (" + leido + "): " + new String(cbuf, off, len));			
     			return leido;
     		}
     		ba = new byte[len];
@@ -47,8 +47,12 @@ System.err.println("EXI(" + (leido + (anterior != null ? anterior.length : 0)) +
 	    			System.arraycopy(anterior, 0, ba, 0, anterior.length);
 	    		}
 		    	try {
-			    	cbuf = ep.decodeByteArray(ba).substring(38).toCharArray();
-System.err.println("decoded XML(" + (cbuf.length) + "): " + new String(cbuf));
+		    		//TODO: sacar substring con cte!
+			    	char[] cbuf2 = ep.decodeByteArray(ba).substring(38).toCharArray();
+			    	leido = cbuf2.length;
+			    	System.arraycopy(cbuf2,0, cbuf, off, leido);
+			    	String xml = new String(cbuf2);
+System.err.println("decoded XML(" + (leido) + "): " + xml);
 					anterior = null;
 					ba = null;
 					return leido;
