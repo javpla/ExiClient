@@ -69,7 +69,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 				return;
 			}
 		
-	}
+	}	
 	
 	/**
 	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in. 
@@ -206,8 +206,12 @@ public class EXIXMPPConnection extends XMPPConnection{
 		super.requestStreamCompression(method);
 	};
 	
+	public void startStreamCompression1() throws Exception{
+		startStreamCompression();
+	}
+	
 	@Override
-	public void startStreamCompression() throws IOException{
+	protected void startStreamCompression() throws Exception{
 		serverAckdCompression = true;
 		
 		// Very important function set the EXI Processor to the EXIWriter and EXIReader!!
@@ -353,7 +357,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @param enable true to enable EXI messages (false to disable)
 	 * @throws IOException 
 	 */
-	private void enableEXI(boolean enable){
+	protected void enableEXI(boolean enable){
 		this.usingEXI = enable;
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
 			((EXIReader) ((ObservableReader) reader).wrappedReader).setEXI(enable);
@@ -367,7 +371,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 		else System.err.println("Unable to create EXI Processor: Instances of reader and writer are not treated. (EXIXMPPConnection.enableEXI)");
 	}
 	
-	private void openEXIStream() throws IOException{
+	protected void openEXIStream() throws IOException{
 		enableEXI(true);
 		String exiStreamStart = "<exi:streamStart from='"
 				+ getUser()

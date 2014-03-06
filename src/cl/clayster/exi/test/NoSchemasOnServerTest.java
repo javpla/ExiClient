@@ -9,7 +9,6 @@ import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.Message;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -74,7 +73,7 @@ public class NoSchemasOnServerTest {
 		
 		assertTrue(!quickSetup);
 		assertTrue(connection.isConnected());
-		assertTrue(connection.isUsingEXI());
+		assertTrue(!connection.isUsingEXI());
 	}
 	
 	@Test
@@ -135,7 +134,7 @@ public class NoSchemasOnServerTest {
 		assertTrue(connection.isConnected());
 		assertTrue(connection.isUsingEXI());
 	}
-	
+	/*
 	@AfterClass
 	public static void disconnect() {		
 		if(connection.isConnected())	connection.disconnect();

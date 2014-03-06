@@ -7,7 +7,6 @@ import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.Message;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -78,10 +77,4 @@ public class NoStringTableOK {
 		
 		assertTrue(connection.isConnected());
 	}
-	
-	@AfterClass
-	public static void disconnect() {		
-		if(connection.isConnected())	connection.disconnect();
-	}
-
 }

@@ -13,18 +13,19 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 	public EXIXMPPAlternativeConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
 		super(config);
 	}
-
-	private void setAlternativeBinding(){
+	
+	public void startAlternativeBinding() throws IOException{
 		exiProcessor = new EXIBaseProcessor();
 		try {
 			startStreamCompression();
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 	
-	public void openStream() throws IOException {
-		setAlternativeBinding();
+	@Override
+	protected void openEXIStream() throws IOException{
+		enableEXI(true);
 		String exiStreamStart = "<?xml version=\"1.0\"?>"
 				+ "<exi:streamStart xmlns:exi='http://jabber.org/protocol/compress/exi' version=\"1.0\" to=\""
 				+ getHost()
@@ -36,6 +37,5 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 		writer.write(exiStreamStart);
 		writer.flush();
 	}
-
 	
 }

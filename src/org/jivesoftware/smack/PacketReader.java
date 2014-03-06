@@ -271,7 +271,7 @@ public class PacketReader {
                     
                     else if (parser.getName().equals("compressed")) {
                     	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                    	exiConnection.startStreamCompression();
+                    	exiConnection.startStreamCompression1();
                     	/**
                     	 * 
                         // Server confirmed that it's possible to use stream compression. Start
@@ -321,8 +321,8 @@ public class PacketReader {
                     		// nothing, XMPP connection will continue
                     	}
                     }
-                    else if(parser.getName().equals("streamStart") || parser.getName().equals("exi:streamStart")){
-                    	System.out.println("blablablabalbla");
+                    else if(parser.getName().equals("exi:streamStart")){
+                    	
                     }
                     /************************ fin EXI code ************************/
                     
