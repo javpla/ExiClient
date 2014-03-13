@@ -54,6 +54,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 	
 	private int uploadSchemaOption = UPLOAD_BINARY;
 	
+	private List<EXIEventListener> compressionStartedListeners =  new ArrayList<EXIEventListener>(0);
+	
 	/**
 	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in. 
 	 * @param config configurations to connect to the server
@@ -301,7 +303,6 @@ System.out.println("EXI compression aborted. Continuing with normal XMPP communi
 			((EXIWriter) writer).setExiProcessor(exiProcessor);
 			//System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
 		}
-		
 		else System.err.println("Unable to create EXI Processor: Instances of reader and writer are not treated. (EXIXMPPConnection.setEXIProcessor)");
 	}
 
@@ -312,7 +313,6 @@ System.out.println("EXI compression aborted. Continuing with normal XMPP communi
 	 * @throws IOException 
 	 */
 	protected void enableEXI(boolean enable){
-		this.usingEXI = enable;
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
 			((EXIReader) ((ObservableReader) reader).wrappedReader).setEXI(enable);
 			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).setEXI(enable);
@@ -322,7 +322,16 @@ System.out.println("EXI compression aborted. Continuing with normal XMPP communi
 			((EXIWriter) writer).setEXI(enable);
 			//System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
 		}	
-		else System.err.println("Unable to create EXI Processor: Instances of reader and writer are not treated. (EXIXMPPConnection.enableEXI)");
+		else {
+			System.err.println("Unable to create EXI Processor: Instances of reader and writer are not treated. (EXIXMPPConnection.enableEXI)");
+			return;
+		}
+		this.usingEXI = enable;
+		if(!compressionStartedListeners.isEmpty()){
+			for(EXIEventListener eel : compressionStartedListeners){
+				eel.compressionStarted();
+			}
+		}
 	}
 	
 	protected void openEXIStream() throws IOException{
@@ -465,4 +474,70 @@ System.out.println("Message Content in hex (" + content.length + "): " + EXIUtil
 	public boolean getSentMissingSchemas(){
 		return this.sentMissingSchemas;
 	}
+	
+	public void addEXIEventListener(EXIEventListener listener){
+		addCompressionStartedListener(listener);
+		addReadListener(listener);
+		addWriteListener(listener);
+	}
+	
+	public boolean removeEXIEventListener(EXIEventListener listener){
+		return (removeCompressionStartedListener(listener) && removeReadListener(listener) && removeWriteListener(listener));
+	}
+	
+	public void addCompressionStartedListener(EXIEventListener listener){
+		compressionStartedListeners.add(listener);
+	}
+	
+	public boolean removeCompressionStartedListener(EXIEventListener listener){
+		return compressionStartedListeners.remove(listener);
+	}	
+	
+	public void addReadListener(EXIEventListener listener){
+		if(reader instanceof ObservableReader){
+			((EXIReader) ((ObservableReader) reader).wrappedReader).addReadListener(listener);
+		}
+		else if(reader instanceof EXIReader){
+			((EXIReader) reader).addReadListener(listener);
+		}
+		else System.err.println("Unable to add EXIReadListener: An instance of wrapped reader is not treated.");
+	}
+	
+	public boolean removeReadListener(EXIEventListener listener){
+		if(reader instanceof ObservableReader){
+			return ((EXIReader) ((ObservableReader) reader).wrappedReader).removeReadListener(listener);
+		}
+		else if(reader instanceof EXIReader){
+			return ((EXIReader) reader).removeReadListener(listener);
+		}
+		else {
+			System.err.println("Unable to add EXIReadListener: An instance of wrapped reader is not treated.");
+			return false;
+		}
+		
+	}
+	
+	public void addWriteListener(EXIEventListener listener){
+		if(writer instanceof ObservableWriter){
+			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).addWriteListener(listener);
+		}
+		else if(writer instanceof EXIWriter){
+			((EXIWriter) writer).addWriteListener(listener);
+		}
+		else System.err.println("Unable to add EXIWriteListener: An instance of wrapped writer is not treated.");
+	}
+	
+	public boolean removeWriteListener(EXIEventListener listener){
+		if(writer instanceof ObservableWriter){
+			return ((EXIWriter) ((ObservableWriter) writer).wrappedWriter).removeWriteListener(listener);
+		}
+		else if(writer instanceof EXIWriter){
+			return ((EXIWriter) writer).removeWriteListener(listener);
+		}
+		else {
+			System.err.println("Unable to add EXIWriteListener: An instance of wrapped writer is not treated.");
+			return false;
+		}
+	}
+	
 }

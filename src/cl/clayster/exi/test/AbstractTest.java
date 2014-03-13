@@ -1,24 +1,23 @@
 package cl.clayster.exi.test;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.File;
 
+import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.DocumentHelper;
-import org.dom4j.Element;
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.PacketListener;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.filter.PacketFilter;
+import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Packet;
+import org.jivesoftware.smack.packet.PacketExtension;
 
 import cl.clayster.exi.EXISetupConfiguration;
 import cl.clayster.exi.EXIXMPPConnection;
 
-public abstract class AbstractTest {
+public abstract class AbstractTest extends DocumentAbstractTest{
 	
 	final static String SERVER = "exi.clayster.cl";
 	final static String USERNAME1 = "exiuser"; 
@@ -29,19 +28,59 @@ public abstract class AbstractTest {
 	protected ConnectionConfiguration config1 = new ConnectionConfiguration(SERVER);
 	protected ConnectionConfiguration config2 = new ConnectionConfiguration(SERVER);
 	protected EXIXMPPConnection client1, client2;
-	protected String message;
+	protected String info;
 	
-	private String received = new String();
+	private Packet received = null;
 	
+	private IQ iq;
+	private Message message;
+	
+	PacketListener packetListener = new PacketListener() {	// stores a received message's body into String "received"
+		@Override
+		public void processPacket(Packet packet) {
+			received = packet;
+		}
+	};
+	PacketFilter messageFilter = new PacketFilter() {	// only lets Message packets pass
+		@Override
+		public boolean accept(Packet packet) {
+			return (packet instanceof Message);
+		}
+	};
 	
 	public AbstractTest(boolean compression1, EXISetupConfiguration exiConfig1,
-			boolean compression2, EXISetupConfiguration exiConfig2, String message){
+			boolean compression2, EXISetupConfiguration exiConfig2, String info){
 		this.config1.setCompressionEnabled(compression1);
 		this.config2.setCompressionEnabled(compression2);
 		
 	    this.client1 = new EXIXMPPConnection(config1, exiConfig1);
 	    this.client2 = new EXIXMPPConnection(config2, exiConfig2);;
-	    this.message = message;
+	    this.info = info;
+	    
+	    setPackets();
+	}
+	
+	private void setPackets(){
+		iq = new IQ() {
+			@Override
+			public String getChildElementXML() {
+				return "<req xmlns='urn:xmpp:iot:sensordata' seqnr='4' all='true' when='2013-03-07T19:00:00'/>";
+			}
+		};
+		iq.setType(IQ.Type.GET);
+		//iq.setFrom(from);
+		iq.setTo(USERNAME2 + '@' + SERVER);
+		iq.setProperty("id", "S0004");
+		
+		message = new Message(USERNAME2 + '@' + SERVER);
+		message.addExtension(new PacketExtension() {
+			@Override
+			public String toXML() {
+				return "<started xmlns='urn:xmpp:iot:sensordata' seqnr='4'/>";
+			}
+			@Override public String getNamespace() {return null;}
+			@Override public String getElementName() {return null;}
+		});
 	}
 		
 	private void connect() {
@@ -89,51 +128,49 @@ public abstract class AbstractTest {
 	protected void testSimpleMessage(){
 		connect();	// connect and wait until compression negotiation is ready
 		
-		PacketListener packetListener = new PacketListener() {	// stores a received message's body into String "received"
-			@Override
-			public void processPacket(Packet packet) {
-				received = ((Message) packet).getBody();
-			}
-		};
-		PacketFilter messageFilter = new PacketFilter() {	// only lets Message packets pass
-			@Override
-			public boolean accept(Packet packet) {
-				return (packet instanceof Message);
-			}
-		};
+		client2.addEXIEventListener(new EXIPacketLogger(false));
 		client2.addPacketListener(packetListener, messageFilter);	// add a packet listener to read the incoming message
 		
-		Message msg = new Message(USERNAME2 + '@' + SERVER);
-		msg.setBody(message);
-		client1.sendPacket(msg);
-		
-		try {
-			Element sentElement = DocumentHelper.parseText(msg.toXML()).getRootElement();
-		} catch (DocumentException e1) {
-			fail("DocumentException: " + e1.getMessage());
-		}
+		client1.sendPacket(message);
 		
 		// wait for the message to be processed on the receiving client
 		int count = 0;
-		while(received.equals(new String())){
+		while(received == null){
 			try {
 				Thread.sleep(++count * 1000);
-				if(count > 4)	fail("timeout while receiving the message: " + msg);
+				if(count > 4)	fail("timeout while receiving the message: " + message.toXML());
 			} catch (InterruptedException e) {
 				fail(e.getMessage());
 			}
 		}
 		
-		if(received.equalsIgnoreCase(message)){
-			assertTrue(received.equalsIgnoreCase(message));
-		}
-		else{
-			System.out.println("received: " + received);
-			fail("received: " + received);
-		}
-		assertTrue(client1.isConnected() && client2.isConnected());
+		assertEquivalentXML(message.toXML(), received.toXML());
+		
+		// test connectivity
+		assertTrue("Clients are still connected", client1.isConnected() && client2.isConnected());
+		if(config1.isCompressionEnabled())	assertTrue("Client1 is still using compression", client1.isUsingCompression());
+		if(config2.isCompressionEnabled())	assertTrue("Client2 is still using compression", client2.isUsingCompression());
 		
 		disconnect();
+	}
+	
+	/**
+	 * Compares two XML stanzas to see if they are equivalent (they have the same attributes and values, but maybe in different order). 
+	 * Based on dom4j's AbstractTest, ignores <i>from</i> attribute since it is added by the server 
+	 * @param xml1
+	 * @param xml2
+	 */
+	private void assertEquivalentXML(String xml1, String xml2){
+		Document doc1 = null, doc2 = null;
+		try {
+			doc1 = DocumentHelper.parseText(xml1);
+			doc2 = DocumentHelper.parseText(xml2);
+			assertDocumentsEqual(doc1, doc2);
+		} catch (DocumentException e1) {
+			fail("DocumentException: " + e1.getMessage());
+		} catch (Exception e) {
+			fail("Exception: " + e.getMessage());
+		}
 	}
 	
 	// TODO: 
@@ -146,7 +183,7 @@ public abstract class AbstractTest {
 	
 	
 	
-	//******************************************** Util methods for testings ********************************************// 
+	/******************************************** Util methods for testings ********************************************/ 
 	
 	/**
 	 * Deletes a file or a folder and all its content

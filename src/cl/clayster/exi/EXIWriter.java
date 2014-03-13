@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.transform.TransformerException;
 
@@ -18,6 +20,8 @@ public class EXIWriter extends BufferedWriter {
 	private boolean exi = false;
 	private EXIBaseProcessor exiProcessor;
 	private BufferedOutputStream os;
+	
+	private List<EXIEventListener> writeListeners = new ArrayList<EXIEventListener>(0);
 
 	public EXIWriter(OutputStream out) throws UnsupportedEncodingException {
 		super(new OutputStreamWriter(out, "UTF-8"));
@@ -26,14 +30,19 @@ public class EXIWriter extends BufferedWriter {
 	
 	@Override
     public void write(String xml , int off, int len) throws IOException {
-System.out.println("XML(" + xml.length() + "): " + xml);
     	if(!exi){
     		super.write(xml, off, len);
 			return;
     	}
     	try {
         	byte[] exi = exiProcessor.encodeToByteArray(xml);
-System.out.println("Enviando EXI(" + xml.length() + " => " + exi.length + "): " + EXIUtils.bytesToHex(exi));
+        	
+			if(!writeListeners.isEmpty()){
+				for(EXIEventListener eel : writeListeners){
+					eel.packetEncoded(xml, exi);
+				}
+			}
+			
         	os.write(exi, off, exi.length);
         	os.flush();
     	}catch (SAXException | EXIException | TransformerException e){
@@ -53,5 +62,13 @@ System.out.println("Enviando EXI(" + xml.length() + " => " + exi.length + "): " 
 	
 	void setExiProcessor(EXIBaseProcessor exiProcessor){
 		this.exiProcessor = exiProcessor;
+	}
+	
+	void addWriteListener(EXIEventListener listener){
+		writeListeners.add(listener);
+	}
+	
+	boolean removeWriteListener(EXIEventListener listener){
+		return writeListeners.remove(listener);
 	}
 }

@@ -8,5 +8,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/xerces"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/exificient"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
+	<classpathentry kind="lib" path="lib/xalan-2.5.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

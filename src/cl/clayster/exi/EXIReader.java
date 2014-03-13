@@ -6,6 +6,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.transform.TransformerException;
 
@@ -22,6 +24,8 @@ public class EXIReader extends BufferedReader {
 	
 	private byte[] anterior;	// bytes recibidos anteriormente (mensaje EXI incompleto)
 	
+	private List<EXIEventListener> readListeners = new ArrayList<EXIEventListener>(0); 
+	
 	public EXIReader(InputStream in) throws UnsupportedEncodingException {
     	super(new InputStreamReader(in, "UTF-8"));
     	this.is = new BufferedInputStream(in);
@@ -32,28 +36,30 @@ public class EXIReader extends BufferedReader {
     	
     	synchronized (lock) {
     		if(!exi){
-    			leido = super.read(cbuf, off, len);
-System.err.println("RECIBIDO (" + leido + "): " + new String(cbuf, off, len));			
+    			leido = super.read(cbuf, off, len);			
     			return leido;
     		}
     		ba = new byte[len];
     		leido = is.read(ba, 0, len);
     		if(leido == -1)	return leido;
-System.err.println("Recibido(" + leido + "): " + EXIUtils.bytesToHex(ba));
 	    	if(exi && (EXIProcessor.isEXI(ba[0]) || EXIProcessor.hasEXICookie(ba) || anterior != null)){
-System.err.println("EXI(" + (leido + (anterior != null ? anterior.length : 0)) + "): " + EXIUtils.bytesToHex(ba));
     			if(anterior != null){	// agregar lo guardado anteriormente a lo leido ahora
 	    			System.arraycopy(ba, 0, ba, anterior.length, ba.length - anterior.length);
 	    			System.arraycopy(anterior, 0, ba, 0, anterior.length);
 	    		}
 		    	try {
-		    		// TODO: eventlistener para comparar exi con xml
 		    		String xml1 = ep.decodeByteArray(ba);
 			    	char[] cbuf2 = xml1.toCharArray();
 			    	leido = cbuf2.length;
 			    	System.arraycopy(cbuf2,0, cbuf, off, leido);
 			    	String xml = new String(cbuf2);
-System.err.println("decoded XML(" + (leido) + "): " + xml);
+			    	
+					if(!readListeners.isEmpty()){
+						for(EXIEventListener eel : readListeners){
+							eel.packetDecoded(xml, ba);
+						}
+					}
+					
 					anterior = null;
 					ba = null;
 					return leido;
@@ -61,13 +67,10 @@ System.err.println("decoded XML(" + (leido) + "): " + xml);
 		    		// EXI incompleto, los bytes leidos se guardan en anterior
 		    		anterior = new byte[leido];
     				System.arraycopy(ba, 0, anterior, 0, leido);
-System.err.println("bytes guardados: " + EXIUtils.bytesToHex(anterior));
 					return leido;
 		    	}
 			}
 	    	System.arraycopy(new String(ba).toCharArray(), 0, cbuf, off, leido);
-	    	
-System.err.println("XML(" + leido + "): " + new String(cbuf));
 			return leido;
 	    }
     }
@@ -86,6 +89,14 @@ System.err.println("XML(" + leido + "): " + new String(cbuf));
 	
 	void setExiProcessor(EXIBaseProcessor ep){
 		this.ep = ep;
+	}
+	
+	void addReadListener(EXIEventListener listener){
+		readListeners.add(listener);
+	}
+	
+	boolean removeReadListener(EXIEventListener listener){
+		return readListeners.remove(listener);
 	}
 
 }

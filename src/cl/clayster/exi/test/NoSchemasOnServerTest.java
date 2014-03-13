@@ -39,7 +39,7 @@ public class NoSchemasOnServerTest extends AbstractTest {
 	@Test
 	public void test() {
 		clearClassesFolder();
-		switch(message.charAt(0)){
+		switch(info.charAt(0)){
 			case 'a': client1.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY);
 			break;
 			case 'b': client1.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_EXI_BODY);

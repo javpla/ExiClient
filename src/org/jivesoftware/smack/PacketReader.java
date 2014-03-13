@@ -272,18 +272,16 @@ public class PacketReader {
                     //TODO/************************ EXI code ************************/
                     
                     else if (parser.getName().equals("compressed")) {
-                    	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                    	exiConnection.startStreamCompression1();
-                    	/**
-                    	 * 
-                        // Server confirmed that it's possible to use stream compression. Start
-                        // stream compression
-                        connection.startStreamCompression();
-                        // Reset the state of the parser since a new stream element is going
-                        // to be sent by the server
-                        resetParser();
-                        *
-                    	**/
+                    	if(connection instanceof EXIXMPPConnection){
+                    		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
+                        	exiConnection.startStreamCompression1();
+                    	}
+                    	else{
+                    		connection.startStreamCompression();
+	                        // Reset the state of the parser since a new stream element is going
+	                        // to be sent by the server
+                    		resetParser();
+                    	}
                     }
                     else if (parser.getName().equals("setupResponse")) {
                 		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
