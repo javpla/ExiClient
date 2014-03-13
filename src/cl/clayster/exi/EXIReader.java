@@ -47,8 +47,9 @@ System.err.println("EXI(" + (leido + (anterior != null ? anterior.length : 0)) +
 	    			System.arraycopy(anterior, 0, ba, 0, anterior.length);
 	    		}
 		    	try {
-		    		//TODO: sacar substring con cte!
-			    	char[] cbuf2 = ep.decodeByteArray(ba).substring(38).toCharArray();
+		    		// TODO: eventlistener para comparar exi con xml
+		    		String xml1 = ep.decodeByteArray(ba);
+			    	char[] cbuf2 = xml1.toCharArray();
 			    	leido = cbuf2.length;
 			    	System.arraycopy(cbuf2,0, cbuf, off, leido);
 			    	String xml = new String(cbuf2);

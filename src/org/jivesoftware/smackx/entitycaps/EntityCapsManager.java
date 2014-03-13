@@ -139,7 +139,7 @@ public class EntityCapsManager {
      * Get the Node version (node#ver) of a JID. Returns a String or null if
      * EntiyCapsManager does not have any information.
      * 
-     * @param user
+     * @param client1
      *            the user (Full JID)
      * @return the node version (node#ver) or null
      */

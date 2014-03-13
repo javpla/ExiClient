@@ -45,13 +45,14 @@ public class EXIXMPPConnection extends XMPPConnection{
 	public static final int UPLOAD_EXI_BODY = 2;
 	public static final int UPLOAD_URL = 3;
 	
-	private int uploadSchemaOption = UPLOAD_BINARY;
 	private boolean usingEXI = false;
 	protected EXISetupConfiguration exiConfig;
 	protected EXIBaseProcessor exiProcessor;
 	
-	public int schemaDownloads = 0;
-	public boolean sentMissingSchemas = false;
+	protected int schemaDownloadsCounter = 0;
+	protected boolean sentMissingSchemas = false;
+	
+	private int uploadSchemaOption = UPLOAD_BINARY;
 	
 	/**
 	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in. 
@@ -80,10 +81,13 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 		
 		// maybe use quick setup
-		if(exiConfig.isQuickSetup()){
+		if(exiConfig.isQuickSetup() && proposeEXICompressionQuickSetup()){
 			exiConfig.setQuickSetup(false);
+			return true;
 		}
-        return proposeEXICompressionQuickSetup() ? true : proposeEXICompression();
+		else{
+			return proposeEXICompression();
+		}
 	}
 	
 	public int getUploadSchemaOption(){
@@ -114,12 +118,9 @@ public class EXIXMPPConnection extends XMPPConnection{
 				return true;
 			} catch (IOException e) {
 				System.err.println("Error while writing <setup> stanza: " + e.getMessage());
-				return false;
 			}
 		}
-		else{
-			return false;
-		}
+		return false;
 	}
 	
 	/**
@@ -212,16 +213,16 @@ public class EXIXMPPConnection extends XMPPConnection{
 			throws NoSuchAlgorithmException, IOException, DocumentException, EXIException, SAXException, TransformerException, XMLStreamException {
 		sentMissingSchemas = true;
 		switch(opt){
-			case -1:	// abort EXI compression, continue using normal XMPP
-				System.out.println("EXI compression aborted. Continuing with normal XMPP communication.");
+			case ABORT_COMPRESSION:	// abort EXI compression, continue using normal XMPP
+System.out.println("EXI compression aborted. Continuing with normal XMPP communication.");//TODO
 				break;
-			case 1: // upload compressed EXI document
+			case UPLOAD_EXI_DOCUMENT: // upload compressed EXI document
 				uploadCompressedMissingSchemas(missingSchemas, false);
 				break;
-			case 2: // upload compressed EXI body
+			case UPLOAD_EXI_BODY: // upload compressed EXI body
 				uploadCompressedMissingSchemas(missingSchemas, true);
 				break;
-			case 3:	// send URL and download on server 
+			case UPLOAD_URL:	// send URL and download on server 
 				downloadSchemas(missingSchemas);
 				break;
 			default: // upload binary file
@@ -442,7 +443,7 @@ System.out.println("Message Content in hex (" + content.length + "): " + EXIUtil
 			if(!url.equals("")){
 				msg = "<downloadSchema xmlns='http://jabber.org/protocol/compress/exi' url='" + url + "'/>";
 				send(msg);
-				schemaDownloads++;
+				schemaDownloadsCounter++;
 			}
 			else{
 				System.err.println("No url for " + ms + ". Trying to upload schema as binary file.");
@@ -451,5 +452,17 @@ System.out.println("Message Content in hex (" + content.length + "): " + EXIUtil
 				uploadMissingSchemas(l);
 			}
 		}	
+	}
+	
+	/**
+	 * Used to reduce and get the count of schemas being downloaded on the server.
+	 * @return Amount of schemas left to be downloaded. When 0 is returned, then the server has downloaded all schemas.
+	 */
+	public int schemaDownloaded(){
+		return this.schemaDownloadsCounter;
+	}
+	
+	public boolean getSentMissingSchemas(){
+		return this.sentMissingSchemas;
 	}
 }

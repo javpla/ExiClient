@@ -93,7 +93,8 @@ public class EXIBaseProcessor {
         ByteArrayOutputStream xmlDecoded = new ByteArrayOutputStream();
         transformer.transform(exiSource, new StreamResult(xmlDecoded));
 
-        return xmlDecoded.toString("UTF-8");
+        String xml = xmlDecoded.toString("UTF-8");
+        return xml.substring(xml.indexOf('>') + 1);
     }
     
 
@@ -197,7 +198,8 @@ public class EXIBaseProcessor {
         ByteArrayOutputStream xmlDecoded = new ByteArrayOutputStream();
         transformer.transform(exiSource, new StreamResult(xmlDecoded));
 
-        return xmlDecoded.toString("UTF-8");
+        String xml = xmlDecoded.toString("UTF-8");
+        return xml.substring(xml.indexOf('>') + 1);
     }
     
     /**

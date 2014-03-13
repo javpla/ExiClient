@@ -123,8 +123,10 @@ public class EXIProcessor extends EXIBaseProcessor{
 	        exiSource.setXMLReader(exiReader);
 	
 	        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	        transformer.transform(exiSource, new StreamResult(baos));                
-	        return baos.toString("UTF-8");
+	        transformer.transform(exiSource, new StreamResult(baos));
+	        
+	        String xml = baos.toString("UTF-8");
+	        return xml.substring(xml.indexOf('>') + 1);
 	}
 	
 	protected String decode(InputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{                
@@ -140,7 +142,9 @@ public class EXIProcessor extends EXIBaseProcessor{
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         transformer.transform(exiSource, new StreamResult(baos));                
-        return baos.toString("UTF-8");
+        
+        String xml = baos.toString("UTF-8");
+        return xml.substring(xml.indexOf('>') + 1);
     }
 	
 	protected ByteArrayInputStream decodeToStream(InputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{                

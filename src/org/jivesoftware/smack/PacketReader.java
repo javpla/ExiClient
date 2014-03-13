@@ -293,7 +293,7 @@ public class PacketReader {
                 		}
                 		else{
                 			if(parser.getAttributeValue("null", "configurationId") == null){
-                				if(exiConnection.sentMissingSchemas){
+                				if(exiConnection.getSentMissingSchemas()){
                 					// TODO: missing schemas have been sent, schemaless EXI compression will be used
                 					System.err.println("Error while uploading schema files.");
                 				}
@@ -318,7 +318,7 @@ public class PacketReader {
                     else if (parser.getName().equals("downloadSchemaResponse")){
                     	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
                     	if("true".equals(parser.getAttributeValue(null, "result"))) {
-	                    	if(--exiConnection.schemaDownloads == 0){
+	                    	if(exiConnection.schemaDownloaded() == 0){
 	                    		exiConnection.proposeEXICompression();
 	                    	}
                     	}
