@@ -42,6 +42,6 @@ public class CustomConfigurationsTest extends AbstractTest {
 	
 	@Test
 	public void test() {
-		testSimpleMessage();
+		testMessages();
 	}
 }

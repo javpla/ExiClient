@@ -39,8 +39,10 @@ public class EXIReader extends BufferedReader {
     			leido = super.read(cbuf, off, len);			
     			return leido;
     		}
-    		ba = new byte[len];
-    		leido = is.read(ba, 0, len);
+    		byte[] dest = new byte[len];
+    		leido = is.read(dest, 0, len);
+    		ba = new byte[leido];
+    		System.arraycopy(dest, 0, ba, 0, leido);
     		if(leido == -1)	return leido;
 	    	if(exi && (EXIProcessor.isEXI(ba[0]) || EXIProcessor.hasEXICookie(ba) || anterior != null)){
     			if(anterior != null){	// agregar lo guardado anteriormente a lo leido ahora
