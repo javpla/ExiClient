@@ -1,6 +1,10 @@
 package cl.clayster.exi.test;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
@@ -13,32 +17,32 @@ import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.PacketExtension;
+import org.jivesoftware.smack.provider.ProviderManager;
 
 import cl.clayster.exi.EXISetupConfiguration;
 import cl.clayster.exi.EXIXMPPConnection;
+import cl.clayster.packet.*;
 
 public abstract class AbstractTest extends DocumentAbstractTest{
 	
 	final static String SERVER = "exi.clayster.cl";
-	final static String USERNAME1 = "exiuser"; 
-	final static String USERNAME2 = "javier";	
+	final static String USERNAME1 = "exi1"; 
+	final static String USERNAME2 = "exi2";	
 	final static String OPENFIRE_BASE = "C:/Users/Javier/workspace/Personales/openfire/target/openfire";
 	final static String CLASSES_FOLDER = "/plugins/exi/classes";
 	
 	protected ConnectionConfiguration config1 = new ConnectionConfiguration(SERVER);
 	protected ConnectionConfiguration config2 = new ConnectionConfiguration(SERVER);
 	protected EXIXMPPConnection client1, client2;
-	protected String info;
+	protected String testInfo;
+
+	private Message m = null;
+	private BlockingQueue<Packet> sent = new ArrayBlockingQueue<Packet>(500, true);
 	
-	private Packet received = null;
-	
-	private IQ iq;
-	private Message message;
-	
-	PacketListener packetListener = new PacketListener() {	// stores a received message's body into String "received"
+	PacketListener messageListener = new PacketListener() {	// stores a received message's body into String "received"
 		@Override
 		public void processPacket(Packet packet) {
-			received = packet;
+			assertEquivalentXML(sent.poll().toXML(), packet.toXML());
 		}
 	};
 	PacketFilter messageFilter = new PacketFilter() {	// only lets Message packets pass
@@ -47,21 +51,117 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 			return (packet instanceof Message);
 		}
 	};
+	PacketFilter openFilter = new PacketFilter() {	
+		@Override
+		public boolean accept(Packet packet) {
+			return true;
+		}
+	};
+	
+	PacketExtension msgExt[] = {
+			new PacketExtension() {
+				@Override
+				public String toXML() {
+					return "<started xmlns='urn:xmpp:iot:sensordata' seqnr='4'/>";
+				}
+				@Override public String getNamespace() {return null;}
+				@Override public String getElementName() {return null;}
+			},
+			new PacketExtension() {
+				@Override
+				public String toXML() {
+					return "<done xmlns='urn:xmpp:iot:sensordata' seqnr='4'/>";
+				}
+				@Override public String getNamespace() {return null;}
+				@Override public String getElementName() {return null;}
+			},
+			new PacketExtension() {
+				@Override
+				public String toXML() {
+					return "<failure xmlns='urn:xmpp:iot:sensordata' seqnr='2' done='true'>"
+							+ "<error nodeId='Device01' timestamp='2013-03-07T17:13:30'>"
+								+ "Timeout."
+							+ "</error>"
+						+ "</failure>";
+				}
+				@Override public String getNamespace() {return null;}
+				@Override public String getElementName() {return null;}
+			},
+			new PacketExtension() {
+				@Override
+				public String toXML() {
+					return "<fields xmlns='urn:xmpp:iot:sensordata' seqnr='1' done='true'>"
+							+ "<node nodeId='Device01'>"
+								+ "<timestamp value='2013-03-07T16:24:30'>"
+									+ "<numeric name='Temperature' momentary='true' automaticReadout='true' value='23.4' unit='°C'/>"
+								+ "</timestamp>"
+							+ "</node>"
+						+ "</fields>";
+				}
+				@Override public String getNamespace() {return null;}
+				@Override public String getElementName() {return null;}
+			},
+			new PacketExtension() {
+				@Override
+				public String toXML() {
+					return "<fields xmlns='urn:xmpp:iot:sensordata' seqnr='4'>"
+							+ "<node nodeId='Device01'>"
+								+ "<timestamp value='2013-03-07T19:00:00'>"
+								   + "<numeric name='Temperature' momentary='true' automaticReadout='true' value='23.4' unit='°C'/>" 
+								   + "<numeric name='Runtime' status='true' automaticReadout='true' value='12345' unit='h'/>"
+								   + "<string name='Device ID' identification='true' automaticReadout='true' value='Device01'/>"
+								+ "</timestamp>"
+							 + "</node>"
+							+ "</fields>";
+				}
+				@Override public String getNamespace() {return null;}
+				@Override public String getElementName() {return null;}
+			},
+			new PacketExtension() {
+				@Override
+				public String toXML() {
+					return "<fields xmlns='urn:xmpp:iot:sensordata' seqnr='4'>"
+					         + "<node nodeId='Device01'>"
+					            + "<timestamp value='2013-03-07T18:00:00'>"
+					               + "<numeric name='Temperature' historicalHour='true' automaticReadout='true' value='24.5' unit='°C'/>" 
+					            + "</timestamp>"
+					            + "<timestamp value='2013-03-07T17:00:00'>"
+					               + "<numeric name='Temperature' historicalHour='true' automaticReadout='true' value='25.1' unit='°C'/>" 
+					            + "</timestamp>"
+					            + "<timestamp value='2013-03-07T16:00:00'>"
+					               + "<numeric name='Temperature' historicalHour='true' automaticReadout='true' value='25.2' unit='°C'/>" 
+					            + "</timestamp>"
+					            + "<timestamp value='2013-03-07T00:00:00'>"
+					               + "<numeric name='Temperature' historicalHour='true' historicalDay='true' automaticReadout='true' value='25.2' unit='°C'/>" 
+					            + "</timestamp>"
+					         + "</node>"
+					      + "</fields>";
+				}
+				@Override public String getNamespace() {return null;}
+				@Override public String getElementName() {return null;}
+			}
+	};	
 	
 	public AbstractTest(boolean compression1, EXISetupConfiguration exiConfig1,
 			boolean compression2, EXISetupConfiguration exiConfig2, String info){
+		ProviderManager.getInstance().addExtensionProvider("fields", "urn:xmpp:iot:sensordata", new Fields.Provider());
+		ProviderManager.getInstance().addExtensionProvider("failure", "urn:xmpp:iot:sensordata", new Failure.Provider());
+		ProviderManager.getInstance().addExtensionProvider("started", "urn:xmpp:iot:sensordata", new Started.Provider());
+		ProviderManager.getInstance().addExtensionProvider("done", "urn:xmpp:iot:sensordata", new Done.Provider());
+		
 		this.config1.setCompressionEnabled(compression1);
 		this.config2.setCompressionEnabled(compression2);
 		
 	    this.client1 = new EXIXMPPConnection(config1, exiConfig1);
-	    this.client2 = new EXIXMPPConnection(config2, exiConfig2);;
-	    this.info = info;
+	    
+	    this.client2 = new EXIXMPPConnection(config2, exiConfig2);
+	    this.testInfo = info;
 	    
 	    setPackets();
 	}
 	
 	private void setPackets(){
-		iq = new IQ() {
+		IQ iq = new IQ() {
 			@Override
 			public String getChildElementXML() {
 				return "<req xmlns='urn:xmpp:iot:sensordata' seqnr='4' all='true' when='2013-03-07T19:00:00'/>";
@@ -71,16 +171,6 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		//iq.setFrom(from);
 		iq.setTo(USERNAME2 + '@' + SERVER);
 		iq.setProperty("id", "S0004");
-		
-		message = new Message(USERNAME2 + '@' + SERVER);
-		message.addExtension(new PacketExtension() {
-			@Override
-			public String toXML() {
-				return "<started xmlns='urn:xmpp:iot:sensordata' seqnr='4'/>";
-			}
-			@Override public String getNamespace() {return null;}
-			@Override public String getElementName() {return null;}
-		});
 	}
 		
 	private void connect() {
@@ -95,23 +185,27 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		
 		// wait for the negotiation to take place before continuing with the rest of the tests
 		int count = 0;
-		while(client1.isUsingCompression() ^ config1.isCompressionEnabled()){
-			try {
-				Thread.sleep(++count * 1000);
-				if(count > 5)	fail("timeout while negotiating EXI (client1)");
-			} catch (InterruptedException e) {
-				fail(e.getMessage());
+		try {
+			while(client1.isUsingCompression() ^ config1.isCompressionEnabled()){
+				Thread.sleep(1000);
+				if(++count > 10){
+					fail("timeout while negotiating EXI (client1)");
+				}
 			}
+		} catch (InterruptedException e) {
+			fail(e.getMessage());
 		}
 		
 		count = 0;
-		while(client2.isUsingCompression() ^ config2.isCompressionEnabled()){
-			try {
-				Thread.sleep(++count * 1000);
-				if(count > 5)	fail("timeout while negotiating EXI (client2)");
-			} catch (InterruptedException e) {
-				fail(e.getMessage());
+		try {
+			while(client2.isUsingCompression() ^ config2.isCompressionEnabled()){
+				Thread.sleep(1000);
+				if(++count > 10){
+					fail("timeout while negotiating EXI (client2)");
+				}
 			}
+		} catch (InterruptedException e) {
+			fail(e.getMessage());
 		}
 	}
 	
@@ -125,26 +219,23 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	 * Connects to the server and send a message from one client to the other using EXI compression. 
 	 * Disconnects afterwards.
 	 */
-	protected void testSimpleMessage(){
-		connect();	// connect and wait until compression negotiation is ready
+	protected void testMessages(){
+		connect();
 		
-		client2.addEXIEventListener(new EXIPacketLogger(false));
-		client2.addPacketListener(packetListener, messageFilter);	// add a packet listener to read the incoming message
+		client2.addPacketListener(messageListener, messageFilter);
+		client2.addEXIEventListener(new EXIPacketLogger());
 		
-		client1.sendPacket(message);
-		
-		// wait for the message to be processed on the receiving client
-		int count = 0;
-		while(received == null){
+		for(PacketExtension pe : msgExt){
+			m = new Message(client2.getUser());
+			m.setFrom(client1.getUser());
+			m.addExtension(pe);
+			client1.sendPacket(m);
 			try {
-				Thread.sleep(++count * 1000);
-				if(count > 4)	fail("timeout while receiving the message: " + message.toXML());
+				sent.put(m);
 			} catch (InterruptedException e) {
 				fail(e.getMessage());
 			}
 		}
-		
-		assertEquivalentXML(message.toXML(), received.toXML());
 		
 		// test connectivity
 		assertTrue("Clients are still connected", client1.isConnected() && client2.isConnected());
@@ -152,6 +243,55 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		if(config2.isCompressionEnabled())	assertTrue("Client2 is still using compression", client2.isUsingCompression());
 		
 		disconnect();
+	}
+	
+	protected void testSimpleMessage(int i){
+		connect();
+		
+		client2.addPacketListener(messageListener, messageFilter);
+		client2.addEXIEventListener(new EXIPacketLogger());
+		
+		Message m = new Message(client2.getUser());
+		m.setFrom(client1.getUser());
+		m.addExtension(msgExt[i]);
+		client1.sendPacket(m);
+		try {
+			sent.put(m);
+		} catch (InterruptedException e) {
+			fail(e.getMessage());
+		}
+	}
+	
+	protected void testSimpleExtendedMessage(){
+		connect();
+		
+		client2.addPacketListener(messageListener, messageFilter);
+		client1.addEXIEventListener(new EXIPacketLogger());
+		
+		Message m = new Message(client2.getUser());
+		m.setFrom(client1.getUser());
+		
+		List<Numeric> numerics = new ArrayList<Numeric>();
+		numerics.add(new Numeric("Temperature", null, null, null, "true", "true", "23.4", "°C"));
+		numerics.add(new Numeric("Runtime", null, null, "true", null, "true", "12345", "h"));
+		
+		Timestamp t = new Timestamp("2013-03-07T19:00:00", numerics, null);
+		
+		StringElement se = new StringElement("Device ID", "true", "true", "Device01");
+		t.addString(se);
+		
+		Node n = new Node("Device01");
+		n.addTimestamp(t);
+		
+		Fields f = new Fields("4", null);
+		f.addNode(n);
+		m.addExtension(f);
+		client1.sendPacket(m);
+		try {
+			sent.put(m);
+		} catch (InterruptedException e) {
+			fail(e.getMessage());
+		}
 	}
 	
 	/**

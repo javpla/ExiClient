@@ -46,7 +46,7 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 			exiConfig = new EXISetupConfiguration(false);
 		}
 		try {
-			EXIUtils.generateBoth(EXIUtils.schemasFolder, exiConfig);
+			EXIUtils.generateBoth(EXIUtils.schemasFolder);
 		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
 			return;

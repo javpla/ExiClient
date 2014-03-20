@@ -20,7 +20,7 @@ import com.siemens.ct.exi.CodingMode;
 
 public class EXIUtils {
 	
-	public static final String canonicalSchemaLocation = "./res/canonicalSchema.xsd";
+	public static final String defaultCanonicalSchemaLocation = "./res/canonicalSchemas/canonicalSchema.xsd";
 	public static final String canonicalSchemalessLocation = "./res/canonicalSchemaless.xsd";
 	public static final String schemasFileLocation = "./res/schemas.xml";
 	public static final String schemasFolder = "./res/";
@@ -53,7 +53,7 @@ public class EXIUtils {
 	 * @throws NoSuchAlgorithmException
 	 * @throws IOException
 	 */
-	public static void generateBoth(String schemasFolder, EXISetupConfiguration config) throws NoSuchAlgorithmException, IOException{
+	public static void generateBoth(String schemasFolder) throws NoSuchAlgorithmException, IOException{
 		File folder = new File(schemasFolder);
         File[] listOfFiles = folder.listFiles();
         File file;
@@ -105,7 +105,6 @@ public class EXIUtils {
 					namespaces.add(n, namespace);
 					schemasStanzas.put(namespace, "<schema ns='" + namespace + "' bytes='" + file.length() + "' md5Hash='" + md5Hash 
 							+ "' schemaLocation='" + file.getCanonicalPath() + "' url=''/>");
-					//canonicalSchemaStanzas.put(namespace, "<xs:import namespace='" + namespace + "' schemaLocation='" + file.getCanonicalPath() + "'/>");
 					canonicalSchemaStanzas.put(namespace, "<xs:import namespace='" + namespace + "'/>");
             	}
 			}
@@ -113,18 +112,10 @@ public class EXIUtils {
             // variables to write the stanzas and canonicalSchema files
             File stanzasFile = new File(schemasFileLocation);
             BufferedWriter stanzasWriter = new BufferedWriter(new FileWriter(stanzasFile));
-            File canonicalSchema = new File(canonicalSchemaLocation);
+            File canonicalSchema = new File(defaultCanonicalSchemaLocation);
             BufferedWriter canonicalSchemaWriter = new BufferedWriter(new FileWriter(canonicalSchema));
-            
-            // configuration parameters
-            String alignment = " alignment=\'" + config.getAlignmentString() + "\'";
-            String strict = " strict=\'" + config.isStrict() + "\'";
-            String blockSize = " blockSize=\'" + config.getBlockSize() + "\'";
-            String valueMaxLength = " valueMaxLength=\'" + config.getValueMaxLength() + "\'";
-            String valuePartitionCapacity = " valuePartitionCapacity=\'" + config.getValuePartitionCapacity() + "\'";
-            
-            stanzasWriter.write("<setup xmlns=\'http://jabber.org/protocol/compress/exi\'"
-            		+ " version=\'1\'" + alignment + strict + blockSize + valueMaxLength + valuePartitionCapacity + ">");
+
+            stanzasWriter.write("<setup xmlns=\'http://jabber.org/protocol/compress/exi\'>");
             canonicalSchemaWriter.write("<?xml version='1.0' encoding='UTF-8'?> \n\n<xs:schema \n\txmlns:xs='http://www.w3.org/2001/XMLSchema' \n\ttargetNamespace='urn:xmpp:exi:cs' \n\txmlns='urn:xmpp:exi:cs' \n\telementFormDefault='qualified'>\n");
             for(String ns : namespaces){
             	stanzasWriter.write("\n\t" + schemasStanzas.get(ns));
@@ -136,6 +127,8 @@ public class EXIUtils {
 			stanzasWriter.close();
             canonicalSchemaWriter.close();
 	}
+	
+	
 	
 	public static String readFile(String fileLocation){
 		try{

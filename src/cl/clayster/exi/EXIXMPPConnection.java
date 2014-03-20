@@ -56,6 +56,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 	
 	private List<EXIEventListener> compressionStartedListeners =  new ArrayList<EXIEventListener>(0);
 	
+	protected String canonicalSchemaLocation = EXIUtils.defaultCanonicalSchemaLocation;
+	
 	/**
 	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in. 
 	 * @param config configurations to connect to the server
@@ -66,13 +68,32 @@ public class EXIXMPPConnection extends XMPPConnection{
 		
 		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
 		this.exiConfig = exiConfig;
-		if(!new File(EXIUtils.schemasFileLocation).exists())
-			try {
-				EXIUtils.generateBoth(EXIUtils.schemasFolder, exiConfig);
-			} catch (NoSuchAlgorithmException | IOException e1) {
-				e1.printStackTrace();
-				return;
-			}
+		try {
+			EXIUtils.generateBoth(EXIUtils.schemasFolder);
+		} catch (NoSuchAlgorithmException | IOException e1) {
+			e1.printStackTrace();
+			return;
+		}
+	}
+	
+	/**
+	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in. 
+	 * @param config configurations to connect to the server
+	 * @param exiConfig EXI parameters to be used. <b>Default values</b> will be used if exiConfig is null
+	 */
+	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig, File canonicalSchema) {
+		super(config);
+		
+		if(canonicalSchema.exists())	this.canonicalSchemaLocation = canonicalSchema.getAbsolutePath();
+		
+		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
+		this.exiConfig = exiConfig;
+		try {
+			EXIUtils.generateBoth(EXIUtils.schemasFolder);
+		} catch (NoSuchAlgorithmException | IOException e1) {
+			e1.printStackTrace();
+			return;
+		}
 	}
 	
 	@Override
@@ -143,10 +164,31 @@ public class EXIXMPPConnection extends XMPPConnection{
 	}
 	
 	protected String parseSetupStanza() throws DocumentException{
+		Element auxSchema;
+		Element canonicalSchema = DocumentHelper.parseText(EXIUtils.readFile(canonicalSchemaLocation)).getRootElement();
+		List<String> namespaces = new ArrayList<String>();
+		
+		for(@SuppressWarnings("unchecked") Iterator<Element> i = canonicalSchema.elementIterator("import"); i.hasNext();) {
+			auxSchema = i.next();
+			namespaces.add(auxSchema.attributeValue("namespace"));
+		}
+		
 		Element setupElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
- 		Element auxSchema;
-        for (@SuppressWarnings("unchecked") Iterator<Element> i = setupElement.elementIterator("schema"); i.hasNext();) {
+		// add compression parameters
+		setupElement.addAttribute("version", "1");
+		setupElement.addAttribute("alignment", exiConfig.getAlignmentString());
+		setupElement.addAttribute("strict", String.valueOf(exiConfig.isStrict()));
+		setupElement.addAttribute("blockSize", String.valueOf(exiConfig.getBlockSize()));
+		setupElement.addAttribute("valueMaxLength", String.valueOf(exiConfig.getValueMaxLength()));
+		setupElement.addAttribute("valuePartitionCapacity", String.valueOf(exiConfig.getValuePartitionCapacity()));
+        for(@SuppressWarnings("unchecked") Iterator<Element> i = setupElement.elementIterator("schema"); i.hasNext();) {
         	auxSchema = i.next();
+        	if(!namespaces.contains(auxSchema.attributeValue("ns"))){
+System.out.println(auxSchema.attributeValue("ns") + " removed.");
+				setupElement.remove(auxSchema);
+        		continue;
+        	}
+        	
         	auxSchema.remove(auxSchema.attribute("url"));
         	auxSchema.remove(auxSchema.attribute("schemaLocation"));
         }
@@ -162,7 +204,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	public void requestStreamCompression(String method) {
 		if("exi".equalsIgnoreCase(method)){
 			try {
-				exiProcessor = new EXIProcessor(EXIUtils.canonicalSchemaLocation, exiConfig);
+				exiProcessor = new EXIProcessor(canonicalSchemaLocation == null ? EXIUtils.defaultCanonicalSchemaLocation : canonicalSchemaLocation, exiConfig);
 			} catch (EXIException e) {
 				System.err.println("Unable to create EXI Processor.");
 				return;
@@ -215,9 +257,6 @@ public class EXIXMPPConnection extends XMPPConnection{
 			throws NoSuchAlgorithmException, IOException, DocumentException, EXIException, SAXException, TransformerException, XMLStreamException {
 		sentMissingSchemas = true;
 		switch(opt){
-			case ABORT_COMPRESSION:	// abort EXI compression, continue using normal XMPP
-System.out.println("EXI compression aborted. Continuing with normal XMPP communication.");//TODO
-				break;
 			case UPLOAD_EXI_DOCUMENT: // upload compressed EXI document
 				uploadCompressedMissingSchemas(missingSchemas, false);
 				break;
@@ -301,7 +340,6 @@ System.out.println("EXI compression aborted. Continuing with normal XMPP communi
 		else if(reader instanceof EXIReader && writer instanceof EXIWriter){
 			((EXIReader) reader).setExiProcessor(exiProcessor);
 			((EXIWriter) writer).setExiProcessor(exiProcessor);
-			//System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
 		}
 		else System.err.println("Unable to create EXI Processor: Instances of reader and writer are not treated. (EXIXMPPConnection.setEXIProcessor)");
 	}
@@ -320,7 +358,6 @@ System.out.println("EXI compression aborted. Continuing with normal XMPP communi
 		else if(reader instanceof EXIReader && writer instanceof EXIWriter){
 			((EXIReader) reader).setEXI(enable);
 			((EXIWriter) writer).setEXI(enable);
-			//System.out.println("EXIReader and EXIWriter alone (not wrapped into ObservableReader/Writer)");
 		}	
 		else {
 			System.err.println("Unable to create EXI Processor: Instances of reader and writer are not treated. (EXIXMPPConnection.enableEXI)");
@@ -424,7 +461,6 @@ System.out.println("EXI compression aborted. Continuing with normal XMPP communi
 			System.arraycopy(content, 0, ba, xmlStart.length, content.length);
 			System.arraycopy(xmlEnd, 0, ba, xmlStart.length + content.length, xmlEnd.length);
 			
-System.out.println("Message Content in hex (" + content.length + "): " + EXIUtils.bytesToHex(content));
 			bos.write(ba);
 			bos.flush();
 		}

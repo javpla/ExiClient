@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<smackProviders>
+
+	<extensionProvider>
+		<elementName>fields</elementName>
+		<namespace>urn:xmpp:iot:sensordata</namespace>
+		<className>cl.clayster.packet.Fields</className>
+	</extensionProvider>
+	
+	<extensionProvider>
+		<elementName>node</elementName>
+		<namespace>urn:xmpp:iot:sensordata</namespace>
+		<className>cl.clayster.packet.Node</className>
+	</extensionProvider>
+	
+	<extensionProvider>
+		<elementName>timestamp</elementName>
+		<namespace>urn:xmpp:iot:sensordata</namespace>
+		<className>cl.clayster.packet.Timestamp</className>
+	</extensionProvider>
+	
+	<extensionProvider>
+		<elementName>numeric</elementName>
+		<namespace>urn:xmpp:iot:sensordata</namespace>
+		<className>cl.clayster.packet.Numeric</className>
+	</extensionProvider>
+	
+	<extensionProvider>
+		<elementName>string</elementName>
+		<namespace>urn:xmpp:iot:sensordata</namespace>
+		<className>cl.clayster.packet.StringElement</className>
+	</extensionProvider>
+	
+	<extensionProvider>
+		<elementName>started</elementName>
+		<namespace>urn:xmpp:iot:sensordata</namespace>
+		<className>cl.clayster.packet.SingleElement</className>
+	</extensionProvider>
+	
+	<extensionProvider>
+		<elementName>done</elementName>
+		<namespace>urn:xmpp:iot:sensordata</namespace>
+		<className>cl.clayster.packet.SingleElement</className>
+	</extensionProvider>
+	
+</smackProviders>
+
+

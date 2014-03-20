@@ -4,9 +4,6 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
-
-import javax.xml.transform.TransformerException;
 
 import org.jivesoftware.smack.Chat;
 import org.jivesoftware.smack.ChatManager;
@@ -15,22 +12,18 @@ import org.jivesoftware.smack.MessageListener;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Message;
+import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.packet.Presence;
-import org.xml.sax.SAXException;
 
-import com.siemens.ct.exi.CodingMode;
-import com.siemens.ct.exi.EncodingOptions;
-import com.siemens.ct.exi.FidelityOptions;
-import com.siemens.ct.exi.exceptions.EXIException;
+import cl.clayster.exi.test.EXIPacketLogger;
 
 
-public class Smack implements MessageListener{
+public class Smack implements MessageListener{ 
 	
-	
-	static final String servidor = "localhost";
-	static final String contacto = "javier@exi.clayster.cl";	// usuario al cual se le envían mensajes
-	static final String usuario = "exiuser";
-	static final String password = "exiuser";
+	static String servidor = "localhost";
+	static String usuario = "exiuser";
+	static String password = "exiuser";
+	static String contacto = "javier@exi.clayster.cl/Spark";	// usuario al cual se le envían mensajes
 	static boolean exi = true;
 	/*
 	
@@ -42,63 +35,28 @@ public class Smack implements MessageListener{
 	/**/
 	
 	public static void main(String[] args) throws XMPPException, IOException{
-		boolean test = false;
-		if(test){
-			String archivo = new String(Files.readAllBytes(new File("C:/Users/Javier/workspace/Personales/ExiClient/res/xml.xsd").toPath()));
-			try {
-				byte[] exiBody = EXIProcessor.encodeEXIBody(archivo);
-				System.out.println("EXI Body: " + EXIUtils.bytesToHex(exiBody));
-				String xml = EXIProcessor.decodeExiBodySchemaless(exiBody);
-			//	System.out.println("XML: " + xml);
-				
-				byte[] exiDoc = EXIProcessor.encodeSchemaless(archivo, false);
-				System.out.println("EXI Document: " + EXIUtils.bytesToHex(exiDoc));
-				xml = EXIProcessor.decodeSchemaless(exiDoc);
-				System.out.println("XML: " + xml);
-				
-			} catch (EXIException | SAXException e) {
-				e.printStackTrace();
-			} catch (TransformerException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			return;
+		if(args != null && args.length != 0){
+			if(args[0] != null)	servidor = args[0];
+			if(args[1] != null)	contacto = args[1];
+			if(args[2] != null)	usuario = args[2];
+			if(args[3] != null)	password = args[3];
 		}
-		if(test){
-			String txt = "<?xml version=\"1.0\"?>"
-			+ "<exi:streamStart xmlns:exi='http://jabber.org/protocol/compress/exi' version=\"1.0\" to=\"jabber.example.org\" xml:lang=\"en\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\" >"
-			+ "<exi:xmlns prefix=\"stream\" namespace=\"http://etherx.jabber.org/streams\" />"
-			+ "<exi:xmlns prefix=\"\" namespace=\"jabber:client\" />"
-			+ "<exi:xmlns prefix=\"xml\" namespace=\"http://www.w3.org/XML/1998/namespace\" />"
-			+ "</exi:streamStart>";
-			try {
-				EncodingOptions eo = EncodingOptions.createDefault();
-				eo.setOption(EncodingOptions.INCLUDE_COOKIE);
-				eo.setOption(EncodingOptions.INCLUDE_OPTIONS);
-				String exiHex = EXIUtils.bytesToHex(EXIProcessor.encodeSchemaless(txt, eo, FidelityOptions.createDefault()));
-				System.out.println("Con EXI Options(" + exiHex.length() + "):");
-				System.out.println(exiHex);
-				
-				exiHex = EXIUtils.bytesToHex(EXIProcessor.encodeSchemaless(txt, false));
-				System.out.println("Sin EXI Options(" + exiHex.length() + "):");
-				System.out.println(exiHex);
-			} catch (EXIException | SAXException e) {
-				e.printStackTrace();
-			}
-			return;
-		}
+		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
 		config.setCompressionEnabled(true);
 		
-		EXISetupConfiguration exiConfig = new EXISetupConfiguration(true);
-		exiConfig.setAlignment(CodingMode.COMPRESSION);
+		EXISetupConfiguration exiConfig = new EXISetupConfiguration(false);
+		exiConfig.setAlignment(EXISetupConfiguration.BYTE_PACKED);
 		exiConfig.setBlockSize(2048);
+		exiConfig.setStrict(false);
+		exiConfig.setValueMaxLength(300);
 		
-		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig);
+		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig, new File("C:/Users/Javier/workspace/Personales/ExiClient/res/canonicalSchemas/cs.xsd"));
 		connection.connect();
 		connection.login(usuario, password);
+		
+		connection.addEXIEventListener(new EXIPacketLogger());
 		
 		/**
 		// get list of contacts (Roster)
@@ -154,7 +112,7 @@ public class Smack implements MessageListener{
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		String msg;
 		while (!(msg = br.readLine()).equals("bye")) {
-			if(msg.equalsIgnoreCase("u")){
+			if(msg.equals("U")){
 				// Create a new presence. Pass in false to indicate we're unavailable.
 				Presence presence = new Presence(Presence.Type.unavailable);
 				presence.setStatus("Gone fishing");
@@ -162,14 +120,34 @@ public class Smack implements MessageListener{
 				connection.sendPacket(presence);
 				continue;
 			}
-			if(msg.equalsIgnoreCase("a")){
+			else if(msg.equals("A")){
 				// Create a new presence. Pass in false to indicate we're unavailable.
 				Presence presence = new Presence(Presence.Type.available);
 				// Send the packet (assume we have a Connection instance called "con").
 				connection.sendPacket(presence);
 				continue;
 			}
-			if(msg.startsWith("iq")){
+			else if(msg.equals("T")){
+				Message message = new Message(contacto);
+				PacketExtension pe = new PacketExtension() {
+					@Override
+					public String toXML() {
+						return "<fields xmlns='urn:xmpp:iot:sensordata' seqnr='1' done='true'>"
+								+ "<node nodeId='Device01'>"
+									+ "<timestamp value='2013-03-07T16:24:30'>"
+										+ "<numeric name='Temperature' momentary='true' automaticReadout='true' value='23.4' unit='�C'/>"
+									+ "</timestamp>"
+								+ "</node>"
+							+ "</fields>";
+					}
+					@Override public String getNamespace() {return null;}
+					@Override public String getElementName() {return null;}
+				};
+				message.addExtension(pe);
+				connection.sendPacket(message);
+				continue;
+			}
+			else if(msg.startsWith("iq")){
 				IQ iq = new IQ() {
 					
 					@Override

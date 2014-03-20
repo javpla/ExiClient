@@ -72,22 +72,16 @@ public class DocumentAbstractTest extends TestCase {
     }
 
     public void assertNodesEqual(Element n1, Element n2) {
-        assertNodesEqual(n1.getQName(), n2.getQName());
+    	assertNodesEqual(n1.getQName(), n2.getQName());
 
         int c1 = n1.attributeCount();
         int c2 = n2.attributeCount();
 
-        	/*********************************** TODO: EXI code	********************************************/
-      //assertEquals("Elements have same number of attributes (" + c1 + ", " + c2 + " for: " + n1 + " and " + n2, c1, c2);
-        if(c1 > c2){
-        	c1 = c2;
-        	c2 = n1.attributeCount();
-        }
+        assertEquals("Elements have same number of attributes (" + c1 + ", "
+                + c2 + " for: " + n1 + " and " + n2, c1, c2);
+
         for (int i = 0; i < c1; i++) {
             Attribute a1 = n1.attribute(i);
-            
-            if(a1.getQualifiedName().equalsIgnoreCase("from"))	continue;	// this attribute is added by the server, not the sender
-            
             Attribute a2 = n2.attribute(a1.getQName());
             assertNodesEqual(a1, a2);
         }

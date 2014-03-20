@@ -11,6 +11,11 @@ import com.siemens.ct.exi.exceptions.UnsupportedOption;
  */
 public class EXISetupConfiguration {
 	
+	public static CodingMode BIT_PACKED = CodingMode.BIT_PACKED;
+	public static CodingMode BYTE_PACKED = CodingMode.BYTE_PACKED;
+	public static CodingMode PRE_COMPRESSION = CodingMode.PRE_COMPRESSION;
+	public static CodingMode COMPRESSION = CodingMode.COMPRESSION;
+	
 	private String id;
 
 	private CodingMode alignment;
@@ -138,6 +143,7 @@ public class EXISetupConfiguration {
 	public String toString(){
 		return "EXISetupConfiguration:"
 				+ "\n\t alignment: " + getAlignmentString()
+				+ "\n\t strict: " + strict
 				+ "\n\t fragment: " + fragment 
 				+ "\n\t blockSize: " + blockSize
 				+ "\n\t valueMaxLength: " + valueMaxLength

@@ -292,14 +292,14 @@ public class PacketReader {
                 		else{
                 			if(parser.getAttributeValue("null", "configurationId") == null){
                 				if(exiConnection.getSentMissingSchemas()){
-                					// TODO: missing schemas have been sent, schemaless EXI compression will be used
-                					System.err.println("Error while uploading schema files.");
+                					// TODO: missing schemas have been already sent, compression aborted
+                					System.err.println("Error while uploading schema files. Continuing with normal XMPP.");
                 				}
                 				else{
                 					// it is the first intent to send the missing schemas
-	                				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser); 
+	                				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser);
 	    	                		if(missingSchemas.size() > 0){
-	    	                			exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOption());
+	    	                				exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOption());
 	    	                		}
 	                				EXIUtils.saveConfigId(null);
 	                				Thread.sleep(1000);

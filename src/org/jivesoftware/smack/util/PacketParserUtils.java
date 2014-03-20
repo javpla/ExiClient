@@ -78,6 +78,7 @@ public class PacketParserUtils {
         message.setTo(parser.getAttributeValue("", "to"));
         message.setFrom(parser.getAttributeValue("", "from"));
         message.setType(Message.Type.fromString(parser.getAttributeValue("", "type")));
+        
         String language = getLanguageAttribute(parser);
         
         // determine message's default language
@@ -169,7 +170,7 @@ public class PacketParserUtils {
      * @throws XmlPullParserException if parser encounters invalid XML
      * @throws IOException if an IO error occurs
      */
-    private static String parseContent(XmlPullParser parser)
+    public static String parseContent(XmlPullParser parser)
                     throws XmlPullParserException, IOException {
         StringBuffer content = new StringBuffer();
         int parserDepth = parser.getDepth();

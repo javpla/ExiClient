@@ -27,19 +27,18 @@ public class NoSchemasOnServerTest extends AbstractTest {
 		EXIUtils.saveConfigId(null);
 		
 		Object[][] data = new Object[][] {
-				//{true, body, false, null, "client1 uploads exi body files."}};
 				{true, null, false, null, "a:client1 uploads binary files."},
 				{true, null, false, null, "b:client1 uploads exi-compressed files (only the exi body)."},
 				{true, null, false, null, "c:client1 uploads exi-compressed files."},
-				{true, null, false, null, "d:client1 uploads a URL for the server to download it, or else uploads binary files."},
-				{true, null, false, null, "e:client1 aborts compression negotiation after receiving missing schema files."}};
+				{true, null, false, null, "d:client1 uploads a URL for the server to download it, or else uploads binary files."}};
+				//{true, null, false, null, "e:client1 aborts compression negotiation after receiving missing schema files."}};
 		return Arrays.asList(data);
 	}
 	
 	@Test
 	public void test() {
 		clearClassesFolder();
-		switch(info.charAt(0)){
+		switch(testInfo.charAt(0)){
 			case 'a': client1.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY);
 			break;
 			case 'b': client1.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_EXI_BODY);
@@ -52,6 +51,6 @@ public class NoSchemasOnServerTest extends AbstractTest {
 			break;
 		}
 		
-		testSimpleMessage();
+		testMessages();
 	}
 }
