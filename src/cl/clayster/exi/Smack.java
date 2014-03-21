@@ -15,8 +15,6 @@ import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.packet.Presence;
 
-import cl.clayster.exi.test.EXIPacketLogger;
-
 
 public class Smack implements MessageListener{ 
 	
@@ -56,7 +54,7 @@ public class Smack implements MessageListener{
 		connection.connect();
 		connection.login(usuario, password);
 		
-		connection.addEXIEventListener(new EXIPacketLogger());
+		connection.addEXIEventListener(new EXIPacketLogger(""));
 		
 		/**
 		// get list of contacts (Roster)

@@ -20,14 +20,22 @@ import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.provider.ProviderManager;
 import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
+import cl.clayster.exi.EXIPacketLogger;
 import cl.clayster.exi.EXISetupConfiguration;
 import cl.clayster.exi.EXIXMPPConnection;
+import cl.clayster.packet.Accepted;
+import cl.clayster.packet.Cancel;
+import cl.clayster.packet.Cancelled;
 import cl.clayster.packet.Done;
 import cl.clayster.packet.Failure;
 import cl.clayster.packet.Fields;
 import cl.clayster.packet.Node;
 import cl.clayster.packet.Numeric;
+import cl.clayster.packet.Rejected;
+import cl.clayster.packet.Req;
 import cl.clayster.packet.Started;
 import cl.clayster.packet.StringElement;
 import cl.clayster.packet.Timestamp;
@@ -47,68 +55,57 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 
 	private Message m = null;
 	private IQ iq = null;
-	private BlockingQueue<Packet> sentMessages = new ArrayBlockingQueue<Packet>(500, true);
-	private BlockingQueue<Packet> receivedMessages = new ArrayBlockingQueue<Packet>(500, true);
-	private BlockingQueue<Packet> sentIQs = new ArrayBlockingQueue<Packet>(500, true);
 	
-	PacketListener messageListener = new PacketListener() {	
+	private BlockingQueue<Packet> sent = new ArrayBlockingQueue<Packet>(500, true);
+	private BlockingQueue<Packet> received = new ArrayBlockingQueue<Packet>(500, true);
+	
+	PacketListener packetListener = new PacketListener() {	
 		@Override
 		public void processPacket(Packet packet) {
 			try {
-				receivedMessages.put(packet);
+				received.put(packet);
 			} catch (InterruptedException e) {
 				fail(e.getMessage());
 			}
 		}
 	};
-	PacketFilter messageFilter = new PacketFilter() {	// only lets Message packets pass
+	PacketFilter testFilter = new PacketFilter() {
 		@Override
 		public boolean accept(Packet packet) {
-			return (packet instanceof Message);
+			// We want to verify only packets sent by the test (no roster or jabber IQs)
+			return (packet instanceof Message ||
+					packet instanceof IQ && ((IQ) packet).getChildElementXML().contains("xmlns=\"urn:xmpp:iot:sensordata\""));
 		}
 	};
 	
-	PacketListener iqListener = new PacketListener() {	
-		@Override
-		public void processPacket(Packet packet) {			
-			assertEquivalentXML(sentIQs.poll().toXML(), packet.toXML());
-		}
-	};
-	PacketFilter iqFilter = new PacketFilter() {	// only lets Message packets pass
-		@Override
-		public boolean accept(Packet packet) {
-			return (packet instanceof Message);
-		}
-	};
+	/**
+	 * Adds urn:xmpp:iot:sensordata PacketExtension providers and initializes both clients.
+	 * @param exiConfig1
+	 * @param exiConfig2
+	 * @param info
+	 */
+	public AbstractTest(EXISetupConfiguration exiConfig1, EXISetupConfiguration exiConfig2, String info){
+		addExtensionProviders();
+	    this.client1 = new EXIXMPPConnection(config1, exiConfig1);
+	    this.client2 = new EXIXMPPConnection(config2, exiConfig2);
+	    this.testInfo = info;
+	}
 	
-	PacketFilter openFilter = new PacketFilter() {	
-		@Override
-		public boolean accept(Packet packet) {
-			return true;
-		}
-	};
-	
-	
-	
-	public AbstractTest(boolean compression1, EXISetupConfiguration exiConfig1,
-			boolean compression2, EXISetupConfiguration exiConfig2, String info){
+	private void addExtensionProviders(){
 		ProviderManager.getInstance().addExtensionProvider("fields", "urn:xmpp:iot:sensordata", new Fields.Provider());
 		ProviderManager.getInstance().addExtensionProvider("failure", "urn:xmpp:iot:sensordata", new Failure.Provider());
 		ProviderManager.getInstance().addExtensionProvider("started", "urn:xmpp:iot:sensordata", new Started.Provider());
 		ProviderManager.getInstance().addExtensionProvider("done", "urn:xmpp:iot:sensordata", new Done.Provider());
 		
-		this.config1.setCompressionEnabled(compression1);
-		this.config2.setCompressionEnabled(compression2);
-		
-	    this.client1 = new EXIXMPPConnection(config1, exiConfig1);
-	    
-	    this.client2 = new EXIXMPPConnection(config2, exiConfig2);
-	    this.testInfo = info;
-	    
-	    connect();
+		ProviderManager.getInstance().addIQProvider("req", "urn:xmpp:iot:sensordata", new Req.Provider());
+		ProviderManager.getInstance().addIQProvider("cancel", "urn:xmpp:iot:sensordata", new Cancel.Provider());
+		ProviderManager.getInstance().addIQProvider("accepted", "urn:xmpp:iot:sensordata", new Accepted.Provider());
+		ProviderManager.getInstance().addIQProvider("cancelled", "urn:xmpp:iot:sensordata", new Cancelled.Provider());
+		ProviderManager.getInstance().addIQProvider("rejected", "urn:xmpp:iot:sensordata", new Rejected.Provider());
 	}
 		
-	private void connect() {
+	@Before
+	public void connect() {
 		try {
 			client1.connect();
 			client1.login(AbstractTest.USERNAME1, AbstractTest.USERNAME1);
@@ -120,32 +117,34 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		
 		// wait for the negotiation to take place before continuing with the rest of the tests
 		int count = 0;
-		try {
-			while(client1.isUsingCompression() ^ config1.isCompressionEnabled()){
+		while(client1.isUsingCompression() ^ config1.isCompressionEnabled()){
+			try {
 				Thread.sleep(1000);
-				if(++count > 10){
-					fail("timeout while negotiating EXI (client1)");
-				}
+			} catch (InterruptedException e) {
+				fail(e.getMessage());
 			}
-		} catch (InterruptedException e) {
-			fail(e.getMessage());
+			if(++count > 10){
+				fail("timeout while negotiating EXI (client1)");
+			}
 		}
 		
 		count = 0;
-		try {
-			while(client2.isUsingCompression() ^ config2.isCompressionEnabled()){
+		while(client2.isUsingCompression() ^ config2.isCompressionEnabled()){
+			try {
 				Thread.sleep(1000);
-				if(++count > 10){
-					fail("timeout while negotiating EXI (client2)");
-				}
+			} catch (InterruptedException e) {
+				fail(e.getMessage());
 			}
-		} catch (InterruptedException e) {
-			fail(e.getMessage());
+			if(++count > 10){
+				fail("timeout while negotiating EXI (client2)");
+			}
 		}
 	}
 	
 	@After
 	public void disconnect() {		
+		waitAndTest();
+		
 		if(client1.isConnected())	client1.disconnect();
 		if(client2.isConnected())	client2.disconnect();
 	}
@@ -174,9 +173,7 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	 * Disconnects afterwards.
 	 */
 	protected void testMessages(){
-		client2.addPacketListener(messageListener, messageFilter);
-		
-		//client2.addEXIEventListener(new EXIPacketLogger());
+		client2.addPacketListener(packetListener, testFilter);
 		
 		for(PacketExtension pe : TestExtensions.msgExt){
 			m = new Message(client2.getUser());
@@ -184,70 +181,30 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 			m.addExtension(pe);
 			client1.sendPacket(m);
 			try {
-				sentMessages.put(m);
+				sent.put(m);
 			} catch (InterruptedException e) {
 				fail(e.getMessage());
 			}
 		}
-		
-		// wait for all messages to be received
-		int count = 0;
-		while(sentMessages.size() != receivedMessages.size()){
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				fail(e.getMessage());
-			}
-			if(++count > 5){
-				fail("timeout");
-			}
-		}
-				
-		while(!sentMessages.isEmpty()){
-			assertEquivalentXML(sentMessages.poll().toXML(), receivedMessages.poll().toXML());
-		}
-		
-		// test connectivity
-		assertTrue("Clients are still connected", client1.isConnected() && client2.isConnected());
-		if(config1.isCompressionEnabled())	assertTrue("Client1 is still using compression", client1.isUsingCompression());
-		if(config2.isCompressionEnabled())	assertTrue("Client2 is still using compression", client2.isUsingCompression());
 	}
 	
 	protected void testSimpleMessage(int i){
-		client2.addPacketListener(messageListener, messageFilter);
-		//client2.addEXIEventListener(new EXIPacketLogger());
+		client2.addPacketListener(packetListener, testFilter);
 		
 		Message m = new Message(client2.getUser());
 		m.setFrom(client1.getUser());
 		m.addExtension(TestExtensions.msgExt[i]);
 		try {
-			sentMessages.put(m);
+			sent.put(m);
 		} catch (InterruptedException e) {
 			fail(e.getMessage());
 		}
 		client1.sendPacket(m);
-		
-		// wait for the message to be received
-		int count = 0;
-		while(sentMessages.size() != receivedMessages.size()){
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				fail(e.getMessage());
-			}
-			if(++count > 5){
-				fail("timeout");
-			}
-		}
-		
-		while(!sentMessages.isEmpty()){
-			assertEquivalentXML(sentMessages.poll().toXML(), receivedMessages.poll().toXML());
-		}
 	}
 	
 	protected void testSimpleExtendedMessage(){
 		
-		client2.addPacketListener(messageListener, messageFilter);
+		client2.addPacketListener(packetListener, testFilter);
 		
 		Message m = new Message(client2.getUser());
 		m.setFrom(client1.getUser());
@@ -267,19 +224,19 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		Fields f = new Fields("4", null);
 		f.addNode(n);
 		m.addExtension(f);
-		client1.sendPacket(m);
 		try {
-			sentMessages.put(m);
+			sent.put(m);
 		} catch (InterruptedException e) {
 			fail(e.getMessage());
 		}
+		client1.sendPacket(m);
 	}
 	
 	
 	protected void testSimpleIQ(final int i){
 		
-		client2.addPacketListener(iqListener, iqFilter);
-		client2.addEXIEventListener(new EXIPacketLogger());
+		client2.addPacketListener(packetListener, testFilter);
+		client2.addEXIEventListener(new EXIPacketLogger("2"));
 		
 		iq = new IQ() {
 			@Override 
@@ -302,15 +259,15 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		// iq.setProperty("id", "S0001");	TODO: is set by the server?
 		client1.sendPacket(iq);
 		try {
-			sentIQs.put(iq);
+			sent.put(iq);
 		} catch (InterruptedException e) {
 			fail(e.getMessage());
 		}
 	}
 	
 	protected void testIQs(){
-		client2.addPacketListener(iqListener, iqFilter);
-		client2.addEXIEventListener(new EXIPacketLogger());
+		
+		client2.addPacketListener(packetListener, testFilter);
 		
 		for(final PacketExtension iqExt : TestExtensions.iqExt){
 			iq = new IQ() {
@@ -331,14 +288,57 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 			}
 			iq.setTo(client2.getUser());
 			iq.setFrom(client1.getUser());
+			// iq.setProperty("id", "S0001");	TODO: is set by the server?
 			client1.sendPacket(iq);
 			try {
-				sentIQs.put(iq);
+				sent.put(iq);
 			} catch (InterruptedException e) {
 				fail(e.getMessage());
 			}
 		}
 	}
+	
+	@Test
+	public void testAll(){
+		testMessages();
+		testIQs();
+	}
+	
+	/**
+	 * Waits to receive the same amount of packets as has been sent.
+	 */
+	private void waitReception(){
+		int count = 0;
+		while(sent.size() != received.size()){
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				fail(e.getMessage());
+			}
+			if(++count > 30){
+				StringBuilder buf = new StringBuilder();
+				for(Packet p : received){
+					buf.append(p.toXML() + '\n');
+				}
+				fail("timeout. Messages received so far:\n" + buf.toString());
+			}
+		}
+	}
+	
+	private void waitAndTest(){
+		waitReception();
+		
+		while(!(sent.isEmpty() || received.isEmpty())){
+			assertEquivalentXML(sent.poll().toXML(), received.poll().toXML());
+		}
+		
+		// test connectivity
+		assertTrue("Clients are still connected", client1.isConnected() && client2.isConnected());
+		if(config1.isCompressionEnabled())	assertTrue("Client1 is still using compression", client1.isUsingCompression());
+		if(config2.isCompressionEnabled())	assertTrue("Client2 is still using compression", client2.isUsingCompression());
+	}
+	
+	
 
 	
 	// TODO: 

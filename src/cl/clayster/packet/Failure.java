@@ -1,5 +1,6 @@
 package cl.clayster.packet;
 
+import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.provider.PacketExtensionProvider;
 import org.jivesoftware.smack.util.PacketParserUtils;
@@ -95,10 +96,10 @@ public class Failure implements PacketExtension {
 	
 	public static class Provider implements PacketExtensionProvider {
 	    public PacketExtension parseExtension (XmlPullParser parser) throws Exception {
-	    	Failure failure = null;
-	    	if(parser.getEventType() == XmlPullParser.START_TAG && "failure".equals(parser.getName())){
-	    		failure = new Failure(parser.getAttributeValue(null, "seqnr"), parser.getAttributeValue(null,"done"));
+	    	if(!(parser.getEventType() == XmlPullParser.START_TAG && "failure".equals(parser.getName()))){
+            	throw new XMPPException("Parser not in proper position, or bad XML.");
 	    	}
+	    	Failure failure = new Failure(parser.getAttributeValue(null, "seqnr"), parser.getAttributeValue(null,"done"));
 	    	int eventType = parser.next();
 	    	do{
 	    		// only look for an <error> element

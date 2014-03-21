@@ -92,14 +92,6 @@ public class TestExtensions {
 		new PacketExtension() {
 			@Override
 			public String toXML() {
-				return "<query xmlns='http://jabber.org/protocol/disco#info'/>";
-			}
-			@Override public String getNamespace() {return "urn:xmpp:iot:sensordata";}
-			@Override public String getElementName() {return "query";}
-		},
-		new PacketExtension() {
-			@Override
-			public String toXML() {
 				return "<req xmlns='urn:xmpp:iot:sensordata' seqnr='1' momentary='true'/>";
 			}
 			@Override public String getNamespace() {return "urn:xmpp:iot:sensordata";}

@@ -20,10 +20,10 @@ import com.siemens.ct.exi.CodingMode;
 
 public class EXIUtils {
 	
-	public static final String defaultCanonicalSchemaLocation = "./res/canonicalSchemas/canonicalSchema.xsd";
-	public static final String canonicalSchemalessLocation = "./res/canonicalSchemaless.xsd";
-	public static final String schemasFileLocation = "./res/schemas.xml";
-	public static final String schemasFolder = "./res/";
+	public static final String defaultCanonicalSchemaLocation = "./schemas/canonicalSchemas/canonicalSchema.xsd";
+	public static final String canonicalSchemalessLocation = "./schemas/canonicalSchemaless.xsd";
+	public static final String schemasFileLocation = "./schemas/schemas.xml";
+	public static final String schemasFolder = "./schemas/";
 	
 	
 	public static final char[] hexArray = "0123456789abcdef".toCharArray();

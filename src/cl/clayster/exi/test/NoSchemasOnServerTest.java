@@ -3,7 +3,6 @@ package cl.clayster.exi.test;
 import java.util.Arrays;
 import java.util.Collection;
 
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
@@ -12,12 +11,18 @@ import cl.clayster.exi.EXISetupConfiguration;
 import cl.clayster.exi.EXIUtils;
 import cl.clayster.exi.EXIXMPPConnection;
 
+/**
+ * Tests uploading schemas to the server by every way possible. Before starting every test it removes the schemas contained on the server
+ * to make sure all schemas are missing. Uses quick configurations setup to make this faster 
+ * @author Javier
+ *
+ */
 @RunWith(Parameterized.class)
 public class NoSchemasOnServerTest extends AbstractTest {
 	
-	public NoSchemasOnServerTest(boolean compression1, EXISetupConfiguration exiConfig1,
-			boolean compression2, EXISetupConfiguration exiConfig2, String message) {
-		super(compression1, exiConfig1, compression2, exiConfig2, message);
+	public NoSchemasOnServerTest(EXISetupConfiguration exiConfig1,
+			EXISetupConfiguration exiConfig2, String message) {
+		super(exiConfig1, exiConfig2, message);
 	}
 
 	@Parameters
@@ -25,18 +30,19 @@ public class NoSchemasOnServerTest extends AbstractTest {
 		
 		// delete previous configuration id register (just for the first test which should try quick configurations, but will then do normal negotiation instead)
 		EXIUtils.saveConfigId(null);
+		EXISetupConfiguration exiConfig = new EXISetupConfiguration(true);
 		
 		Object[][] data = new Object[][] {
-				{true, null, false, null, "a:client1 uploads binary files."},
-				{true, null, false, null, "b:client1 uploads exi-compressed files (only the exi body)."},
-				{true, null, false, null, "c:client1 uploads exi-compressed files."},
-				{true, null, false, null, "d:client1 uploads a URL for the server to download it, or else uploads binary files."}};
-				//{true, null, false, null, "e:client1 aborts compression negotiation after receiving missing schema files."}};
+				{exiConfig, null, "a:client1 uploads binary files."},
+				{exiConfig, null, "b:client1 uploads exi-compressed files (only the exi body)."},
+				{exiConfig, null, "c:client1 uploads exi-compressed files."},
+				{exiConfig, null, "d:client1 uploads a URL for the server to download it, or else uploads binary files."}
+				};
 		return Arrays.asList(data);
 	}
 	
-	@Test
-	public void test() {
+	@Override
+	public void testAll() {
 		clearClassesFolder();
 		switch(testInfo.charAt(0)){
 			case 'a': client1.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY);
@@ -51,6 +57,6 @@ public class NoSchemasOnServerTest extends AbstractTest {
 			break;
 		}
 		
-		testMessages();
+		super.testAll();
 	}
 }

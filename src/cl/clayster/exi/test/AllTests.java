@@ -6,8 +6,7 @@ import org.junit.runners.Suite.SuiteClasses;
 
 @RunWith(Suite.class)
 @SuiteClasses({
-	cl.clayster.exi.test.DefaultValuesTest.class,
-	cl.clayster.exi.test.CustomConfigurationsTest.class,
+	cl.clayster.exi.test.NegotiationTest.class,
 	cl.clayster.exi.test.NoSchemasOnServerTest.class
 })
 public class AllTests {

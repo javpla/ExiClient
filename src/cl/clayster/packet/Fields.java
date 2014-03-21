@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.provider.PacketExtensionProvider;
 import org.xmlpull.v1.XmlPullParser;
@@ -97,10 +98,10 @@ public class Fields implements PacketExtension {
 	
 	public static class Provider implements PacketExtensionProvider {
 	    public PacketExtension parseExtension (XmlPullParser parser) throws Exception {
-	    	Fields fields = null;
-	    	if(parser.getEventType() == XmlPullParser.START_TAG && "fields".equals(parser.getName())){
-	    		fields = new Fields(parser.getAttributeValue(null, "seqnr"), parser.getAttributeValue(null, "done"));
+	    	if(!(parser.getEventType() == XmlPullParser.START_TAG && "fields".equals(parser.getName()))){
+            	throw new XMPPException("Parser not in proper position, or bad XML.");
 	    	}
+	    	Fields fields = new Fields(parser.getAttributeValue(null, "seqnr"), parser.getAttributeValue(null, "done"));
 	    	int eventType = parser.next();
 	    	do{
 	    		// look for a <node> element

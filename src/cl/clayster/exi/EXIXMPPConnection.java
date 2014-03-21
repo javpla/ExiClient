@@ -59,14 +59,16 @@ public class EXIXMPPConnection extends XMPPConnection{
 	protected String canonicalSchemaLocation = EXIUtils.defaultCanonicalSchemaLocation;
 	
 	/**
-	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in. 
+	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in.
+	 * By default,  compression will be enabled unless <b>exiConfig</b> is null. 
+	 * All schemas within the <i>schema</i> folder will be used.
 	 * @param config configurations to connect to the server
-	 * @param exiConfig EXI parameters to be used. <b>Default values</b> will be used if exiConfig is null
+	 * @param exiConfig EXI parameters to be used.
 	 */
 	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
 		super(config);
 		
-		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
+		config.setCompressionEnabled(exiConfig != null);
 		this.exiConfig = exiConfig;
 		try {
 			EXIUtils.generateBoth(EXIUtils.schemasFolder);
@@ -77,16 +79,19 @@ public class EXIXMPPConnection extends XMPPConnection{
 	}
 	
 	/**
-	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in. 
+	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in.
+	 * By default,  compression will be enabled unless <b>exiConfig</b> is null. 
+	 * Only the schemas imported in <b>canonicalSchema</b> will be used for EXI compression
 	 * @param config configurations to connect to the server
 	 * @param exiConfig EXI parameters to be used. <b>Default values</b> will be used if exiConfig is null
+	 * @param canonicalSchema the desired canonical schema to use for EXI compression
 	 */
 	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig, File canonicalSchema) {
 		super(config);
 		
 		if(canonicalSchema.exists())	this.canonicalSchemaLocation = canonicalSchema.getAbsolutePath();
 		
-		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
+		config.setCompressionEnabled(exiConfig != null);
 		this.exiConfig = exiConfig;
 		try {
 			EXIUtils.generateBoth(EXIUtils.schemasFolder);
@@ -96,12 +101,28 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 	}
 	
+	/**
+	 * Sets new EXI compression configurations for this connection and start EXI negotiation with the server.
+	 * This method is to be used when EXI compression has not been started while logging in to the server.
+	 * @param exiConfig 
+	 * @return true if stream compression negotiation was successful. false if exi was already being used.
+	 */
+	protected boolean useCompression(EXISetupConfiguration exiConfig){
+		this.exiConfig = exiConfig;
+		return useCompression();
+	}
+	
 	@Override
 	protected boolean useCompression() {
 		if(!compressionMethods.contains("exi")){
 			System.err.println("The server does not support EXI compression.");
 			return false;
 		}
+		if(isUsingCompression()){
+			return false;
+		}
+		// TODO: ¿?
+		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
 		
 		// maybe use quick setup
 		if(exiConfig.isQuickSetup() && proposeEXICompressionQuickSetup()){
