@@ -18,7 +18,7 @@ import com.siemens.ct.exi.exceptions.EXIException;
 public class EXIWriter extends BufferedWriter {
 
 	private boolean exi = false;
-	private EXIBaseProcessor exiProcessor;
+	private EXIBaseProcessor ep;
 	private BufferedOutputStream os;
 	
 	private List<EXIEventListener> writeListeners = new ArrayList<EXIEventListener>(0);
@@ -41,7 +41,8 @@ public class EXIWriter extends BufferedWriter {
 			return;
     	}
     	try {
-        	byte[] exi = exiProcessor.encodeToByteArray(xml);
+        	byte[] exi = ep.encodeToByteArray(xml);
+System.out.println("using EXIProcessor: "+ ep);
 System.out.println(xml);
 System.out.println(EXIUtils.bytesToHex(exi));
 			if(!writeListeners.isEmpty()){
@@ -68,7 +69,7 @@ System.out.println(EXIUtils.bytesToHex(exi));
 	}
 	
 	void setExiProcessor(EXIBaseProcessor exiProcessor){
-		this.exiProcessor = exiProcessor;
+		this.ep = exiProcessor;
 	}
 	
 	void addWriteListener(EXIEventListener listener){
@@ -81,7 +82,7 @@ System.out.println(EXIUtils.bytesToHex(exi));
 
 	public void writeWithCookie(String xml) throws IOException {
 		try {
-        	byte[] exi = exiProcessor.encodeToByteArray(xml);
+        	byte[] exi = ep.encodeToByteArray(xml);
         	byte[] c = "$EXI".getBytes();
         	byte[] aux = new byte[exi.length + c.length]; 
 			System.arraycopy(exi, 0, aux, c.length, exi.length);

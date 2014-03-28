@@ -37,6 +37,7 @@ public class EXIReader extends BufferedReader {
     	synchronized (lock) {
     		if(!exi){
 				leido = super.read(cbuf, off, len);
+System.err.println(new String(cbuf));
     			return leido;
     		}
     		byte[] dest = new byte[len];
@@ -59,8 +60,7 @@ public class EXIReader extends BufferedReader {
 						for(EXIEventListener eel : readListeners){
 							eel.packetDecoded(xml, ba);
 						}
-					}
-					
+					}			
 					anterior = null;
 					ba = null;
 					return leido;

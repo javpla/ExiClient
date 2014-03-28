@@ -195,7 +195,7 @@ public class PacketWriter {
             		writer.write("<exi:streamEnd xmlns:exi='http://jabber.org/protocol/compress/exi'/>");
             	}
             	else if(this.connection instanceof EXIXMPPAlternativeConnection && ((EXIXMPPAlternativeConnection) this.connection).isUsingCompression()){
-            		writer.write("<streamEnd xmlns:exi='http://jabber.org/protocol/compress/exi'/>");
+            		writer.write("<exi:streamEnd xmlns:exi='http://jabber.org/protocol/compress/exi'/>");
             	}
             	else{
             		writer.write("</stream:stream>");

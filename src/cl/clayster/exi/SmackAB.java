@@ -27,6 +27,7 @@ public class SmackAB implements MessageListener{
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
 		//config.setCompressionEnabled(true);
+		//config.setSecurityMode(SecurityMode.disabled);
 		
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
 		exiConfig.setCodingMode(CodingMode.COMPRESSION);

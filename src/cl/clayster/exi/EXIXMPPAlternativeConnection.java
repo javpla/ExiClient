@@ -9,15 +9,19 @@ import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.XMPPError;
 
 public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
+	
+	protected boolean firstStreamStart = true;
 
 	public EXIXMPPAlternativeConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
 		super(config, exiConfig);
 		this.exiConfig = exiConfig;
+		this.usingEXI = true;
 	}
 	
 	public EXIXMPPAlternativeConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig, File canonicalSchema) {
 		super(config, exiConfig, canonicalSchema);
 		this.exiConfig = exiConfig;
+		this.usingEXI = true;
 	}
 	
 	@Override
@@ -59,12 +63,18 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 		String exiStreamStart = "<?xml version=\"1.0\"?>"
 				+ "<exi:streamStart xmlns:exi='http://jabber.org/protocol/compress/exi' version=\"1.0\" to=\""
 				+ getHost()
-				+ "\" xml:lang=\"en\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\" >"
-				+ "<exi:xmlns prefix=\"stream\" namespace=\"http://etherx.jabber.org/streams\" />"
-				+ "<exi:xmlns prefix=\"\" namespace=\"jabber:client\" />"
-				+ "<exi:xmlns prefix=\"xml\" namespace=\"http://www.w3.org/XML/1998/namespace\" />"
+				+ "\" xml:lang=\"en\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\">"
+				+ "<exi:xmlns prefix=\"stream\" namespace=\"http://etherx.jabber.org/streams\"/>"
+				+ "<exi:xmlns prefix=\"\" namespace=\"jabber:client\"/>"
+				+ "<exi:xmlns prefix=\"xml\" namespace=\"http://www.w3.org/XML/1998/namespace\"/>"
 				+ "</exi:streamStart>";
-		((EXIWriter)writer).writeWithCookie(exiStreamStart);
+		if(firstStreamStart){
+			((EXIWriter)writer).writeWithCookie(exiStreamStart);
+			//firstStreamStart = false;
+		}
+		else{
+			writer.write(exiStreamStart);
+		}
 		writer.flush();
 	}
 	

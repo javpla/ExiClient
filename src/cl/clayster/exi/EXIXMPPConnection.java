@@ -43,7 +43,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	public static final int UPLOAD_EXI_BODY = 2;
 	public static final int UPLOAD_URL = 3;
 	
-	private boolean usingEXI = false;
+	protected boolean usingEXI = false;
 	protected EXISetupConfiguration exiConfig;
 	protected EXIBaseProcessor exiProcessor;
 	
@@ -241,16 +241,10 @@ public class EXIXMPPConnection extends XMPPConnection{
 	@Override
 	protected void startStreamCompression() throws Exception{
 		serverAckdCompression = true;
-		
 		// Very important function set the EXI Processor to the EXIWriter and EXIReader!!
 		setEXIProcessor();
 		// enable EXIProcessor and send start stream tag
 		openEXIStream();
-		
-		// Notify that compression is being used
-	    synchronized (this) {
-	        this.notify();
-	    }
 	}
 	
 

@@ -48,7 +48,11 @@ public class EXIAltReader extends EXIReader {
 		    	try {
 		    		String xml = ep.decodeByteArray(ba).replaceAll("\r", "").replaceAll("\n", "");
 		    		if(xml.startsWith("<exi:streamStart")){
-		    			xml = "<?xml version='1.0' encoding='UTF-8'?><stream:stream xmlns:stream=\"http://etherx.jabber.org/streams\" xmlns=\"jabber:client\" from=\"127.0.0.1\" id=\"6c085bb3\" xml:lang=\"en\" version=\"1.0\">";
+		    			String from = EXIUtils.getAttributeValue(xml, "from");
+		    			String id = EXIUtils.getAttributeValue(xml, "id");
+		    			xml = "<?xml version='1.0' encoding='UTF-8'?>"
+		    					+ "<stream:stream xmlns:stream=\"http://etherx.jabber.org/streams\" xmlns=\"jabber:client\" from=\"" + from + "\""
+		    					+ " id=\"" + id + "\" xml:lang=\"en\" version=\"1.0\">";
 		    		}
 			    	char[] cbuf2 = xml.toCharArray();
 			    	leido = cbuf2.length;
