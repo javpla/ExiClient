@@ -182,7 +182,91 @@ public class PacketReader {
         try {
             int eventType = parser.getEventType();
             do {
-                if (eventType == XmlPullParser.START_TAG) {
+                if (eventType == XmlPullParser.START_TAG) {      
+                	//TODO/************************ EXI code ************************/
+                    /** EXI alternative binding **/
+                	if(connection instanceof EXIXMPPAlternativeConnection && (parser.getName().equals("streamStart") || parser.getName().equals("stream"))){
+                		/*
+                		 * <stream:stream xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" from="exi.clayster.cl" id="ebef1ae9" xml:lang="en" version="1.0">
+                		 */
+                		// Get the connection id.
+                        // Save the connectionID
+                        //connectionID = parser.getAttributeValue(null, "id");
+                		connectionID = "alternative";
+                        if (!"1.0".equals(parser.getAttributeValue("", "version"))) {
+                            // Notify that a stream has been opened if the
+                            // server is not XMPP 1.0 compliant otherwise make the
+                            // notification after TLS has been negotiated or if TLS
+                            // is not supported
+                            releaseConnectionIDLock();
+                        }
+                        // Use the server name that the server says that it is.
+                        connection.config.setServiceName(parser.getAttributeValue(null, "from"));
+                	}
+                	else if(connection instanceof EXIXMPPAlternativeConnection && parser.getName().equals(("setupResponse"))){
+						EXIXMPPAlternativeConnection exiAltConnection = ((EXIXMPPAlternativeConnection) connection);
+						if("true".equals(parser.getAttributeValue(null, "agreement"))){
+System.out.println("agreement reached");
+							exiAltConnection.restartEXIStream(parser.getAttributeValue(null, "configurationId"));
+							}
+							else{
+System.out.println("no agreement");								
+						}
+                	}
+                    /** normal EXI/XMPP negotiation **/
+                    else if (parser.getName().equals("compressed")) {
+                    	if(connection instanceof EXIXMPPConnection){
+                    		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
+                        	exiConnection.startStreamCompression1();
+                    	}
+                    	else{
+                    		connection.startStreamCompression();
+	                        // Reset the state of the parser since a new stream element is going
+	                        // to be sent by the server
+                    		resetParser();
+                    	}
+                    }
+                    else if (parser.getName().equals("setupResponse")) {
+                		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
+                		if("true".equals(parser.getAttributeValue(null, "agreement"))){
+                			exiConnection.requestEXICompression(parser.getAttributeValue(null, "configurationId"));
+                		}
+                		else{
+                			if(parser.getAttributeValue("null", "configurationId") == null){
+                				if(exiConnection.getSentMissingSchemas()){
+                					// TODO: missing schemas have been already sent, compression aborted
+                					System.err.println("Error while uploading schema files. Continuing with normal XMPP.");
+                				}
+                				else{
+                					// it is the first intent to send the missing schemas
+	                				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser);
+	    	                		if(missingSchemas.size() > 0){
+	    	                				exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOption());
+	    	                		}
+	                				EXIUtils.saveConfigId(null);
+	                				Thread.sleep(1000);
+	                				if(!exiConnection.proposeEXICompressionQuickSetup()){
+	                					exiConnection.proposeEXICompression();
+	                				}
+                				}
+                			}
+                			else{
+                				exiConnection.proposeEXICompression();
+                			}
+                		}
+                    }
+                    else if (parser.getName().equals("downloadSchemaResponse")){
+                    	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
+                    	if("true".equals(parser.getAttributeValue(null, "result"))) {
+	                    	if(exiConnection.schemaDownloaded() == 0){
+	                    		exiConnection.proposeEXICompression();
+	                    	}
+                    	}
+                    	else{
+                    		// nothing, XMPP connection will continue
+                    	}
+                    } else
+                    /************************ fin EXI code ************************/
                     if (parser.getName().equals("message")) {
                         processPacket(PacketParserUtils.parseMessage(parser));
                     }
@@ -268,67 +352,6 @@ public class PacketReader {
                         // will be to bind the resource
                         connection.getSASLAuthentication().authenticated();
                     }
-                    
-                    //TODO/************************ EXI code ************************/
-                    
-                    else if (parser.getName().equals("compressed")) {
-                    	if(connection instanceof EXIXMPPConnection){
-                    		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                        	exiConnection.startStreamCompression1();
-                    	}
-                    	else{
-                    		connection.startStreamCompression();
-	                        // Reset the state of the parser since a new stream element is going
-	                        // to be sent by the server
-                    		resetParser();
-                    	}
-                    }
-                    else if (parser.getName().equals("setupResponse")) {
-                		EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                		if("true".equals(parser.getAttributeValue(null, "agreement"))){
-            				EXIUtils.saveConfigId(parser.getAttributeValue(null, "configurationId"));
-                			exiConnection.requestStreamCompression("exi");
-                		}
-                		else{
-                			if(parser.getAttributeValue("null", "configurationId") == null){
-                				if(exiConnection.getSentMissingSchemas()){
-                					// TODO: missing schemas have been already sent, compression aborted
-                					System.err.println("Error while uploading schema files. Continuing with normal XMPP.");
-                				}
-                				else{
-                					// it is the first intent to send the missing schemas
-	                				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser);
-	    	                		if(missingSchemas.size() > 0){
-	    	                				exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOption());
-	    	                		}
-	                				EXIUtils.saveConfigId(null);
-	                				Thread.sleep(1000);
-	                				if(!exiConnection.proposeEXICompressionQuickSetup()){
-	                					exiConnection.proposeEXICompression();
-	                				}
-                				}
-                			}
-                			else{
-                				exiConnection.proposeEXICompression();
-                			}
-                		}
-                    }
-                    else if (parser.getName().equals("downloadSchemaResponse")){
-                    	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                    	if("true".equals(parser.getAttributeValue(null, "result"))) {
-	                    	if(exiConnection.schemaDownloaded() == 0){
-	                    		exiConnection.proposeEXICompression();
-	                    	}
-                    	}
-                    	else{
-                    		// nothing, XMPP connection will continue
-                    	}
-                    }
-                    else if(parser.getName().equals("exi:streamStart")){
-                    	((EXIXMPPAlternativeConnection) connection).negotiateConfigurations(); 
-                    }
-                    /************************ fin EXI code ************************/
-                    
                 }
                 else if (eventType == XmlPullParser.END_TAG) {
                     if (parser.getName().equals("stream")) {

@@ -151,16 +151,21 @@ public class TestExtensions {
 			}
 			@Override public String getNamespace() {return "urn:xmpp:iot:sensordata";}
 			@Override public String getElementName() {return "cancelled";}
-		},
+		}
+		/*,
 		new PacketExtension() {
 			@Override
 			public String toXML() {
-				return "<rejected xmlns='urn:xmpp:iot:sensordata' seqnr='3'>"
-						+ "<error>Access denied.</error>"
-						+ "</rejected>";
+				//TODO: misses 'code' attribute, and type should be 'CANCEL'
+				return "<error type='cancel'>"
+						+ "<forbidden xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>"
+						+ "<text xmlns='urn:ietf:params:xml:ns:xmpp-stanzas' xml:lang='en'>Access denied.</text>"
+						+ "<rejected xmlns='urn:xmpp:iot:sensordata' seqnr='3'/>"
+					+ "</error>";
 			}
 			@Override public String getNamespace() {return "urn:xmpp:iot:sensordata";}
 			@Override public String getElementName() {return "rejected";}
 		}
+		*/
 	};
 }

@@ -33,13 +33,13 @@ public class EXIPacketLogger implements EXIEventListener{
 	
 	@Override
 	public void packetDecoded(String xml, byte[] exi) {
-		if(this.exi)	System.err.println(name + "-EXI :(" + exi.length + ")" + EXIUtils.bytesToHex(exi));
-		if(this.xml)	System.err.println(name + "-XML:(" + xml.length() + ")" + xml);
+		if(this.exi)	System.err.println(name + "-EXI(" + exi.length + "):" + EXIUtils.bytesToHex(exi));
+		if(this.xml)	System.err.println(name + "-XML(" + xml.length() + "):" + xml);
 	}
 
 	@Override
 	public void packetEncoded(String xml, byte[] exi) {
-		if(this.xml)	System.out.println(name + "-XML:(" + xml.length() + ")" + xml);
-		if(this.exi)	System.out.println(name + "-EXI:(" + exi.length + ")" + EXIUtils.bytesToHex(exi));
+		if(this.xml)	System.out.println(name + "-XML(" + xml.length() + "):" + xml);
+		if(this.exi)	System.out.println(name + "-EXI(" + exi.length + "):" + EXIUtils.bytesToHex(exi));
 	}
 }

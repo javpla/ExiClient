@@ -68,7 +68,7 @@ class NonSASLAuthentication implements UserAuthentication {
         // Send the packet
         connection.sendPacket(discoveryAuth);
         // Wait up to a certain number of seconds for a response from the server.
-        IQ response = (IQ) collector.nextResult(SmackConfiguration.getPacketReplyTimeout());
+        IQ response = (IQ) collector.nextResult(10*SmackConfiguration.getPacketReplyTimeout());
         if (response == null) {
             throw new XMPPException("No response from the server.");
         }

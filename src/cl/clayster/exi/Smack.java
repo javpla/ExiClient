@@ -15,6 +15,8 @@ import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.packet.Presence;
 
+import com.siemens.ct.exi.CodingMode;
+
 
 public class Smack implements MessageListener{ 
 	
@@ -44,13 +46,17 @@ public class Smack implements MessageListener{
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
 		config.setCompressionEnabled(true);
 		
-		EXISetupConfiguration exiConfig = new EXISetupConfiguration(false);
-		exiConfig.setAlignment(EXISetupConfiguration.BYTE_PACKED);
+		EXISetupConfiguration exiConfig = new EXISetupConfiguration(true);
+		exiConfig.setCodingMode(CodingMode.BYTE_PACKED);
 		exiConfig.setBlockSize(2048);
 		exiConfig.setStrict(false);
 		exiConfig.setValueMaxLength(300);
+		//EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig, new File("C:/Users/Javier/workspace/Personales/ExiClient/schemas/canonicalSchemas/cs.xsd"));
 		
-		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig, new File("C:/Users/Javier/workspace/Personales/ExiClient/res/canonicalSchemas/cs.xsd"));
+		
+		EXIXMPPConnection connection = new EXIXMPPConnection(config, new EXISetupConfiguration());
+		
+		
 		connection.connect();
 		connection.login(usuario, password);
 		

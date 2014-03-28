@@ -1,0 +1,8 @@
+<setup xmlns='http://jabber.org/protocol/compress/exi'>
+	<schema ns='http://etherx.jabber.org/streams' bytes='3397' md5Hash='0489f5c8e4c9dae00991cdfe88e168f7' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\streams.xsd' url=''/>
+	<schema ns='http://jabber.org/protocol/compress/exi' bytes='16054' md5Hash='23a71b40d1b05a3af09edf9c2e32633b' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\xep-0322-01.xsd' url=''/>
+	<schema ns='http://www.w3.org/XML/1998/namespace' bytes='4726' md5Hash='2e2cf9072dc058dcda41b7ee77a5cb54' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\xml.xsd' url=''/>
+	<schema ns='jabber:client' bytes='6913' md5Hash='c2ae74ba1fa84ed21b333136a95d02a5' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\jabber-client.xsd' url=''/>
+	<schema ns='jabber:x:event' bytes='1013' md5Hash='305f4bef3c118b9d3d11d96aea753026' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\x-event.xsd' url=''/>
+	<schema ns='urn:ietf:params:xml:ns:xmpp-stanzas' bytes='3080' md5Hash='9ad48ff02d0c1258cbc5830d6af7a835' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\stanzaerror.xsd' url=''/>
+</setup>

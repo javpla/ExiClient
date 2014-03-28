@@ -30,15 +30,15 @@ public class NegotiationTest extends AbstractTest {
 		EXISetupConfiguration exiQuickConfig = new EXISetupConfiguration(true);
 		EXISetupConfiguration def = new EXISetupConfiguration();
 		EXISetupConfiguration exiBytePacked = new EXISetupConfiguration(true);
-		exiBytePacked.setAlignment(CodingMode.BYTE_PACKED);
+		exiBytePacked.setCodingMode(CodingMode.BYTE_PACKED);
 		exiBytePacked.setBlockSize(2048);
 		
 		EXISetupConfiguration exiCompression = new EXISetupConfiguration(true);
-		exiCompression.setAlignment(CodingMode.COMPRESSION);
+		exiCompression.setCodingMode(CodingMode.COMPRESSION);
 		exiCompression.setValueMaxLength(100);
 		
 		EXISetupConfiguration exiPre = new EXISetupConfiguration(true);
-		exiPre.setAlignment(CodingMode.PRE_COMPRESSION);
+		exiPre.setCodingMode(CodingMode.PRE_COMPRESSION);
 		exiPre.setStrict(true);
 		
 		// delete previous configuration id register (just for the first test which should try quick configurations, but will then do normal negotiation instead)

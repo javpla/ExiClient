@@ -19,7 +19,6 @@ import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 
-import com.siemens.ct.exi.CodingMode;
 import com.siemens.ct.exi.Constants;
 import com.siemens.ct.exi.EXIFactory;
 import com.siemens.ct.exi.EncodingOptions;
@@ -27,22 +26,12 @@ import com.siemens.ct.exi.FidelityOptions;
 import com.siemens.ct.exi.api.sax.EXIResult;
 import com.siemens.ct.exi.api.sax.SAXDecoder;
 import com.siemens.ct.exi.exceptions.EXIException;
-import com.siemens.ct.exi.helpers.DefaultEXIFactory;
 
 public class EXIBaseProcessor {
         
     EXIFactory exiFactory;
     EXIResult exiResult;
     SAXSource exiSource;
-    
-    static final int defaultAlignmentCode = 0;        // 0:bit-packed, 1:byte-packed, 2:pre-compression, 3:compression
-    static final CodingMode defaultCodingMode = CodingMode.BIT_PACKED;
-    static final FidelityOptions defaultFidelityOptions = FidelityOptions.createDefault();
-    static final boolean defaultIsFragmet = false;
-    static final int defaultBlockSize = 1000000;
-    static final boolean defaultStrict = false;
-    static final int defaultValueMaxLength = -1;
-    static final int defaultValuePartitionCapacity = -1;
     
     /**
      * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and <b>default values</b> for its configuration.
@@ -72,12 +61,7 @@ public class EXIBaseProcessor {
         TransformerFactory tf = TransformerFactory.newInstance();
         Transformer transformer = tf.newTransformer();
         
-        EXIFactory factory = DefaultEXIFactory.newInstance();
-        defaultFidelityOptions.setFidelity(FidelityOptions.FEATURE_PREFIX, true);
-        factory.setFidelityOptions(defaultFidelityOptions);
-        factory.setCodingMode(defaultCodingMode);
-        factory.setFragment(defaultIsFragmet);
-        factory.setBlockSize(defaultBlockSize);
+        EXIFactory factory = new EXISetupConfiguration();
         
         SAXSource exiSource = new SAXSource(new InputSource(new ByteArrayInputStream(exi)));
         SAXDecoder saxDecoder = (SAXDecoder) factory.createEXIReader();
@@ -111,12 +95,7 @@ public class EXIBaseProcessor {
     public static byte[] encodeSchemaless(String xml, boolean cookie) throws IOException, EXIException, SAXException{
         ByteArrayOutputStream osEXI = new ByteArrayOutputStream();
         // start encoding process
-        EXIFactory factory = DefaultEXIFactory.newInstance();
-        defaultFidelityOptions.setFidelity(FidelityOptions.FEATURE_PREFIX, true);
-        factory.setFidelityOptions(defaultFidelityOptions);
-        factory.setCodingMode(defaultCodingMode);
-        factory.setFragment(defaultIsFragmet);
-        factory.setBlockSize(defaultBlockSize);
+        EXIFactory factory = new EXISetupConfiguration();
         
         if(cookie)        factory.getEncodingOptions().setOption(EncodingOptions.INCLUDE_COOKIE);
         
@@ -146,18 +125,15 @@ public class EXIBaseProcessor {
     public static byte[] encodeSchemaless(String xml, EncodingOptions eo, FidelityOptions fo) throws IOException, EXIException, SAXException{
         ByteArrayOutputStream osEXI = new ByteArrayOutputStream();
         // start encoding process
-        EXIFactory factory = DefaultEXIFactory.newInstance();
+        EXIFactory factory = new EXISetupConfiguration();
         // EXI configurations setup
         if(eo != null){
                 factory.setEncodingOptions(eo);
         }
         if(fo != null){
-                defaultFidelityOptions.setFidelity(FidelityOptions.FEATURE_PREFIX, true);
-                factory.setFidelityOptions(defaultFidelityOptions);
+        	factory.setFidelityOptions(fo);
+        	factory.getFidelityOptions().setFidelity(FidelityOptions.FEATURE_PREFIX, true);
         }
-        factory.setCodingMode(defaultCodingMode);
-        factory.setFragment(defaultIsFragmet);
-        factory.setBlockSize(defaultBlockSize);
         
         XMLReader xmlReader = XMLReaderFactory.createXMLReader();
         EXIResult exiResult = new EXIResult(factory);
@@ -185,13 +161,7 @@ public class EXIBaseProcessor {
         TransformerFactory tf = TransformerFactory.newInstance();
         Transformer transformer = tf.newTransformer();
         
-        EXIFactory factory = DefaultEXIFactory.newInstance();
-        defaultFidelityOptions.setFidelity(FidelityOptions.FEATURE_PREFIX, true);
-        factory.setFidelityOptions(defaultFidelityOptions);
-        factory.setCodingMode(defaultCodingMode);
-        factory.setFragment(defaultIsFragmet);
-        factory.setBlockSize(defaultBlockSize);
-        
+        EXIFactory factory = new EXISetupConfiguration();
         SAXSource exiSource = new SAXSource(new InputSource(new ByteArrayInputStream(exi)));
         exiSource.setXMLReader(factory.createEXIReader());
 
@@ -216,7 +186,7 @@ public class EXIBaseProcessor {
     
     public static boolean hasEXICookie(byte[] bba){
 		byte[] ba = new byte[4];
-        System.arraycopy(bba, 0, ba, 0, 4);
+        System.arraycopy(bba, 0, ba, 0, bba.length >= 4 ? 4 : bba.length);
 		return "$EXI".equals(new String(ba));
 	}
     

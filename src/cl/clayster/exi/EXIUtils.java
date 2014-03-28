@@ -16,13 +16,16 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.prefs.Preferences;
 
+import org.dom4j.DocumentException;
+
 import com.siemens.ct.exi.CodingMode;
+import com.siemens.ct.exi.FidelityOptions;
 
 public class EXIUtils {
 	
-	public static final String defaultCanonicalSchemaLocation = "./schemas/canonicalSchemas/canonicalSchema.xsd";
-	public static final String canonicalSchemalessLocation = "./schemas/canonicalSchemaless.xsd";
-	public static final String schemasFileLocation = "./schemas/schemas.xml";
+	public static final String completeCanonicalSchemaLocation = "./schemas/canonicalSchemas/allSchemas.xsd";
+	public static final String defaultCanonicalSchemaLocation = "./schemas/canonicalSchemas/defaultSchema.xsd";
+	public static final String schemasFileLocation = "./schemas/canonicalSchemas/schemas.xml";
 	public static final String schemasFolder = "./schemas/";
 	
 	
@@ -52,8 +55,9 @@ public class EXIUtils {
 	 * @param folderLocation Location of the folder with the schemas to be used 
 	 * @throws NoSuchAlgorithmException
 	 * @throws IOException
+	 * @throws DocumentException 
 	 */
-	public static void generateBoth(String schemasFolder) throws NoSuchAlgorithmException, IOException{
+	public static void generateBoth() throws NoSuchAlgorithmException, IOException, DocumentException{
 		File folder = new File(schemasFolder);
         File[] listOfFiles = folder.listFiles();
         File file;
@@ -74,7 +78,7 @@ public class EXIUtils {
             
             for (int i = 0; i < listOfFiles.length; i++) {
             	file = listOfFiles[i];
-            	if (file.isFile() && file.getName().endsWith(".xsd") && !file.getName().endsWith("canonicalSchema.xsd")) {
+            	if (file.isFile() && file.getName().endsWith(".xsd")) {
             	// se hace lo siguiente para cada archivo XSD en la carpeta folder	
             		fileLocation = file.getAbsolutePath();
             		
@@ -94,6 +98,8 @@ public class EXIUtils {
 					
 					// buscar el namespace del schema
 					namespace = getAttributeValue(sb.toString(), "targetNamespace");
+					//namespace = DocumentHelper.parseText(sb.toString()).getRootElement().attributeValue("targetNamespace");
+					
 					md5Hash = bytesToHex(md.digest());
 	
 					n = 0;
@@ -112,11 +118,11 @@ public class EXIUtils {
             // variables to write the stanzas and canonicalSchema files
             File stanzasFile = new File(schemasFileLocation);
             BufferedWriter stanzasWriter = new BufferedWriter(new FileWriter(stanzasFile));
-            File canonicalSchema = new File(defaultCanonicalSchemaLocation);
+            File canonicalSchema = new File(completeCanonicalSchemaLocation);
             BufferedWriter canonicalSchemaWriter = new BufferedWriter(new FileWriter(canonicalSchema));
 
             stanzasWriter.write("<setup xmlns=\'http://jabber.org/protocol/compress/exi\'>");
-            canonicalSchemaWriter.write("<?xml version='1.0' encoding='UTF-8'?> \n\n<xs:schema \n\txmlns:xs='http://www.w3.org/2001/XMLSchema' \n\ttargetNamespace='urn:xmpp:exi:cs' \n\txmlns='urn:xmpp:exi:cs' \n\telementFormDefault='qualified'>\n");
+            canonicalSchemaWriter.write("<?xml version='1.0' encoding='UTF-8'?> \n\n<xs:schema \n\txmlns:xs='http://www.w3.org/2001/XMLSchema'\n\txmlns:stream='http://etherx.jabber.org/streams'\n\ttargetNamespace='urn:xmpp:exi:cs'\n\telementFormDefault='qualified'>\n");
             for(String ns : namespaces){
             	stanzasWriter.write("\n\t" + schemasStanzas.get(ns));
                 canonicalSchemaWriter.write("\n\t" + canonicalSchemaStanzas.get(ns));
@@ -134,6 +140,7 @@ public class EXIUtils {
 		try{
 			return new String(Files.readAllBytes(new File(fileLocation).toPath()));
 		}catch (IOException e) {
+			e.printStackTrace();
 			return null;
 		}
 	}
@@ -152,9 +159,9 @@ public class EXIUtils {
 		}
 		text = text.substring(text.indexOf(attribute) + attribute.length());	// desde despues de targetNamespace	
     	text = text.substring(0, text.indexOf('>'));	// cortar lo que viene despues del próximo '>'
-    	char comilla = '"';
+    	char comilla = '\'';
     	if(text.indexOf(comilla) == -1){
-    		comilla = '\'';
+    		comilla = '\"';
     	}
     	text = text.substring(text.indexOf(comilla) + 1);	// cortar lo que hay hasta la primera comilla (inclusive)
     	text = text.substring(0, text.indexOf(comilla));		// cortar lo que hay despues de la nueva primera comilla/segunda comilla de antes (inclusive)
@@ -169,13 +176,13 @@ public class EXIUtils {
 	static EXISetupConfiguration parseQuickConfigId(String configId){
 		EXISetupConfiguration exiConfig = null;
 		if(configId != null){
-			exiConfig = new EXISetupConfiguration();
-			exiConfig.setId(configId);
+			exiConfig = new EXISetupConfiguration(true);
+			exiConfig.setSchemaId(configId);
 			try{
 				// next comments tell what is done by EXIFilter when it processes a successful setup stanza
 				// the first 36 chars (indexes 0-35) are just the UUID, number 37 is '_' (index 36)
 				Integer alignment = Character.getNumericValue(configId.charAt(37)); //The next digit (index 37) represents the alignment (0=bit-packed, 1=byte-packed, 2=pre-compression, 3=compression)
-				if(alignment < 0 || alignment > 3)	alignment = EXIProcessor.defaultAlignmentCode;
+				if(alignment < 0 || alignment > 3)	alignment = 0;
 				Boolean strict = configId.charAt(38) == '1';	//The next digit (index 38) represents if it is strict or not
 				configId = configId.substring(39);
 				Integer blockSize = Integer.valueOf(configId.substring(0, configId.indexOf('_')));	// next number represents blocksize (until the next '_')
@@ -185,19 +192,19 @@ public class EXIUtils {
 			
 				switch((int) alignment){
 					case 1:
-						exiConfig.setAlignment(CodingMode.BYTE_PACKED);
+						exiConfig.setCodingMode(CodingMode.BYTE_PACKED);
 						break;
 					case 2:
-						exiConfig.setAlignment(CodingMode.PRE_COMPRESSION);
+						exiConfig.setCodingMode(CodingMode.PRE_COMPRESSION);
 						break;
 					case 3:
-						exiConfig.setAlignment(CodingMode.COMPRESSION);
+						exiConfig.setCodingMode(CodingMode.COMPRESSION);
 						break;
 					default:
-						exiConfig.setAlignment(CodingMode.BIT_PACKED);
+						exiConfig.setCodingMode(CodingMode.BIT_PACKED);
 						break;
 				};
-				exiConfig.setStrict(strict);
+				exiConfig.getFidelityOptions().setFidelity(FidelityOptions.FEATURE_STRICT, strict);
 				exiConfig.setBlockSize(blockSize);
 				exiConfig.setValueMaxLength(valueMaxLength);
 				exiConfig.setValuePartitionCapacity(valuePartitionCapacity);
@@ -208,8 +215,8 @@ public class EXIUtils {
 		return exiConfig;
 	}
 	
-	static void createSchemalessCanonicalSchemaFile() throws IOException{
-		EXIUtils.writeFile(EXIUtils.canonicalSchemalessLocation, "<?xml version='1.0' encoding='UTF-8'?>"
+	static void createDefaultCanonicalSchemaFile() throws IOException{
+		EXIUtils.writeFile(EXIUtils.defaultCanonicalSchemaLocation, "<?xml version='1.0' encoding='UTF-8'?>"
 				+ "<xs:schema"
 				+ " xmlns:xs='http://www.w3.org/2001/XMLSchema'"
 				+ " targetNamespace='urn:xmpp:exi:cs'"

@@ -20,10 +20,8 @@ import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.provider.ProviderManager;
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
-import cl.clayster.exi.EXIPacketLogger;
 import cl.clayster.exi.EXISetupConfiguration;
 import cl.clayster.exi.EXIXMPPConnection;
 import cl.clayster.packet.Accepted;
@@ -63,6 +61,7 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		@Override
 		public void processPacket(Packet packet) {
 			try {
+System.out.println("received: " + packet.toXML());
 				received.put(packet);
 			} catch (InterruptedException e) {
 				fail(e.getMessage());
@@ -72,9 +71,16 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	PacketFilter testFilter = new PacketFilter() {
 		@Override
 		public boolean accept(Packet packet) {
+			
 			// We want to verify only packets sent by the test (no roster or jabber IQs)
-			return (packet instanceof Message ||
-					packet instanceof IQ && ((IQ) packet).getChildElementXML().contains("xmlns=\"urn:xmpp:iot:sensordata\""));
+			
+			/*
+			if(packet instanceof IQ){
+				return packet.getError() != null;
+			}
+			*/
+			return packet instanceof Message ||
+					packet instanceof IQ && ((IQ) packet).getChildElementXML().contains("urn:xmpp:iot:sensordata");
 		}
 	};
 	
@@ -89,6 +95,7 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	    this.client1 = new EXIXMPPConnection(config1, exiConfig1);
 	    this.client2 = new EXIXMPPConnection(config2, exiConfig2);
 	    this.testInfo = info;
+	    connect();
 	}
 	
 	private void addExtensionProviders(){
@@ -96,15 +103,15 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		ProviderManager.getInstance().addExtensionProvider("failure", "urn:xmpp:iot:sensordata", new Failure.Provider());
 		ProviderManager.getInstance().addExtensionProvider("started", "urn:xmpp:iot:sensordata", new Started.Provider());
 		ProviderManager.getInstance().addExtensionProvider("done", "urn:xmpp:iot:sensordata", new Done.Provider());
+		ProviderManager.getInstance().addExtensionProvider("rejected", "urn:xmpp:iot:sensordata", new Rejected.Provider());
 		
 		ProviderManager.getInstance().addIQProvider("req", "urn:xmpp:iot:sensordata", new Req.Provider());
 		ProviderManager.getInstance().addIQProvider("cancel", "urn:xmpp:iot:sensordata", new Cancel.Provider());
 		ProviderManager.getInstance().addIQProvider("accepted", "urn:xmpp:iot:sensordata", new Accepted.Provider());
 		ProviderManager.getInstance().addIQProvider("cancelled", "urn:xmpp:iot:sensordata", new Cancelled.Provider());
-		ProviderManager.getInstance().addIQProvider("rejected", "urn:xmpp:iot:sensordata", new Rejected.Provider());
+		//TODO: no tiene namespace! ProviderManager.getInstance().addIQProvider("error", "", new Error.Provider());
 	}
-		
-	@Before
+	
 	public void connect() {
 		try {
 			client1.connect();
@@ -236,7 +243,6 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	protected void testSimpleIQ(final int i){
 		
 		client2.addPacketListener(packetListener, testFilter);
-		client2.addEXIEventListener(new EXIPacketLogger("2"));
 		
 		iq = new IQ() {
 			@Override 
@@ -288,7 +294,6 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 			}
 			iq.setTo(client2.getUser());
 			iq.setFrom(client1.getUser());
-			// iq.setProperty("id", "S0001");	TODO: is set by the server?
 			client1.sendPacket(iq);
 			try {
 				sent.put(iq);
@@ -315,12 +320,14 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 			} catch (InterruptedException e) {
 				fail(e.getMessage());
 			}
-			if(++count > 30){
+			if(++count > 20){
 				StringBuilder buf = new StringBuilder();
 				for(Packet p : received){
 					buf.append(p.toXML() + '\n');
 				}
-				fail("timeout. Messages received so far:\n" + buf.toString());
+				fail("timeout. Messages received so far:\n" + buf.toString() 
+						+ "\nsent: " + sent.size()
+						+ "\nreceived: " + received.size());
 			}
 		}
 	}
@@ -364,12 +371,12 @@ public abstract class AbstractTest extends DocumentAbstractTest{
         	for (int i = 0; i < listOfFiles.length; i++) {
         		deleteFolder(listOfFiles[i].getAbsolutePath());
         	}
-        if(!file.getName().endsWith(".dtd") && !file.getName().endsWith("classes"))	file.delete();
+        if(!file.getName().endsWith(".dtd") && !file.getName().endsWith("classes") && !file.getName().endsWith("defaultSchema.xsd"))	file.delete();
 	}
 	
 	/**
 	 * Removes all the content of the <i>"classes"</i> directory on the server's EXI plugin 
-	 * leaving it as if it was newly created (containing only two DTD files).
+	 * leaving it as if it was newly created (containing only two DTD files and the default schema).
 	 * @param folderLocation
 	 */
 	public void clearClassesFolder(){

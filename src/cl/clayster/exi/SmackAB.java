@@ -8,7 +8,6 @@ import org.jivesoftware.smack.Chat;
 import org.jivesoftware.smack.ChatManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.MessageListener;
-import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.Message;
@@ -24,22 +23,19 @@ public class SmackAB implements MessageListener{
 	static final String password = "exiuser";
 	
 	public static void main(String[] args) throws XMPPException, IOException{
-		// visualize XMLs sent and received 
-		System.setProperty("smack.debugEnabled", "true");
-		XMPPConnection.DEBUG_ENABLED = true;
 		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
 		//config.setCompressionEnabled(true);
 		
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
-		exiConfig.setAlignment(CodingMode.COMPRESSION);
+		exiConfig.setCodingMode(CodingMode.COMPRESSION);
 		exiConfig.setBlockSize(2048);
 		
 		EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, exiConfig);
 		connection.connect();
 		
-		//connection.login(usuario, password);
+		connection.login(usuario, password);
 		
 		// chatmanager to interchange messages
 		ChatManager chatmanager = connection.getChatManager();

@@ -18,47 +18,64 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 
-import com.siemens.ct.exi.CodingMode;
-import com.siemens.ct.exi.FidelityOptions;
 import com.siemens.ct.exi.GrammarFactory;
 import com.siemens.ct.exi.api.sax.EXIResult;
 import com.siemens.ct.exi.api.sax.EXISource;
 import com.siemens.ct.exi.exceptions.EXIException;
 import com.siemens.ct.exi.grammars.Grammars;
-import com.siemens.ct.exi.helpers.DefaultEXIFactory;
 
 public class EXIProcessor extends EXIBaseProcessor{
-    /**
+    
+	/**
+     * Constructs a default EXI Processor using the default Canonical Schema with <b>default values</b> for its configuration.
+     * @param xsdLocation
+     * @throws EXIException
+     */
+	public EXIProcessor() throws EXIException{
+        // create default factory and EXI grammar for schema
+        exiFactory = new EXISetupConfiguration();
+        
+        String xsdLocation = EXIUtils.defaultCanonicalSchemaLocation;
+        if(xsdLocation != null && new File(xsdLocation).isFile()){
+                try{
+                        GrammarFactory grammarFactory = GrammarFactory.newInstance();
+                        Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
+                        exiFactory.setGrammars(g);
+                } catch (IOException e){
+                        e.printStackTrace();
+                        throw new EXIException("Error while creating Grammars.");
+                }
+        }
+        else{
+        	String message = "Invalid Canonical Schema file location: " + xsdLocation;
+        	throw new EXIException(message);
+        }
+	}
+	
+	/**
      * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and <b>default values</b> for its configuration.
      * @param xsdLocation
      * @throws EXIException
      */
 	public EXIProcessor(String xsdLocation) throws EXIException{
-	        // create default factory and EXI grammar for schema
-	        exiFactory = DefaultEXIFactory.newInstance();
-	        defaultFidelityOptions.setFidelity(FidelityOptions.FEATURE_PREFIX, true);
-	        exiFactory.setFidelityOptions(defaultStrict ? FidelityOptions.createStrict() : defaultFidelityOptions);
-	        exiFactory.setCodingMode(CodingMode.BIT_PACKED);
-	        exiFactory.setBlockSize(defaultBlockSize);
-	        exiFactory.setValueMaxLength(defaultValueMaxLength);
-	        exiFactory.setValuePartitionCapacity(defaultValuePartitionCapacity);
-	        
-	        if(xsdLocation != null && new File(xsdLocation).isFile()){
-	                try{
-	                        GrammarFactory grammarFactory = GrammarFactory.newInstance();
-	                        Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
-	                        exiFactory.setGrammars(g);
-	                } catch (IOException e){
-	                        e.printStackTrace();
-	                        throw new EXIException("Error while creating Grammars.");
-	                }
-	        }
-	        else{
-	                String message = "Invalid Canonical Schema file location: " + xsdLocation;
-	System.err.println(message);
-	                        throw new EXIException(message);
-	                }
-	        }
+        // create default factory and EXI grammar for schema
+        exiFactory = new EXISetupConfiguration();
+        
+        if(xsdLocation != null && new File(xsdLocation).isFile()){
+                try{
+                        GrammarFactory grammarFactory = GrammarFactory.newInstance();
+                        Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
+                        exiFactory.setGrammars(g);
+                } catch (IOException e){
+                        e.printStackTrace();
+                        throw new EXIException("Error while creating Grammars.");
+                }
+        }
+        else{
+        	String message = "Invalid Canonical Schema file location: " + xsdLocation;
+        	throw new EXIException(message);
+        }
+	}
 	        
 	        /**
 	 * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and the respective parameters in exiConfig for its configuration.
@@ -67,31 +84,25 @@ public class EXIProcessor extends EXIBaseProcessor{
 	 * @throws EXIException
 	 */
 	public EXIProcessor(String xsdLocation, EXISetupConfiguration exiConfig) throws EXIException{
-	        if(exiConfig == null)        exiConfig = new EXISetupConfiguration();
-	        // create factory and EXI grammar for given schema
-	        exiFactory = DefaultEXIFactory.newInstance();
-	        exiFactory.setCodingMode(exiConfig.getAlignment());
-	        exiFactory.setBlockSize(exiConfig.getBlockSize());
-	        exiFactory.setFidelityOptions(exiConfig.getFo());
-	        exiFactory.setValueMaxLength(exiConfig.getValueMaxLength());
-	        exiFactory.setValuePartitionCapacity(exiConfig.getValuePartitionCapacity());
-	        
-	        if(xsdLocation != null && new File(xsdLocation).isFile()){
-	                try{
-	                        GrammarFactory grammarFactory = GrammarFactory.newInstance();
-	                        Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
-	                        exiFactory.setGrammars(g);
-	                } catch (IOException e){
-	                        e.printStackTrace();
-	                        throw new EXIException("Error while creating Grammars.");
-	                }
-	        }
-	        else{
-	                String message = "Invalid Canonical Schema file location: " + xsdLocation;
-	System.err.println(message);
-	                        throw new EXIException(message);
-	                }
-	        }
+		if(exiConfig == null)        exiConfig = new EXISetupConfiguration();
+        // create factory and EXI grammar for given schema
+        exiFactory = exiConfig;
+        
+        if(xsdLocation != null && new File(xsdLocation).isFile()){
+        	try{
+            	GrammarFactory grammarFactory = GrammarFactory.newInstance();
+                Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
+                exiFactory.setGrammars(g);
+            } catch (IOException e){
+                e.printStackTrace();
+                throw new EXIException("Error while creating Grammars.");
+            }
+        }
+        else{
+        	String message = "Invalid Canonical Schema file location: " + xsdLocation;
+        	throw new EXIException(message);
+        }
+	}
 	        
 	        
 	

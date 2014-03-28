@@ -19,7 +19,7 @@ public class No extends AbstractTest {
 		super(exiConfig1, exiConfig2, info);
 		
 	    this.client1 = new EXIXMPPConnection(config1, exiConfig1);
-	    this.client2 = new EXIXMPPConnection(config2, exiConfig2, canonicalSchema2);
+		this.client2 = new EXIXMPPConnection(config2, exiConfig2, canonicalSchema2);
 	}
 	
 	@Override

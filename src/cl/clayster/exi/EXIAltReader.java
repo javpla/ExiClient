@@ -1,10 +1,8 @@
 package cl.clayster.exi;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,7 +11,7 @@ import javax.xml.transform.TransformerException;
 
 import com.siemens.ct.exi.exceptions.EXIException;
 
-public class EXIReader extends BufferedReader {
+public class EXIAltReader extends EXIReader {
 	 
 	private boolean exi = false;
 	private EXIBaseProcessor ep;
@@ -26,19 +24,16 @@ public class EXIReader extends BufferedReader {
 	
 	private List<EXIEventListener> readListeners = new ArrayList<EXIEventListener>(0); 
 	
-	public EXIReader(InputStream in) throws UnsupportedEncodingException {
-    	super(new InputStreamReader(in, "UTF-8"));
+	public EXIAltReader(InputStream in) throws UnsupportedEncodingException {
+    	super(in);
     	this.is = new BufferedInputStream(in);
+    	this.exi = true;
     }
     
     @Override
     public int read(char[] cbuf, int off, int len) throws IOException {
     	
     	synchronized (lock) {
-    		if(!exi){
-				leido = super.read(cbuf, off, len);
-    			return leido;
-    		}
     		byte[] dest = new byte[len];
     		leido = is.read(dest, 0, len);
     		if(leido == -1)	return leido;
@@ -51,10 +46,15 @@ public class EXIReader extends BufferedReader {
 	    			System.arraycopy(anterior, 0, ba, 0, anterior.length);
 	    		}
 		    	try {
-		    		String xml = ep.decodeByteArray(ba).replaceAll("\n", "").replaceAll("\r", "");
+		    		String xml = ep.decodeByteArray(ba).replaceAll("\r", "").replaceAll("\n", "");
+		    		if(xml.startsWith("<exi:streamStart")){
+		    			xml = "<?xml version='1.0' encoding='UTF-8'?><stream:stream xmlns:stream=\"http://etherx.jabber.org/streams\" xmlns=\"jabber:client\" from=\"127.0.0.1\" id=\"6c085bb3\" xml:lang=\"en\" version=\"1.0\">";
+		    		}
 			    	char[] cbuf2 = xml.toCharArray();
 			    	leido = cbuf2.length;
 			    	System.arraycopy(cbuf2, 0, cbuf, off, leido);
+
+System.err.println(new String(xml));			    	
 					if(!readListeners.isEmpty()){
 						for(EXIEventListener eel : readListeners){
 							eel.packetDecoded(xml, ba);

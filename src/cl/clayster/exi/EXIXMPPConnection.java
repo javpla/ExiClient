@@ -3,8 +3,6 @@ package cl.clayster.exi;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -56,7 +54,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	
 	private List<EXIEventListener> compressionStartedListeners =  new ArrayList<EXIEventListener>(0);
 	
-	protected String canonicalSchemaLocation = EXIUtils.defaultCanonicalSchemaLocation;
+	protected String canonicalSchemaLocation = EXIUtils.completeCanonicalSchemaLocation;
 	
 	/**
 	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in.
@@ -71,11 +69,13 @@ public class EXIXMPPConnection extends XMPPConnection{
 		config.setCompressionEnabled(exiConfig != null);
 		this.exiConfig = exiConfig;
 		try {
-			EXIUtils.generateBoth(EXIUtils.schemasFolder);
+			EXIUtils.generateBoth();
 		} catch (NoSuchAlgorithmException | IOException e1) {
 			e1.printStackTrace();
-			return;
+		} catch (DocumentException e) {
+			e.printStackTrace();
 		}
+		return;
 	}
 	
 	/**
@@ -89,16 +89,20 @@ public class EXIXMPPConnection extends XMPPConnection{
 	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig, File canonicalSchema) {
 		super(config);
 		
-		if(canonicalSchema.exists())	this.canonicalSchemaLocation = canonicalSchema.getAbsolutePath();
+		if(canonicalSchema.isFile()){
+			this.canonicalSchemaLocation = canonicalSchema.getAbsolutePath();
+		}
 		
 		config.setCompressionEnabled(exiConfig != null);
 		this.exiConfig = exiConfig;
 		try {
-			EXIUtils.generateBoth(EXIUtils.schemasFolder);
+			EXIUtils.generateBoth();
 		} catch (NoSuchAlgorithmException | IOException e1) {
 			e1.printStackTrace();
-			return;
+		} catch (DocumentException e) {
+			e.printStackTrace();
 		}
+		return;
 	}
 	
 	/**
@@ -198,14 +202,13 @@ public class EXIXMPPConnection extends XMPPConnection{
 		// add compression parameters
 		setupElement.addAttribute("version", "1");
 		setupElement.addAttribute("alignment", exiConfig.getAlignmentString());
-		setupElement.addAttribute("strict", String.valueOf(exiConfig.isStrict()));
+		setupElement.addAttribute("strict", String.valueOf(exiConfig.getFidelityOptions().isStrict()));
 		setupElement.addAttribute("blockSize", String.valueOf(exiConfig.getBlockSize()));
 		setupElement.addAttribute("valueMaxLength", String.valueOf(exiConfig.getValueMaxLength()));
 		setupElement.addAttribute("valuePartitionCapacity", String.valueOf(exiConfig.getValuePartitionCapacity()));
         for(@SuppressWarnings("unchecked") Iterator<Element> i = setupElement.elementIterator("schema"); i.hasNext();) {
         	auxSchema = i.next();
         	if(!namespaces.contains(auxSchema.attributeValue("ns"))){
-System.out.println(auxSchema.attributeValue("ns") + " removed.");
 				setupElement.remove(auxSchema);
         		continue;
         	}
@@ -221,17 +224,14 @@ System.out.println(auxSchema.attributeValue("ns") + " removed.");
 		writer.flush();
 	}
 	
-	@Override
-	public void requestStreamCompression(String method) {
-		if("exi".equalsIgnoreCase(method)){
-			try {
-				exiProcessor = new EXIProcessor(canonicalSchemaLocation == null ? EXIUtils.defaultCanonicalSchemaLocation : canonicalSchemaLocation, exiConfig);
-			} catch (EXIException e) {
-				System.err.println("Unable to create EXI Processor.");
-				return;
-			}
+	public void requestEXICompression(String configId) {
+		EXIUtils.saveConfigId(configId);
+		try {
+			exiProcessor = new EXIProcessor(canonicalSchemaLocation == null ? EXIUtils.completeCanonicalSchemaLocation : canonicalSchemaLocation, exiConfig);
+		} catch (EXIException e) {
+			System.err.println("Unable to create EXI Processor.");
 		}
-		super.requestStreamCompression(method);
+		requestStreamCompression("exi");
 	};
 	
 	public void startStreamCompression1() throws Exception{
@@ -252,9 +252,6 @@ System.out.println(auxSchema.attributeValue("ns") + " removed.");
 	        this.notify();
 	    }
 	}
-	
-	
-	
 	
 
 	/**
@@ -304,40 +301,8 @@ System.out.println(auxSchema.attributeValue("ns") + " removed.");
 	@Override
 	protected void initReaderAndWriter() throws XMPPException {
 		try {
-			EXISetupConfiguration quickExiConfig = EXIUtils.parseQuickConfigId(Preferences.userRoot().get(EXIUtils.REG_KEY, null));
-			if(quickExiConfig != null){
-				exiConfig = quickExiConfig;
-			}
-		} catch (NumberFormatException e){	
-			// error en el formato del configId. Se borra y se intenta nuevamente con blockSize y strict por defecto.
-			EXIUtils.saveConfigId(null);
-			initReaderAndWriter();
-			return;
-		}
-		try {
-            if (compressionHandler == null) {
-            	reader = new EXIReader(socket.getInputStream());
-                writer = new EXIWriter(socket.getOutputStream());
-            }
-            else {
-                try {
-                    OutputStream os = compressionHandler.getOutputStream(socket.getOutputStream());
-                    //writer = new EXIWriter(new OutputStreamWriter(os, EXIProcessor.CHARSET), exiProcessor);
-                    writer = new EXIWriter(os);
-
-                    InputStream is = compressionHandler.getInputStream(socket.getInputStream());
-                    //reader = new EXIReader(new InputStreamReader(is, EXIProcessor.CHARSET), exiProcessor);
-                    reader = new EXIReader(is);
-                }
-                catch (Exception e) {
-                    e.printStackTrace();
-                    compressionHandler = null;
-                    //reader = new EXIReader(new InputStreamReader(socket.getInputStream(), EXIProcessor.CHARSET), exiProcessor);
-                    reader = new EXIReader(socket.getInputStream());
-                    //writer = new EXIWriter(new OutputStreamWriter(socket.getOutputStream(), EXIProcessor.CHARSET), exiProcessor);
-                    writer = new EXIWriter(socket.getOutputStream());
-                }
-            }
+        	reader = new EXIReader(socket.getInputStream());
+            writer = new EXIWriter(socket.getOutputStream());
         }
         catch (IOException ioe) {
             throw new XMPPException(
@@ -346,8 +311,6 @@ System.out.println(auxSchema.attributeValue("ns") + " removed.");
                             "EXI_XMPPError establishing connection with server."),
                     ioe);
         }
-        // If debugging is enabled, we open a window and write out all network traffic.
-        initDebugger();
 	}
 	
 	/**
@@ -368,23 +331,22 @@ System.out.println(auxSchema.attributeValue("ns") + " removed.");
 	/**
 	 * Turns on the EXI connection to start encoding and decoding EXI messages. Connection parameters should be already negotiated with the server.
 	 * 
-	 * @param enable true to enable EXI messages (false to disable)
 	 * @throws IOException 
 	 */
-	protected void enableEXI(boolean enable){
+	protected void enableEXI(){
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
-			((EXIReader) ((ObservableReader) reader).wrappedReader).setEXI(enable);
-			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).setEXI(enable);
+			((EXIReader) ((ObservableReader) reader).wrappedReader).setEXI(true);
+			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).setEXI(true);
 		}
 		else if(reader instanceof EXIReader && writer instanceof EXIWriter){
-			((EXIReader) reader).setEXI(enable);
-			((EXIWriter) writer).setEXI(enable);
+			((EXIReader) reader).setEXI(true);
+			((EXIWriter) writer).setEXI(true);
 		}	
 		else {
 			System.err.println("Unable to create EXI Processor: Instances of reader and writer are not treated. (EXIXMPPConnection.enableEXI)");
 			return;
 		}
-		this.usingEXI = enable;
+		this.usingEXI = true;
 		if(!compressionStartedListeners.isEmpty()){
 			for(EXIEventListener eel : compressionStartedListeners){
 				eel.compressionStarted();
@@ -393,7 +355,7 @@ System.out.println(auxSchema.attributeValue("ns") + " removed.");
 	}
 	
 	protected void openEXIStream() throws IOException{
-		enableEXI(true);
+		enableEXI();
 		String exiStreamStart = "<exi:streamStart from='"
 				+ getUser()
 	 			+ "' to='"
@@ -532,6 +494,10 @@ System.out.println(auxSchema.attributeValue("ns") + " removed.");
 		return this.sentMissingSchemas;
 	}
 	
+	/**
+	 * Adds an EXIEventListener to the connection. Needs to be called after connection has been done.
+	 * @param listener
+	 */
 	public void addEXIEventListener(EXIEventListener listener){
 		addCompressionStartedListener(listener);
 		addReadListener(listener);
