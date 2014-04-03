@@ -1,6 +1,5 @@
 package cl.clayster.exi.test;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -169,6 +168,8 @@ System.out.println("received: " + packet.toXML());
 			doc2 = DocumentHelper.parseText(xml2);
 			assertDocumentsEqual(doc1, doc2);
 		} catch (DocumentException e1) {
+			System.out.println("xml1: " + xml1);
+			System.out.println("xml2: " + xml2);
 			fail("DocumentException: " + e1.getMessage());
 		} catch (Exception e) {
 			fail("Exception: " + e.getMessage());
@@ -217,8 +218,14 @@ System.out.println("received: " + packet.toXML());
 		m.setFrom(client1.getUser());
 		
 		List<Numeric> numerics = new ArrayList<Numeric>();
-		numerics.add(new Numeric("Temperature", null, null, null, "true", "true", "23.4", "°C"));
-		numerics.add(new Numeric("Runtime", null, null, "true", null, "true", "12345", "h"));
+		Numeric runtime = new Numeric();
+		runtime.setName("Runtime");
+		runtime.setStatus("true");
+		runtime.setAutomaticReadout("true");
+		runtime.setValue("12345");
+		runtime.setUnit("h");
+		numerics.add(runtime);
+		numerics.add(new Numeric("Temperature", "23.4", "ºC", "true", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null));
 		
 		Timestamp t = new Timestamp("2013-03-07T19:00:00", numerics, null);
 		
@@ -320,12 +327,12 @@ System.out.println("received: " + packet.toXML());
 			} catch (InterruptedException e) {
 				fail(e.getMessage());
 			}
-			if(++count > 20){
+			if(++count > 25){
 				StringBuilder buf = new StringBuilder();
 				for(Packet p : received){
 					buf.append(p.toXML() + '\n');
 				}
-				fail("timeout. Messages received so far:\n" + buf.toString() 
+				fail("Timeout. Messages received so far:\n" + buf.toString() 
 						+ "\nsent: " + sent.size()
 						+ "\nreceived: " + received.size());
 			}
@@ -355,31 +362,4 @@ System.out.println("received: " + packet.toXML());
 	
 	// fixed xml (iq, message. Sacar de xep 0323, 0325)
 	
-	
-	
-	
-	/******************************************** Util methods for testings ********************************************/ 
-	
-	/**
-	 * Deletes a file or a folder and all its content
-	 * @param folderLocation
-	 */
-	public static void deleteFolder(String folderLocation){
-		File file = new File(folderLocation);
-        File[] listOfFiles = file.listFiles();
-        if(listOfFiles != null)	// then it is a folder
-        	for (int i = 0; i < listOfFiles.length; i++) {
-        		deleteFolder(listOfFiles[i].getAbsolutePath());
-        	}
-        if(!file.getName().endsWith(".dtd") && !file.getName().endsWith("classes") && !file.getName().endsWith("defaultSchema.xsd"))	file.delete();
-	}
-	
-	/**
-	 * Removes all the content of the <i>"classes"</i> directory on the server's EXI plugin 
-	 * leaving it as if it was newly created (containing only two DTD files and the default schema).
-	 * @param folderLocation
-	 */
-	public void clearClassesFolder(){
-		deleteFolder(OPENFIRE_BASE + CLASSES_FOLDER);
-	}
 }

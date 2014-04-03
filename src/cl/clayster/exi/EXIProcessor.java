@@ -18,6 +18,7 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 
+import com.siemens.ct.exi.EXIFactory;
 import com.siemens.ct.exi.GrammarFactory;
 import com.siemens.ct.exi.api.sax.EXIResult;
 import com.siemens.ct.exi.api.sax.EXISource;
@@ -25,73 +26,30 @@ import com.siemens.ct.exi.exceptions.EXIException;
 import com.siemens.ct.exi.grammars.Grammars;
 
 public class EXIProcessor extends EXIBaseProcessor{
-    
-	/**
-     * Constructs a default EXI Processor using the default Canonical Schema with <b>default values</b> for its configuration.
-     * @param xsdLocation
-     * @throws EXIException
-     */
-	public EXIProcessor() throws EXIException{
-        // create default factory and EXI grammar for schema
-        exiFactory = new EXISetupConfiguration();
-        
-        String xsdLocation = EXIUtils.defaultCanonicalSchemaLocation;
-        if(xsdLocation != null && new File(xsdLocation).isFile()){
-                try{
-                        GrammarFactory grammarFactory = GrammarFactory.newInstance();
-                        Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
-                        exiFactory.setGrammars(g);
-                } catch (IOException e){
-                        e.printStackTrace();
-                        throw new EXIException("Error while creating Grammars.");
-                }
-        }
-        else{
-        	String message = "Invalid Canonical Schema file location: " + xsdLocation;
-        	throw new EXIException(message);
-        }
+	
+	//TODO: borrar
+	public EXIProcessor(EXIFactory ef){
+        exiFactory = ef;
 	}
 	
+	
 	/**
-     * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and <b>default values</b> for its configuration.
-     * @param xsdLocation
-     * @throws EXIException
-     */
-	public EXIProcessor(String xsdLocation) throws EXIException{
-        // create default factory and EXI grammar for schema
-        exiFactory = new EXISetupConfiguration();
-        
-        if(xsdLocation != null && new File(xsdLocation).isFile()){
-                try{
-                        GrammarFactory grammarFactory = GrammarFactory.newInstance();
-                        Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
-                        exiFactory.setGrammars(g);
-                } catch (IOException e){
-                        e.printStackTrace();
-                        throw new EXIException("Error while creating Grammars.");
-                }
-        }
-        else{
-        	String message = "Invalid Canonical Schema file location: " + xsdLocation;
-        	throw new EXIException(message);
-        }
-	}
-	        
-	        /**
 	 * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and the respective parameters in exiConfig for its configuration.
 	 * @param xsdLocation        location of the Canonical schema file
 	 * @param exiConfig        EXISetupConfiguration instance with the necessary EXI options
 	 * @throws EXIException
 	 */
-	public EXIProcessor(String xsdLocation, EXISetupConfiguration exiConfig) throws EXIException{
+	public EXIProcessor(EXISetupConfiguration exiConfig) throws EXIException{
 		if(exiConfig == null)        exiConfig = new EXISetupConfiguration();
         // create factory and EXI grammar for given schema
         exiFactory = exiConfig;
+        String xsdLocation = exiConfig.getCanonicalSchemaLocation();
         
         if(xsdLocation != null && new File(xsdLocation).isFile()){
         	try{
             	GrammarFactory grammarFactory = GrammarFactory.newInstance();
-                Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver(EXIUtils.schemasFolder));
+                Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver());
+                g.setSchemaId(exiConfig.getSchemaId());
                 exiFactory.setGrammars(g);
             } catch (IOException e){
                 e.printStackTrace();

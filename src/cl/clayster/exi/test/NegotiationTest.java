@@ -42,7 +42,7 @@ public class NegotiationTest extends AbstractTest {
 		exiPre.setStrict(true);
 		
 		// delete previous configuration id register (just for the first test which should try quick configurations, but will then do normal negotiation instead)
-		EXIUtils.saveConfigId(null);
+		EXIUtils.saveExiConfig(null);
 		
 		Object[][] data = new Object[][] {
 				{exiQuickConfig, null, "client1 tries to use quick configurations (which do not exist) and then uses EXI with default values .client2 uses normal XMPP."},

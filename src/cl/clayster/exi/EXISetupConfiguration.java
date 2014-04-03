@@ -1,5 +1,8 @@
 package cl.clayster.exi;
 
+import java.io.File;
+import java.io.IOException;
+
 import com.siemens.ct.exi.CodingMode;
 import com.siemens.ct.exi.FidelityOptions;
 import com.siemens.ct.exi.exceptions.UnsupportedOption;
@@ -12,8 +15,9 @@ import com.siemens.ct.exi.helpers.DefaultEXIFactory;
  */
 public class EXISetupConfiguration extends DefaultEXIFactory{
 	
-	protected String schemaId = "urn:xmpp:exi:default"; 	
+	private String schemaId = "urn:xmpp:exi:default"; 	
 	protected boolean quickSetup = false;
+	private String canonicalSchemaLocation = EXIUtils.completeCanonicalSchemaLocation;
 	
 	/**
 	 * Constructs a new EXISetupConfigurations and initializates it with Default Values.
@@ -91,4 +95,17 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 			e.printStackTrace();
 		}		
 	}
+
+	public String getCanonicalSchemaLocation() {
+		return canonicalSchemaLocation;
+	}
+
+	public void setCanonicalSchemaLocation(String canonicalSchemaLocation) throws IOException {
+		if(!new File(canonicalSchemaLocation).isFile()){
+			throw new IOException("Schema file does not exist: " + canonicalSchemaLocation);
+		}
+		this.canonicalSchemaLocation = canonicalSchemaLocation;
+	}
+	
+	
 }

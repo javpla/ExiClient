@@ -10,7 +10,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.prefs.Preferences;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.transform.TransformerException;
@@ -54,8 +53,6 @@ public class EXIXMPPConnection extends XMPPConnection{
 	
 	private List<EXIEventListener> compressionStartedListeners =  new ArrayList<EXIEventListener>(0);
 	
-	protected String canonicalSchemaLocation = EXIUtils.completeCanonicalSchemaLocation;
-	
 	/**
 	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in.
 	 * By default,  compression will be enabled unless <b>exiConfig</b> is null. 
@@ -65,33 +62,6 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 */
 	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
 		super(config);
-		
-		config.setCompressionEnabled(exiConfig != null);
-		this.exiConfig = exiConfig;
-		try {
-			EXIUtils.generateBoth();
-		} catch (NoSuchAlgorithmException | IOException e1) {
-			e1.printStackTrace();
-		} catch (DocumentException e) {
-			e.printStackTrace();
-		}
-		return;
-	}
-	
-	/**
-	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in.
-	 * By default,  compression will be enabled unless <b>exiConfig</b> is null. 
-	 * Only the schemas imported in <b>canonicalSchema</b> will be used for EXI compression
-	 * @param config configurations to connect to the server
-	 * @param exiConfig EXI parameters to be used. <b>Default values</b> will be used if exiConfig is null
-	 * @param canonicalSchema the desired canonical schema to use for EXI compression
-	 */
-	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig, File canonicalSchema) {
-		super(config);
-		
-		if(canonicalSchema.isFile()){
-			this.canonicalSchemaLocation = canonicalSchema.getAbsolutePath();
-		}
 		
 		config.setCompressionEnabled(exiConfig != null);
 		this.exiConfig = exiConfig;
@@ -152,15 +122,11 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * Uses the last configuration in order to skip the handshake. 
 	 * @return	<b>true</b> if there is a previous configuration available, <b>false</b> otherwise 
 	 */
-	public boolean proposeEXICompressionQuickSetup(){		
-		String setupStanza = "";
-		String configId = Preferences.userRoot().get(EXIUtils.REG_KEY, null);
-		boolean quickSetup = false;
-		quickSetup = (configId != null); // quickSetup is valid if there is a value in registry or else it is false and normal setup stanza will be sent
-		
-		if(quickSetup){
-			exiConfig = EXIUtils.parseQuickConfigId(configId);
-			setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + configId + "'/>";
+	public boolean proposeEXICompressionQuickSetup(){
+		EXISetupConfiguration exiQuickConfig = EXIUtils.parseQuickConfigId();
+		if(exiQuickConfig != null){
+			exiConfig = exiQuickConfig;	
+			String setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + exiConfig.getSchemaId() + "'/>";
 			try {
 				send(setupStanza);
 				return true;
@@ -190,7 +156,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	
 	protected String parseSetupStanza() throws DocumentException{
 		Element auxSchema;
-		Element canonicalSchema = DocumentHelper.parseText(EXIUtils.readFile(canonicalSchemaLocation)).getRootElement();
+		Element canonicalSchema = DocumentHelper.parseText(EXIUtils.readFile(exiConfig.getCanonicalSchemaLocation())).getRootElement();
 		List<String> namespaces = new ArrayList<String>();
 		
 		for(@SuppressWarnings("unchecked") Iterator<Element> i = canonicalSchema.elementIterator("import"); i.hasNext();) {
@@ -224,13 +190,19 @@ public class EXIXMPPConnection extends XMPPConnection{
 		writer.flush();
 	}
 	
-	public void requestEXICompression(String configId) {
-		EXIUtils.saveConfigId(configId);
+	protected void createEXIProcessor(String schemaId){
+		exiConfig.setSchemaId(schemaId);
+		EXIUtils.saveExiConfig(exiConfig);
 		try {
-			exiProcessor = new EXIProcessor(canonicalSchemaLocation == null ? EXIUtils.completeCanonicalSchemaLocation : canonicalSchemaLocation, exiConfig);
+			exiProcessor = new EXIProcessor(exiConfig);
 		} catch (EXIException e) {
-			System.err.println("Unable to create EXI Processor.");
+			System.err.println("Unable to create EXI Processor." + e.getMessage());
+			EXIUtils.saveExiConfig(null);
 		}
+	}
+	
+	public void requestEXICompression(String schemaId) {
+		createEXIProcessor(schemaId);
 		requestStreamCompression("exi");
 	};
 	

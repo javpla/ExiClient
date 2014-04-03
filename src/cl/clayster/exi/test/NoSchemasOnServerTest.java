@@ -1,5 +1,6 @@
 package cl.clayster.exi.test;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -29,7 +30,7 @@ public class NoSchemasOnServerTest extends AbstractTest {
 	public static Collection<Object[]> data() {
 		
 		// delete previous configuration id register (just for the first test which should try quick configurations, but will then do normal negotiation instead)
-		EXIUtils.saveConfigId(null);
+		EXIUtils.saveExiConfig(null);
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration(true);
 		
 		Object[][] data = new Object[][] {
@@ -58,5 +59,31 @@ public class NoSchemasOnServerTest extends AbstractTest {
 		}
 		
 		super.testAll();
+	}
+	
+	/**
+	 * Deletes a file or a folder and all its content
+	 * @param folderLocation
+	 */
+	public static void deleteFolder(String folderLocation){
+		File file = new File(folderLocation);
+        File[] listOfFiles = file.listFiles();
+        if(listOfFiles != null)	// then it is a folder
+        	for (int i = 0; i < listOfFiles.length; i++) {
+        		deleteFolder(listOfFiles[i].getAbsolutePath());
+        	}
+        if(!file.getName().endsWith(".dtd") && !file.getName().endsWith("classes") 
+        		&& !file.getName().equals("defaultSchema.xsd") && !file.getName().equals("streams.xsd") && !file.getName().equals("xep-0322-01.xsd")){
+        	file.delete();
+        }
+	}
+	
+	/**
+	 * Removes all the content of the <i>"classes"</i> directory on the server's EXI plugin 
+	 * leaving it as if it was newly created (containing only two DTD files and the default schema).
+	 * @param folderLocation
+	 */
+	public void clearClassesFolder(){
+		deleteFolder(OPENFIRE_BASE + CLASSES_FOLDER);
 	}
 }

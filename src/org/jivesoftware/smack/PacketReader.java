@@ -186,12 +186,6 @@ public class PacketReader {
                 	//TODO/************************ EXI code ************************/
                     /** EXI alternative binding **/
                 	if(connection instanceof EXIXMPPAlternativeConnection && (parser.getName().equals("streamStart") || parser.getName().equals("stream"))){
-                		/*
-                		 * <stream:stream xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client" from="exi.clayster.cl" id="ebef1ae9" xml:lang="en" version="1.0">
-                		 */
-                		// Get the connection id.
-                        // Save the connectionID
-                        //connectionID = parser.getAttributeValue(null, "id");
                 		connectionID = "alternative";
                         if (!"1.0".equals(parser.getAttributeValue("", "version"))) {
                             // Notify that a stream has been opened if the
@@ -206,11 +200,10 @@ public class PacketReader {
                 	else if(connection instanceof EXIXMPPAlternativeConnection && parser.getName().equals(("setupResponse"))){
 						EXIXMPPAlternativeConnection exiAltConnection = ((EXIXMPPAlternativeConnection) connection);
 						if("true".equals(parser.getAttributeValue(null, "agreement"))){
-System.out.println("agreement reached");
 							exiAltConnection.restartEXIStream(parser.getAttributeValue(null, "configurationId"));
 							}
 							else{
-System.out.println("no agreement");								
+System.out.println("no agreement");
 						}
                 	}
                     /** normal EXI/XMPP negotiation **/
@@ -243,7 +236,7 @@ System.out.println("no agreement");
 	    	                		if(missingSchemas.size() > 0){
 	    	                				exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOption());
 	    	                		}
-	                				EXIUtils.saveConfigId(null);
+	                				EXIUtils.saveExiConfig(null);
 	                				Thread.sleep(1000);
 	                				if(!exiConnection.proposeEXICompressionQuickSetup()){
 	                					exiConnection.proposeEXICompression();

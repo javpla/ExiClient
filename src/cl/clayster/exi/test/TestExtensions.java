@@ -85,6 +85,24 @@ public class TestExtensions {
 			}
 			@Override public String getNamespace() {return "urn:xmpp:iot:sensordata";}
 			@Override public String getElementName() {return "fields";}
+		},
+		new PacketExtension() {
+			@Override
+			public String toXML() {
+				return "<fields xmlns=\"urn:xmpp:iot:sensordata\" seqnr=\"7\" done=\"true\">"
+						+ "<node nodeId=\"Device05\"><timestamp value=\"2013-03-07T22:20:45\">"
+						+ "<numeric name=\"Temperature\" momentary=\"true\" automaticReadout=\"true\""
+						+ " value=\"23.4\" unit=\"°C\" module=\"Whatchamacallit\" stringIds=\"1\"/>"
+						+ "<numeric name=\"Temperature, Min\" momentary=\"true\" automaticReadout=\"true\""
+						+ " value=\"23.4\" unit=\"°C\" module=\"Whatchamacallit\" stringIds=\"1,2\"/>"
+						+ "<numeric name=\"Temperature, Max\" momentary=\"true\" automaticReadout=\"true\""
+						+ " value=\"23.4\" unit=\"°C\" module=\"Whatchamacallit\" stringIds=\"1,3\"/>"
+						+ "<numeric name=\"Temperature, Mean\" momentary=\"true\" automaticReadout=\"true\""
+						+ " value=\"23.4\" unit=\"°C\" module=\"Whatchamacallit\" stringIds=\"1,4\"/>"
+						+ "</timestamp></node></fields>";
+			}
+			@Override public String getNamespace() {return "urn:xmpp:iot:sensordata";}
+			@Override public String getElementName() {return "fields";}
 		}
 	};
 	

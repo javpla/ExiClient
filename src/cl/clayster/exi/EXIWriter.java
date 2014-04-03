@@ -42,9 +42,9 @@ public class EXIWriter extends BufferedWriter {
     	}
     	try {
         	byte[] exi = ep.encodeToByteArray(xml);
-System.out.println("using EXIProcessor: "+ ep);
-System.out.println(xml);
-System.out.println(EXIUtils.bytesToHex(exi));
+        	
+System.out.println("xml: " + xml);
+System.out.println("exi: " + EXIUtils.bytesToHex(exi));
 			if(!writeListeners.isEmpty()){
 				for(EXIEventListener eel : writeListeners){
 					eel.packetEncoded(xml, exi);
@@ -88,10 +88,9 @@ System.out.println(EXIUtils.bytesToHex(exi));
 			System.arraycopy(exi, 0, aux, c.length, exi.length);
 			System.arraycopy(c, 0, aux, 0, c.length);
 			exi = aux;
-			
-System.out.println(xml);
-System.out.println(EXIUtils.bytesToHex(exi));
 
+System.out.println("xml: " + xml);
+System.out.println("exi: " + EXIUtils.bytesToHex(exi));
 			if(!writeListeners.isEmpty()){
 				for(EXIEventListener eel : writeListeners){
 					eel.packetEncoded(xml, exi);

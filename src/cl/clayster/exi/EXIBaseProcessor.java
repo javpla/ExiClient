@@ -29,9 +29,9 @@ import com.siemens.ct.exi.exceptions.EXIException;
 
 public class EXIBaseProcessor {
         
-    EXIFactory exiFactory;
-    EXIResult exiResult;
-    SAXSource exiSource;
+    protected EXIFactory exiFactory;
+    protected EXIResult exiResult;
+    protected SAXSource exiSource;
     
     /**
      * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and <b>default values</b> for its configuration.
@@ -193,7 +193,7 @@ public class EXIBaseProcessor {
     /** FUNCIONES DEFINITIVAS Y PARA XSD VARIABLES **/
     
     protected byte[] encodeToByteArray(String xml) throws IOException, EXIException, SAXException, TransformerException{
-        return encodeSchemaless(xml, true);
+        return encodeSchemaless(xml, false);
     }
     
     protected String decodeByteArray(byte[] exiBytes) throws IOException, EXIException, TransformerException{

@@ -40,6 +40,7 @@ public class EXIAltReader extends EXIReader {
     		
     		ba = new byte[leido];
     		System.arraycopy(dest, 0, ba, 0, leido);
+System.err.println("exi: " + EXIUtils.bytesToHex(ba));
 	    	if(exi && (EXIProcessor.isEXI(ba[0]) || EXIProcessor.hasEXICookie(ba) || anterior != null)){
     			if(anterior != null){	// agregar lo guardado anteriormente a lo leido ahora
 	    			System.arraycopy(ba, 0, ba, anterior.length, ba.length - anterior.length);
@@ -58,8 +59,9 @@ public class EXIAltReader extends EXIReader {
 			    	leido = cbuf2.length;
 			    	System.arraycopy(cbuf2, 0, cbuf, off, leido);
 
-System.err.println(new String(xml));			    	
-					if(!readListeners.isEmpty()){
+System.err.println("xml: " + xml);
+
+			    	if(!readListeners.isEmpty()){
 						for(EXIEventListener eel : readListeners){
 							eel.packetDecoded(xml, ba);
 						}

@@ -23,7 +23,6 @@ public class SmackAB implements MessageListener{
 	static final String password = "exiuser";
 	
 	public static void main(String[] args) throws XMPPException, IOException{
-		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
 		//config.setCompressionEnabled(true);
@@ -33,8 +32,12 @@ public class SmackAB implements MessageListener{
 		exiConfig.setCodingMode(CodingMode.COMPRESSION);
 		exiConfig.setBlockSize(2048);
 		
-		EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, exiConfig);
+//		EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, exiConfig);
+		EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, new EXISetupConfiguration(true));
+		//EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, null);
 		connection.connect();
+		
+		//connection.addEXIEventListener(new EXIPacketLogger("alt"));
 		
 		connection.login(usuario, password);
 		
