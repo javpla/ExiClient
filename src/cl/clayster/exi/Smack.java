@@ -1,7 +1,6 @@
 package cl.clayster.exi;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
@@ -44,9 +43,8 @@ public class Smack implements MessageListener{
 		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
-		config.setCompressionEnabled(true);
 		
-		EXISetupConfiguration exiConfig = new EXISetupConfiguration(true);
+		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
 		exiConfig.setCodingMode(CodingMode.BYTE_PACKED);
 		exiConfig.setBlockSize(2048);
 		exiConfig.setStrict(false);
@@ -54,7 +52,7 @@ public class Smack implements MessageListener{
 		//EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig, new File("C:/Users/Javier/workspace/Personales/ExiClient/schemas/canonicalSchemas/cs.xsd"));
 		
 		
-		EXIXMPPConnection connection = new EXIXMPPConnection(config, new EXISetupConfiguration());
+		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig);
 		
 		
 		connection.connect();

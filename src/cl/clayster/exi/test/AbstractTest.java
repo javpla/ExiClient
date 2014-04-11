@@ -49,6 +49,8 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	protected ConnectionConfiguration config2 = new ConnectionConfiguration(SERVER);
 	protected EXIXMPPConnection client1, client2;
 	protected String testInfo;
+	
+	protected int timeOut = 30;
 
 	private Message m = null;
 	private IQ iq = null;
@@ -60,7 +62,6 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		@Override
 		public void processPacket(Packet packet) {
 			try {
-System.out.println("received: " + packet.toXML());
 				received.put(packet);
 			} catch (InterruptedException e) {
 				fail(e.getMessage());
@@ -72,14 +73,16 @@ System.out.println("received: " + packet.toXML());
 		public boolean accept(Packet packet) {
 			
 			// We want to verify only packets sent by the test (no roster or jabber IQs)
-			
-			/*
 			if(packet instanceof IQ){
-				return packet.getError() != null;
+				if(((IQ) packet).getType().equals(IQ.Type.ERROR)){
+					return true;
+				}
+				else if(((IQ) packet).getChildElementXML().contains("urn:xmpp:iot:sensordata")){
+					return true;					
+				}
 			}
-			*/
-			return packet instanceof Message ||
-					packet instanceof IQ && ((IQ) packet).getChildElementXML().contains("urn:xmpp:iot:sensordata");
+			
+			return packet instanceof Message;
 		}
 	};
 	
@@ -94,10 +97,13 @@ System.out.println("received: " + packet.toXML());
 	    this.client1 = new EXIXMPPConnection(config1, exiConfig1);
 	    this.client2 = new EXIXMPPConnection(config2, exiConfig2);
 	    this.testInfo = info;
+	    beforeConnect();
 	    connect();
 	}
 	
-	private void addExtensionProviders(){
+	abstract void beforeConnect();
+	
+	protected void addExtensionProviders(){
 		ProviderManager.getInstance().addExtensionProvider("fields", "urn:xmpp:iot:sensordata", new Fields.Provider());
 		ProviderManager.getInstance().addExtensionProvider("failure", "urn:xmpp:iot:sensordata", new Failure.Provider());
 		ProviderManager.getInstance().addExtensionProvider("started", "urn:xmpp:iot:sensordata", new Started.Provider());
@@ -283,7 +289,7 @@ System.out.println("received: " + packet.toXML());
 		client2.addPacketListener(packetListener, testFilter);
 		
 		for(final PacketExtension iqExt : TestExtensions.iqExt){
-			iq = new IQ() {
+			IQ iq = new IQ() {
 				@Override 
 				public String getChildElementXML() {
 					return iqExt.toXML();
@@ -327,14 +333,14 @@ System.out.println("received: " + packet.toXML());
 			} catch (InterruptedException e) {
 				fail(e.getMessage());
 			}
-			if(++count > 25){
+			if(++count > timeOut){
 				StringBuilder buf = new StringBuilder();
 				for(Packet p : received){
 					buf.append(p.toXML() + '\n');
 				}
 				fail("Timeout. Messages received so far:\n" + buf.toString() 
-						+ "\nsent: " + sent.size()
-						+ "\nreceived: " + received.size());
+						+ "\nSENT: " + sent.size()
+						+ "\nRECV: " + received.size());
 			}
 		}
 	}

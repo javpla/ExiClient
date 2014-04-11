@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
@@ -19,6 +20,7 @@ import org.dom4j.DocumentException;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
 import org.jivesoftware.smack.ConnectionConfiguration;
+import org.jivesoftware.smack.SmackConfiguration;
 import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.XMPPError;
@@ -36,7 +38,7 @@ import com.siemens.ct.exi.exceptions.EXIException;
  */
 public class EXIXMPPConnection extends XMPPConnection{
 	
-	public static final int ABORT_COMPRESSION = -1;
+	public static final int USE_AVAILABLE = -1;
 	public static final int UPLOAD_BINARY = 0;
 	public static final int UPLOAD_EXI_DOCUMENT = 1;
 	public static final int UPLOAD_EXI_BODY = 2;
@@ -49,7 +51,10 @@ public class EXIXMPPConnection extends XMPPConnection{
 	protected int schemaDownloadsCounter = 0;
 	protected boolean sentMissingSchemas = false;
 	
-	private int uploadSchemaOption = UPLOAD_BINARY;
+	List<String> missingSchemas = new ArrayList<String>(0);
+	HashMap<String, String> sentURL = new HashMap<String, String>(0);
+	
+	private int uploadSchemaOption = USE_AVAILABLE;
 	
 	private List<EXIEventListener> compressionStartedListeners =  new ArrayList<EXIEventListener>(0);
 	
@@ -58,20 +63,15 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * By default,  compression will be enabled unless <b>exiConfig</b> is null. 
 	 * All schemas within the <i>schema</i> folder will be used.
 	 * @param config configurations to connect to the server
-	 * @param exiConfig EXI parameters to be used.
+	 * @param exiConfig EXI parameters to be used. If null, default EXI/XMPP parameters will be used.
 	 */
 	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
 		super(config);
 		
-		config.setCompressionEnabled(exiConfig != null);
+		config.setCompressionEnabled(true);
+		//config.setCompressionEnabled(exiConfig != null); // to invoke useComprssion(EXISEtupConfiguration) afterwards TODO:¿?
+		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
 		this.exiConfig = exiConfig;
-		try {
-			EXIUtils.generateBoth();
-		} catch (NoSuchAlgorithmException | IOException e1) {
-			e1.printStackTrace();
-		} catch (DocumentException e) {
-			e.printStackTrace();
-		}
 		return;
 	}
 	
@@ -95,17 +95,28 @@ public class EXIXMPPConnection extends XMPPConnection{
 		if(isUsingCompression()){
 			return false;
 		}
-		// TODO: ¿?
-		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
+		
+		try {
+			EXIUtils.generateSchemasFile();
+			setCanonicalSchema();
+		} catch (NoSuchAlgorithmException | IOException | DocumentException e) {
+			e.printStackTrace();
+			return false;
+		}
 		
 		// maybe use quick setup
-		if(exiConfig.isQuickSetup() && proposeEXICompressionQuickSetup()){
-			exiConfig.setQuickSetup(false);
-			return true;
+		if(!proposeEXICompressionQuickSetup()){
+			proposeEXICompression();
 		}
-		else{
-			return proposeEXICompression();
-		}
+		
+		synchronized (this) {
+            try {
+                this.wait(SmackConfiguration.getPacketReplyTimeout() * 5);
+            }
+            catch (InterruptedException e) {
+            }
+        }
+        return isUsingCompression();
 	}
 	
 	public int getUploadSchemaOption(){
@@ -119,20 +130,19 @@ public class EXIXMPPConnection extends XMPPConnection{
 
 
 	/**
-	 * Uses the last configuration in order to skip the handshake. 
+	 * Uses quick configurations setup in order to skip the handshake. Only if the configured setup already has been used and exists. 
 	 * @return	<b>true</b> if there is a previous configuration available, <b>false</b> otherwise 
 	 */
 	public boolean proposeEXICompressionQuickSetup(){
-		EXISetupConfiguration exiQuickConfig = EXIUtils.parseQuickConfigId();
-		if(exiQuickConfig != null){
-			exiConfig = exiQuickConfig;	
-			String setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + exiConfig.getSchemaId() + "'/>";
-			try {
-				send(setupStanza);
-				return true;
-			} catch (IOException e) {
-				System.err.println("Error while writing <setup> stanza: " + e.getMessage());
-			}
+		if(!exiConfig.exists()){
+			return false;
+		}
+		String setupStanza = "<setup xmlns='http://jabber.org/protocol/compress/exi' configurationId='" + exiConfig.getConfigutarionId() + "'/>";
+		try {
+			send(setupStanza);
+			return true;
+		} catch (IOException e) {
+			System.err.println("Error while writing <setup> stanza: " + e.getMessage());
 		}
 		return false;
 	}
@@ -190,8 +200,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 		writer.flush();
 	}
 	
-	protected void createEXIProcessor(String schemaId){
-		exiConfig.setSchemaId(schemaId);
+	protected void createEXIProcessor(String configId){
+		exiConfig.setConfigurationId(configId);
 		EXIUtils.saveExiConfig(exiConfig);
 		try {
 			exiProcessor = new EXIProcessor(exiConfig);
@@ -217,18 +227,24 @@ public class EXIXMPPConnection extends XMPPConnection{
 		setEXIProcessor();
 		// enable EXIProcessor and send start stream tag
 		openEXIStream();
+		
+		// Notify that compression is being used
+        synchronized (this) {
+            this.notify();
+        }
 	}
 	
 
 	/**
-	 * Send schemas that are missing in the server.
+	 * Send schemas that are missing in the server. Then waits one second and retries configuration with a new <setup> stanza.
 	 * 
 	 * @param missingSchemas a list containing all schemas missing in the server
 	 * @param opt how missing schemas will be sent to the server. Options are as follows
+	 * <br> 0 - upload schema as a binary file
 	 * <br> 1 - upload schema as EXI document
 	 * <br> 2 - upload schema as EXI body
 	 * <br> 3 - send a url for the server to download the schema by itself  
-	 * <br> x - anything else to upload schema as a binary file
+	 * <br> -1 - create a new canonical schema ignoring missing schemas (default)
 	 * @throws TransformerException 
 	 * @throws SAXException 
 	 * @throws EXIException 
@@ -250,12 +266,35 @@ public class EXIXMPPConnection extends XMPPConnection{
 			case UPLOAD_URL:	// send URL and download on server 
 				downloadSchemas(missingSchemas);
 				break;
-			default: // upload binary file
+			case UPLOAD_BINARY: // upload binary file
 				uploadMissingSchemas(missingSchemas);
 				break;
+			case USE_AVAILABLE:
+			default:
+				this.missingSchemas = missingSchemas;
+				setCanonicalSchema();
+				break;
 		}
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		proposeEXICompression();
 	}
 	
+	/**
+	 * Creates a canonical schema and adds its schema ID to the current connection's EXISetupConfiguration. 
+	 * The new canonical schema excludes missing schemas if existent.
+	 */
+	public void setCanonicalSchema() {
+		try {
+			exiConfig.setSchemaId(EXIUtils.generateCanonicalSchema(missingSchemas));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	@Override
 	public boolean isUsingCompression(){
 		return this.usingEXI;
@@ -322,7 +361,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	
 	protected void openEXIStream() throws IOException{
 		enableEXI();
-		String exiStreamStart = "<exi:streamStart from='"
+		String exiOpen = "<exi:open from='"
 				+ getUser()
 	 			+ "' to='"
 	 			+ getHost()
@@ -332,8 +371,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 			+ "<exi:xmlns prefix='' namespace='jabber:client'/>"
 	 			+ "<exi:xmlns prefix='streams' namespace='http://etherx.jabber.org/streams'/>"
 	 			+ "<exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
-	 			+ "</exi:streamStart>";
-		send(exiStreamStart);
+	 			+ "</exi:open>";
+		send(exiOpen);
 	}
 	
 	
@@ -418,6 +457,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	private void downloadSchemas(List<String> missingSchemas) throws IOException, NoSuchAlgorithmException, DocumentException, EXIException, SAXException, TransformerException{
 		String msg = "", url = "";
 		Element schemasElement;
+		List<String> noURL = new ArrayList<String>();
 		try {
 			schemasElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
 		} catch (DocumentException e) {
@@ -438,14 +478,15 @@ public class EXIXMPPConnection extends XMPPConnection{
 				msg = "<downloadSchema xmlns='http://jabber.org/protocol/compress/exi' url='" + url + "'/>";
 				send(msg);
 				schemaDownloadsCounter++;
+				sentURL.put(url, ms);
 			}
 			else{
 				System.err.println("No url for " + ms + ". Trying to upload schema as binary file.");
-				List<String> l = new ArrayList<String>();
-				l.add(ms);
-				uploadMissingSchemas(l);
+				noURL.add(ms);
 			}
-		}	
+		}
+		this.missingSchemas = noURL;
+		setCanonicalSchema();
 	}
 	
 	/**
@@ -453,10 +494,10 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @return Amount of schemas left to be downloaded. When 0 is returned, then the server has downloaded all schemas.
 	 */
 	public int schemaDownloaded(){
-		return this.schemaDownloadsCounter;
+		return --this.schemaDownloadsCounter;
 	}
 	
-	public boolean getSentMissingSchemas(){
+	public boolean missingSchemasSent(){
 		return this.sentMissingSchemas;
 	}
 	
@@ -529,4 +570,14 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 	}
 	
+	public boolean addMissingSchemaByURL(String URL){
+		return missingSchemas.add(sentURL.get(URL));
+	}
+	
+	public boolean removeMissingSchema(String ns){
+		if(ns != null){
+			return missingSchemas.remove(ns);
+		}
+		else return false;
+	}
 }

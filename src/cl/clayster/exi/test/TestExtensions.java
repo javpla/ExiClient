@@ -169,6 +169,18 @@ public class TestExtensions {
 			}
 			@Override public String getNamespace() {return "urn:xmpp:iot:sensordata";}
 			@Override public String getElementName() {return "cancelled";}
+		},
+		new PacketExtension() {
+			@Override
+			public String toXML() {
+				return "<error type='CANCEL' code='7'>"
+						+ "<forbidden xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>"
+						+ "<text xmlns='urn:ietf:params:xml:ns:xmpp-stanzas' xml:lang='en'>Access denied.</text>"
+						+ "<rejected xmlns='urn:xmpp:iot:sensordata' seqnr='3'/>"
+					+ "</error>";
+			}
+			@Override public String getNamespace() {return "urn:xmpp:iot:sensordata";}
+			@Override public String getElementName() {return "rejected";}
 		}
 		/*,
 		new PacketExtension() {
@@ -185,5 +197,13 @@ public class TestExtensions {
 			@Override public String getElementName() {return "rejected";}
 		}
 		*/
+		,new PacketExtension() {
+			@Override
+			public String toXML() {
+				return "<req xmlns='urn:xmpp:iot:sensordata' seqnr='01' momentary='true'/>";
+			}
+			@Override public String getNamespace() {return "urn:xmpp:iot:sensordata";}
+			@Override public String getElementName() {return "req";}
+		}
 	};
 }

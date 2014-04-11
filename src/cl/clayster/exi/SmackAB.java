@@ -32,9 +32,9 @@ public class SmackAB implements MessageListener{
 		exiConfig.setCodingMode(CodingMode.COMPRESSION);
 		exiConfig.setBlockSize(2048);
 		
-//		EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, exiConfig);
-		EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, new EXISetupConfiguration(true));
-		//EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, null);
+		EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, exiConfig);
+//		EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, new EXISetupConfiguration());
+		//EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, null); //funciona!!
 		connection.connect();
 		
 		//connection.addEXIEventListener(new EXIPacketLogger("alt"));

@@ -9,7 +9,6 @@ import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
 
 import cl.clayster.exi.EXISetupConfiguration;
-import cl.clayster.exi.EXIUtils;
 import cl.clayster.exi.EXIXMPPConnection;
 
 /**
@@ -26,12 +25,16 @@ public class NoSchemasOnServerTest extends AbstractTest {
 		super(exiConfig1, exiConfig2, message);
 	}
 
+	@Override
+	void beforeConnect() {
+		timeOut = 100;
+		removeExtraSchemasOnServer();
+	}
+	
 	@Parameters
 	public static Collection<Object[]> data() {
-		
 		// delete previous configuration id register (just for the first test which should try quick configurations, but will then do normal negotiation instead)
-		EXIUtils.saveExiConfig(null);
-		EXISetupConfiguration exiConfig = new EXISetupConfiguration(true);
+		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
 		
 		Object[][] data = new Object[][] {
 				{exiConfig, null, "a:client1 uploads binary files."},
@@ -44,7 +47,6 @@ public class NoSchemasOnServerTest extends AbstractTest {
 	
 	@Override
 	public void testAll() {
-		clearClassesFolder();
 		switch(testInfo.charAt(0)){
 			case 'a': client1.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY);
 			break;
@@ -54,36 +56,37 @@ public class NoSchemasOnServerTest extends AbstractTest {
 			break;
 			case 'd': client1.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_URL);
 			break;
-			case 'e': client1.setUploadSchemaOption(EXIXMPPConnection.ABORT_COMPRESSION);
+			case 'e': client1.setUploadSchemaOption(EXIXMPPConnection.USE_AVAILABLE);
 			break;
 		}
 		
 		super.testAll();
 	}
 	
-	/**
-	 * Deletes a file or a folder and all its content
-	 * @param folderLocation
-	 */
-	public static void deleteFolder(String folderLocation){
-		File file = new File(folderLocation);
+	public static void removeExtraSchemasOnServer(){
+		File file = new File(OPENFIRE_BASE + CLASSES_FOLDER);
         File[] listOfFiles = file.listFiles();
-        if(listOfFiles != null)	// then it is a folder
+        if(listOfFiles != null){
+        	// then it is a folder
         	for (int i = 0; i < listOfFiles.length; i++) {
-        		deleteFolder(listOfFiles[i].getAbsolutePath());
-        	}
-        if(!file.getName().endsWith(".dtd") && !file.getName().endsWith("classes") 
-        		&& !file.getName().equals("defaultSchema.xsd") && !file.getName().equals("streams.xsd") && !file.getName().equals("xep-0322-01.xsd")){
-        	file.delete();
+        		file = listOfFiles[i];
+        		File aux = new File("C:/Users/Javier/workspace/Personales/openfire/src/plugins/exi/classes/" + file.getName());
+                if(!aux.exists()){
+                	file.delete();
+                }
+			}
         }
-	}
-	
-	/**
-	 * Removes all the content of the <i>"classes"</i> directory on the server's EXI plugin 
-	 * leaving it as if it was newly created (containing only two DTD files and the default schema).
-	 * @param folderLocation
-	 */
-	public void clearClassesFolder(){
-		deleteFolder(OPENFIRE_BASE + CLASSES_FOLDER);
+        // configurations file on client to avoid quick configurations
+        file = new File("C:/Users/Javier/workspace/Personales/ExiClient/schemas/canonicalSchemas");
+        listOfFiles = file.listFiles();
+        if(listOfFiles != null){
+        	// then it is a folder
+        	for (int i = 0; i < listOfFiles.length; i++) {
+        		file = listOfFiles[i];
+        		if(!file.getName().equals("defaultSchema.xsd")){
+        			file.delete();
+        		}
+			}
+        }
 	}
 }

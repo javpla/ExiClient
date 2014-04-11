@@ -18,7 +18,6 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 
-import com.siemens.ct.exi.EXIFactory;
 import com.siemens.ct.exi.GrammarFactory;
 import com.siemens.ct.exi.api.sax.EXIResult;
 import com.siemens.ct.exi.api.sax.EXISource;
@@ -26,12 +25,6 @@ import com.siemens.ct.exi.exceptions.EXIException;
 import com.siemens.ct.exi.grammars.Grammars;
 
 public class EXIProcessor extends EXIBaseProcessor{
-	
-	//TODO: borrar
-	public EXIProcessor(EXIFactory ef){
-        exiFactory = ef;
-	}
-	
 	
 	/**
 	 * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and the respective parameters in exiConfig for its configuration.

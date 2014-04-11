@@ -2,6 +2,7 @@ package cl.clayster.exi;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -13,20 +14,19 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import java.util.prefs.Preferences;
 
 import org.dom4j.DocumentException;
-
-import com.siemens.ct.exi.CodingMode;
-import com.siemens.ct.exi.FidelityOptions;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
 
 public class EXIUtils {
 	
-	public static final String completeCanonicalSchemaLocation = "./schemas/canonicalSchemas/allSchemas.xsd";
-	public static final String defaultCanonicalSchemaLocation = "./schemas/canonicalSchemas/defaultSchema.xsd";
-	public static final String schemasFileLocation = "./schemas/canonicalSchemas/schemas.xml";
 	public static final String schemasFolder = "./schemas/";
+	public static final String schemasFileLocation = schemasFolder + "schemas.xml";
+	public static final String exiFolder = "./schemas/canonicalSchemas/";
+	public static final String defaultCanonicalSchemaLocation = exiFolder + "defaultSchema.xsd";
 	
 	
 	public static final char[] hexArray = "0123456789abcdef".toCharArray();
@@ -48,17 +48,15 @@ public class EXIUtils {
 	}
 
 	/**
-	 * Looks for all schema files (*.xsd) in the given folder and creates two new files:<br> 
+	 * Looks for all schema files (*.xsd) in the schemas folder and creates two new files:<br> 
 	 * <b>canonicalSchema.xsd</b> which imports all schema files in the given folder;<br>
 	 * <b>schema.xml</b> which contains each schema namespace, file size in bytes, and its md5Hash code 
-	 *   
 	 * 
-	 * @param folderLocation Location of the folder with the schemas to be used 
 	 * @throws NoSuchAlgorithmException
 	 * @throws IOException
 	 * @throws DocumentException 
 	 */
-	public static void generateBoth() throws NoSuchAlgorithmException, IOException, DocumentException{
+	static void generateSchemasFile() throws NoSuchAlgorithmException, IOException, DocumentException{
 		File folder = new File(schemasFolder);
         File[] listOfFiles = folder.listFiles();
         File file;
@@ -73,8 +71,7 @@ public class EXIUtils {
 		
 		// variables to write the stanzas in the right order (namepsace alfabethical order)
         List<String> namespaces = new ArrayList<String>();		
-        HashMap<String, String> schemasStanzas = new HashMap<String, String>();	
-        HashMap<String, String> canonicalSchemaStanzas = new HashMap<String, String>();
+        HashMap<String, String> schemasStanzas = new HashMap<String, String>();
         int n = 0;
             
             for (int i = 0; i < listOfFiles.length; i++) {
@@ -112,31 +109,80 @@ public class EXIUtils {
 					namespaces.add(n, namespace);
 					schemasStanzas.put(namespace, "<schema ns='" + namespace + "' bytes='" + file.length() + "' md5Hash='" + md5Hash 
 							+ "' schemaLocation='" + file.getCanonicalPath() + "' url=''/>");
-					canonicalSchemaStanzas.put(namespace, "<xs:import namespace='" + namespace + "'/>");
             	}
 			}
             
             // variables to write the stanzas and canonicalSchema files
             File stanzasFile = new File(schemasFileLocation);
             BufferedWriter stanzasWriter = new BufferedWriter(new FileWriter(stanzasFile));
-            File canonicalSchema = new File(completeCanonicalSchemaLocation);
-            BufferedWriter canonicalSchemaWriter = new BufferedWriter(new FileWriter(canonicalSchema));
-
             stanzasWriter.write("<setup xmlns=\'http://jabber.org/protocol/compress/exi\'>");
-            canonicalSchemaWriter.write("<?xml version='1.0' encoding='UTF-8'?> \n\n<xs:schema \n\txmlns:xs='http://www.w3.org/2001/XMLSchema'\n\txmlns:stream='http://etherx.jabber.org/streams'\n\ttargetNamespace='urn:xmpp:exi:cs'\n\telementFormDefault='qualified'>\n");
+            
             for(String ns : namespaces){
             	stanzasWriter.write("\n\t" + schemasStanzas.get(ns));
-                canonicalSchemaWriter.write("\n\t" + canonicalSchemaStanzas.get(ns));
             }
             stanzasWriter.write("\n</setup>");
-			canonicalSchemaWriter.write("\n</xs:schema>");
-			
-			stanzasWriter.close();
-            canonicalSchemaWriter.close();
+            stanzasWriter.close();
 	}
 	
+	/**
+	 * Generates a canonical schema out of the schemas contained in the schemas file.
+	 * @return schemaId of the created canonicalSchema
+	 * @throws IOException
+	 */
+	static String generateCanonicalSchema() throws IOException {
+		return generateCanonicalSchema(new ArrayList<String>(0));
+	}
 	
+	/**
+	 * Generates a canonical schema out of the schemas contained in the schemas file, ignoring those contained in <i>missingSchemas</i> 
+	 * 
+	 * @param missingSchemas list containing the namespace of the schemas to be ignored (as strings)
+	 * @return schemaId of the created canonicalSchema
+	 * @throws IOException
+	 */
+	static String generateCanonicalSchema(List<String> missingSchemas) throws IOException {
+		Element setup;
+		try {
+			setup = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
+		} catch (DocumentException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+			return null;
+		}
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version='1.0' encoding='UTF-8'?> \n\n<xs:schema \n\txmlns:xs='http://www.w3.org/2001/XMLSchema' \n\ttargetNamespace='urn:xmpp:exi:cs' \n\txmlns='urn:xmpp:exi:cs' \n\telementFormDefault='qualified'>\n");
+        
+		Element schema;
+        for (@SuppressWarnings("unchecked") Iterator<Element> i = setup.elementIterator("schema"); i.hasNext(); ) {
+        	schema = i.next();
+        	String ns = schema.attributeValue("ns");
+        	if(!missingSchemas.contains(ns)){
+        		sb.append("\n\t<xs:import namespace='" + ns + "'/>");
+        	}
+        }
+        sb.append("\n</xs:schema>");
+        
+        String content = sb.toString();
+        MessageDigest md;
+		try {
+			md = MessageDigest.getInstance("MD5");
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return null;
+		}
+		String schemaId = EXIUtils.bytesToHex(md.digest(content.getBytes()));
+        String fileName = getCanonicalSchemaLocation(schemaId);
+        
+        BufferedWriter newCanonicalSchemaWriter = new BufferedWriter(new FileWriter(fileName));
+        newCanonicalSchemaWriter.write(content);
+        newCanonicalSchemaWriter.close();
+        return schemaId;
+	}	
 	
+	static String getCanonicalSchemaLocation(String schemaId) {
+		return EXIUtils.exiFolder + schemaId + ".xsd";
+	}
+
 	public static String readFile(String fileLocation){
 		try{
 			return new String(Files.readAllBytes(new File(fileLocation).toPath()));
@@ -146,12 +192,22 @@ public class EXIUtils {
 		}
 	}
 	
-	public static void writeFile(String fileName, String content) throws IOException {
-		if(fileName != null && content != null){
-			FileOutputStream out = new FileOutputStream(fileName);
-			out.write(content.getBytes());
-			out.close();
+	public static boolean writeFile(String fileName, String content) throws IOException {
+		try {
+			if(fileName != null && content != null){
+				FileOutputStream out;
+				
+				out = new FileOutputStream(fileName);
+				out.write(content.getBytes());
+				out.close();
+				return true;
+			}
+		} catch (FileNotFoundException e) {
+			return false;
+		} catch (IOException e) {
+			return false;
 		}
+		return false;
 	}
 	
 	public static String getAttributeValue(String text, String attribute) {
@@ -169,61 +225,6 @@ public class EXIUtils {
 		return text;
 	}
 	
-	/**
-	 * Gets an EXI configuration id and parses it to return an <code>EXISetupConfiguration</code> class
-	 * @param configId a unique configuration id for a previously used EXI configuration
-	 * @return the respective EXI Configuration class, or null if there was any problem
-	 */
-	//TODO quitar public, dejar default
-	public static EXISetupConfiguration parseQuickConfigId(){
-		String configId = EXIUtils.getSavedSchemaId();
-		File cs = EXIUtils.getSavedSchema();
-		
-		if(configId == null || cs == null){
-			return null;
-		}
-		
-		EXISetupConfiguration exiConfig = new EXISetupConfiguration(true);
-		try {
-			exiConfig.setSchemaId(configId);
-			exiConfig.setCanonicalSchemaLocation(cs.getPath());
-			
-			// next comments tell what is done by EXIFilter when it processes a successful setup stanza
-			// the first 36 chars (indexes 0-35) are just the UUID, number 37 is '_' (index 36)
-			Integer alignment = Character.getNumericValue(configId.charAt(37)); //The next digit (index 37) represents the alignment (0=bit-packed, 1=byte-packed, 2=pre-compression, 3=compression)
-			if(alignment < 0 || alignment > 3)	alignment = 0;
-			Boolean strict = configId.charAt(38) == '1';	//The next digit (index 38) represents if it is strict or not
-			configId = configId.substring(39);
-			Integer blockSize = Integer.valueOf(configId.substring(0, configId.indexOf('_')));	// next number represents blocksize (until the next '_')
-			configId = configId.substring(configId.indexOf('_') + 1);
-			Integer valueMaxLength = Integer.valueOf(configId.substring(0, configId.indexOf('_')));	// next number between dashes is valueMaxLength
-			Integer valuePartitionCapacity = Integer.valueOf(configId.substring(configId.indexOf('_') + 1)); // last number is valuePartitionCapacity
-		
-			switch((int) alignment){
-				case 1:
-					exiConfig.setCodingMode(CodingMode.BYTE_PACKED);
-					break;
-				case 2:
-					exiConfig.setCodingMode(CodingMode.PRE_COMPRESSION);
-					break;
-				case 3:
-					exiConfig.setCodingMode(CodingMode.COMPRESSION);
-					break;
-				default:
-					exiConfig.setCodingMode(CodingMode.BIT_PACKED);
-					break;
-			};
-			exiConfig.getFidelityOptions().setFidelity(FidelityOptions.FEATURE_STRICT, strict);
-			exiConfig.setBlockSize(blockSize);
-			exiConfig.setValueMaxLength(valueMaxLength);
-			exiConfig.setValuePartitionCapacity(valuePartitionCapacity);
-		} catch(Exception e){
-			System.err.println("Error found while parsing quick configurations:\n" + e.getMessage());
-			return null;
-		}
-		return exiConfig;
-	}
-	
 	static void createDefaultCanonicalSchemaFile() throws IOException{
 		EXIUtils.writeFile(EXIUtils.defaultCanonicalSchemaLocation, "<?xml version='1.0' encoding='UTF-8'?>"
 				+ "<xs:schema"
@@ -239,31 +240,12 @@ public class EXIUtils {
 	 * @param configId value of the register or null to remove
 	 */
 	public static void saveExiConfig(EXISetupConfiguration exiConfig) {
-		Preferences pref = Preferences.userRoot();
-		String schemaId = exiConfig.getSchemaId();
-		String schemaLocation = exiConfig.getCanonicalSchemaLocation();
-		if(schemaId != null &&  schemaLocation != null){
-			pref.put(EXIUtils.REG_CONFIG_ID_KEY, schemaId);
-			pref.put(EXIUtils.REG_SCHEMA_ID_LOC, schemaLocation);
-		}
-		else{
-			pref.remove(EXIUtils.REG_CONFIG_ID_KEY);
-			pref.remove(EXIUtils.REG_SCHEMA_ID_LOC);
-		}
-	}
-	
-	public static String getSavedSchemaId(){
-		return Preferences.userRoot().get(EXIUtils.REG_CONFIG_ID_KEY, null);
-	}
-	
-	public static File getSavedSchema(){
-		String location = Preferences.userRoot().get(EXIUtils.REG_SCHEMA_ID_LOC, null);
-		if(location != null){
-			File f = new File(location);
-			if(f != null && f.isFile()){
-				return f;
+		if(exiConfig != null){
+			try {
+				exiConfig.saveConfiguration();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
-		return null;
 	}
 }

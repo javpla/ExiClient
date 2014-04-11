@@ -36,7 +36,6 @@ import org.xmlpull.mxp1.MXParser;
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
-import cl.clayster.exi.EXIUtils;
 import cl.clayster.exi.EXIXMPPAlternativeConnection;
 import cl.clayster.exi.EXIXMPPConnection;
 
@@ -203,6 +202,7 @@ public class PacketReader {
 							exiAltConnection.restartEXIStream(parser.getAttributeValue(null, "configurationId"));
 							}
 							else{
+								// TODO: upload missing schemas
 System.out.println("no agreement");
 						}
                 	}
@@ -225,24 +225,15 @@ System.out.println("no agreement");
                 			exiConnection.requestEXICompression(parser.getAttributeValue(null, "configurationId"));
                 		}
                 		else{
-                			if(parser.getAttributeValue("null", "configurationId") == null){
-                				if(exiConnection.getSentMissingSchemas()){
-                					// TODO: missing schemas have been already sent, compression aborted
-                					System.err.println("Error while uploading schema files. Continuing with normal XMPP.");
-                				}
-                				else{
+            				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser);
+            				if(missingSchemas.size() > 0){
+            					int option = exiConnection.getUploadSchemaOption();
+                				if(exiConnection.missingSchemasSent()){
                 					// it is the first intent to send the missing schemas
-	                				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser);
-	    	                		if(missingSchemas.size() > 0){
-	    	                				exiConnection.sendMissingSchemas(missingSchemas, exiConnection.getUploadSchemaOption());
-	    	                		}
-	                				EXIUtils.saveExiConfig(null);
-	                				Thread.sleep(1000);
-	                				if(!exiConnection.proposeEXICompressionQuickSetup()){
-	                					exiConnection.proposeEXICompression();
-	                				}
+                					option = EXIXMPPConnection.USE_AVAILABLE;
                 				}
-                			}
+	    	                	exiConnection.sendMissingSchemas(missingSchemas, option);
+            				}
                 			else{
                 				exiConnection.proposeEXICompression();
                 			}
@@ -250,15 +241,17 @@ System.out.println("no agreement");
                     }
                     else if (parser.getName().equals("downloadSchemaResponse")){
                     	EXIXMPPConnection exiConnection = ((EXIXMPPConnection) connection);
-                    	if("true".equals(parser.getAttributeValue(null, "result"))) {
-	                    	if(exiConnection.schemaDownloaded() == 0){
-	                    		exiConnection.proposeEXICompression();
-	                    	}
+                    	if(!"true".equals(parser.getAttributeValue(null, "result"))) {
+                    		exiConnection.addMissingSchemaByURL(parser.getAttributeValue(null, "url"));
                     	}
-                    	else{
-                    		// nothing, XMPP connection will continue
+                    	if(exiConnection.schemaDownloaded() == 0){
+                    		exiConnection.setCanonicalSchema();
+                    		exiConnection.proposeEXICompression();
                     	}
-                    } else
+                    } else if (parser.getName().equals("streamEnd")){
+                    	done = true;
+                    }
+                    else
                     /************************ fin EXI code ************************/
                     if (parser.getName().equals("message")) {
                         processPacket(PacketParserUtils.parseMessage(parser));

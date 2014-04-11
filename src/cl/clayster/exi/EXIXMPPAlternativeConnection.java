@@ -1,6 +1,5 @@
 package cl.clayster.exi;
 
-import java.io.File;
 import java.io.IOException;
 
 import org.dom4j.DocumentException;
@@ -10,7 +9,6 @@ import org.jivesoftware.smack.packet.XMPPError;
 
 import com.siemens.ct.exi.EncodingOptions;
 import com.siemens.ct.exi.exceptions.EXIException;
-import com.siemens.ct.exi.exceptions.UnsupportedOption;
 
 public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 	
@@ -18,7 +16,6 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 	
 	public EXIXMPPAlternativeConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
 		super(config, exiConfig);
-		this.exiConfig = exiConfig;
 	}
 	
 	@Override
@@ -37,10 +34,8 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 	}
 	
 	public void startAlternativeBinding() throws IOException{
-		// TODO: ¿?
-		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
 		try {
-			if(!(exiConfig.isQuickSetup() && tryQuickSetup())){
+			if(!tryQuickSetup()){
 				exiProcessor = new EXIProcessor(null);	// create exi processor with default configurations
 			}
 			startStreamCompression();
@@ -49,8 +44,8 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 		}
 	}
 	
-	public void restartEXIStream(String schemaId){
-		createEXIProcessor(schemaId);
+	public void restartEXIStream(String configId){
+		createEXIProcessor(configId);
 		try {
 			startStreamCompression();
 		} catch (Exception e) {
@@ -60,15 +55,15 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 	
 	@Override
 	protected void openEXIStream() throws IOException{
-		String exiStreamStart = "<?xml version=\"1.0\"?>"
-				+ "<exi:streamStart xmlns:exi='http://jabber.org/protocol/compress/exi' version=\"1.0\" to=\""
+		String exiOpen = "<?xml version=\"1.0\"?>"
+				+ "<exi:open xmlns:exi='http://jabber.org/protocol/compress/exi' version=\"1.0\" to=\""
 				+ getHost()
 				+ "\" xml:lang=\"en\" xmlns:xml=\"http://www.w3.org/XML/1998/namespace\">"
 				+ "<exi:xmlns prefix=\"stream\" namespace=\"http://etherx.jabber.org/streams\"/>"
 				+ "<exi:xmlns prefix=\"\" namespace=\"jabber:client\"/>"
 				+ "<exi:xmlns prefix=\"xml\" namespace=\"http://www.w3.org/XML/1998/namespace\"/>"
-				+ "</exi:streamStart>";
-		((EXIWriter)writer).writeWithCookie(exiStreamStart);
+				+ "</exi:open>";
+		((EXIWriter)writer).writeWithCookie(exiOpen);
 		writer.flush();
 	}
 	
@@ -92,24 +87,19 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 		
 	}
 	
-	private boolean tryQuickSetup() {
-		String configId = EXIUtils.getSavedSchemaId();
-		File schema = EXIUtils.getSavedSchema();
-		if(configId != null && schema != null){
-			EXISetupConfiguration exiQuickConfig = EXIUtils.parseQuickConfigId();
-			try {
-				exiQuickConfig.getEncodingOptions().setOption(EncodingOptions.INCLUDE_OPTIONS);
-				exiQuickConfig.getEncodingOptions().setOption(EncodingOptions.INCLUDE_SCHEMA_ID);
-				exiProcessor = new EXIProcessor(exiQuickConfig);
-				triedQuickSetup = true;
-System.out.println("quick! " + exiProcessor);
-				return true;
-			} catch (UnsupportedOption e) {
-				e.printStackTrace();
-			} catch (EXIException e) {
-				e.printStackTrace();
-			}
+	private boolean tryQuickSetup() throws EXIException{
+		if(triedQuickSetup)	return true;
+		if(exiConfig.exists()){
+			exiConfig.getEncodingOptions().setOption(EncodingOptions.INCLUDE_OPTIONS);
+			// TODO: schema id debe incluir c:
+			exiConfig.getEncodingOptions().setOption(EncodingOptions.INCLUDE_SCHEMA_ID);
+			exiProcessor = new EXIProcessor(exiConfig);
+			triedQuickSetup = true;
+System.out.println("QUICK AB SETUP!");
+			return true;
 		}
-		return false;
+		else{
+			return false;
+		}
 	}
 }

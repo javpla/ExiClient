@@ -48,12 +48,15 @@ System.err.println("exi: " + EXIUtils.bytesToHex(ba));
 	    		}
 		    	try {
 		    		String xml = ep.decodeByteArray(ba).replaceAll("\r", "").replaceAll("\n", "");
-		    		if(xml.startsWith("<exi:streamStart")){
+		    		if(xml.startsWith("<exi:open")){
 		    			String from = EXIUtils.getAttributeValue(xml, "from");
 		    			String id = EXIUtils.getAttributeValue(xml, "id");
 		    			xml = "<?xml version='1.0' encoding='UTF-8'?>"
 		    					+ "<stream:stream xmlns:stream=\"http://etherx.jabber.org/streams\" xmlns=\"jabber:client\" from=\"" + from + "\""
 		    					+ " id=\"" + id + "\" xml:lang=\"en\" version=\"1.0\">";
+		    		}
+		    		else if(xml.startsWith("<streamEnd")){
+		    			xml = "</stream:stream>";
 		    		}
 			    	char[] cbuf2 = xml.toCharArray();
 			    	leido = cbuf2.length;
