@@ -51,18 +51,30 @@ public class EXIUtils {
 	 * Looks for all schema files (*.xsd) in the schemas folder and creates two new files:<br> 
 	 * <b>canonicalSchema.xsd</b> which imports all schema files in the given folder;<br>
 	 * <b>schema.xml</b> which contains each schema namespace, file size in bytes, and its md5Hash code 
-	 * 
+	 * Finally creates a default canonical schema if it does not exist
 	 * @throws NoSuchAlgorithmException
 	 * @throws IOException
 	 * @throws DocumentException 
 	 */
-	static void generateSchemasFile() throws NoSuchAlgorithmException, IOException, DocumentException{
-		File folder = new File(schemasFolder);
+	static void generateSchemasFile() throws IOException{
+		File folder = new File(EXIUtils.schemasFolder);
+		if(!folder.exists()){
+			folder.mkdir();
+		}
+		if(!new File(EXIUtils.exiFolder).exists()){
+			new File(EXIUtils.exiFolder).mkdir();
+		}
         File[] listOfFiles = folder.listFiles();
         File file;
         String fileLocation;
         
-		MessageDigest md = MessageDigest.getInstance("MD5");
+		MessageDigest md;
+		try {
+			md = MessageDigest.getInstance("MD5");
+		} catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+			return;
+		}
 		InputStream is;
 		DigestInputStream dis;
 		
@@ -150,7 +162,13 @@ public class EXIUtils {
 			return null;
 		}
         StringBuilder sb = new StringBuilder();
-        sb.append("<?xml version='1.0' encoding='UTF-8'?> \n\n<xs:schema \n\txmlns:xs='http://www.w3.org/2001/XMLSchema' \n\ttargetNamespace='urn:xmpp:exi:cs' \n\txmlns='urn:xmpp:exi:cs' \n\telementFormDefault='qualified'>\n");
+        sb.append("<?xml version='1.0' encoding='UTF-8'?>"
+        		+ "\n\n<xs:schema "
+        		+ "\n\txmlns:xs='http://www.w3.org/2001/XMLSchema'"
+        		+ "\n\txmlns:stream='http://etherx.jabber.org/streams'"
+        		+ "\n\txmlns:exi='http://jabber.org/protocol/compress/exi'"
+        		+ "\n\ttargetNamespace='urn:xmpp:exi:cs'"
+        		+ "\n\telementFormDefault='qualified'>");
         
 		Element schema;
         for (@SuppressWarnings("unchecked") Iterator<Element> i = setup.elementIterator("schema"); i.hasNext(); ) {
@@ -171,15 +189,73 @@ public class EXIUtils {
 			return null;
 		}
 		String schemaId = EXIUtils.bytesToHex(md.digest(content.getBytes()));
-        String fileName = getCanonicalSchemaLocation(schemaId);
+        String fileName = getCanonicalSchemaLocationById(schemaId);
         
         BufferedWriter newCanonicalSchemaWriter = new BufferedWriter(new FileWriter(fileName));
         newCanonicalSchemaWriter.write(content);
         newCanonicalSchemaWriter.close();
         return schemaId;
-	}	
+	}
 	
-	static String getCanonicalSchemaLocation(String schemaId) {
+	/**
+	 * Generates XEP-0322's default canonical schema
+	 * @throws IOException
+	 */
+	static void generateDefaultCanonicalSchema() throws IOException {
+		String[] schemasNeeded = {"http://etherx.jabber.org/streams", "http://jabber.org/protocol/compress/exi"};
+		boolean[] schemasFound = {false, false};
+		Element setup;
+		try {
+			setup = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
+		} catch (DocumentException e1) {
+			e1.printStackTrace();
+			return;
+		}
+        StringBuilder sb = new StringBuilder();
+        sb.append("<?xml version='1.0' encoding='UTF-8'?>"
+        		+ "\n\n<xs:schema "
+        		+ "\n\txmlns:xs='http://www.w3.org/2001/XMLSchema'"
+        		+ "\n\txmlns:stream='http://etherx.jabber.org/streams'"
+        		+ "\n\txmlns:exi='http://jabber.org/protocol/compress/exi'"
+        		+ "\n\ttargetNamespace='urn:xmpp:exi:default'"
+        		+ "\n\telementFormDefault='qualified'>");
+        
+		Element schema;
+        for (@SuppressWarnings("unchecked") Iterator<Element> i = setup.elementIterator("schema"); i.hasNext(); ) {
+        	schema = i.next();
+        	String ns = schema.attributeValue("ns");
+        	if(ns.equalsIgnoreCase(schemasNeeded[0])){
+        		schemasFound[0] = true;
+        		if(schemasFound[1]){
+        			break;
+        		}
+        	}
+        	else if(ns.equalsIgnoreCase(schemasNeeded[1])){
+        		schemasFound[1] = true;
+        		if(schemasFound[0]){
+        			break;
+        		}
+        	}
+        }
+        if(schemasFound[0] && schemasFound[1]){
+    		sb.append("\n\t<xs:import namespace='" + schemasNeeded[0] + "'/>");
+    		sb.append("\n\t<xs:import namespace='" + schemasNeeded[1] + "'/>");
+    	}
+        else{
+        	throw new IOException("Missing schema for default canonical schema: " + (schemasFound[0] ? schemasNeeded[0] : schemasNeeded[1])); 
+        }
+        sb.append("\n</xs:schema>");
+        
+        String content = sb.toString();
+        String fileName = EXIUtils.defaultCanonicalSchemaLocation;
+        
+        BufferedWriter newCanonicalSchemaWriter = new BufferedWriter(new FileWriter(fileName));
+        newCanonicalSchemaWriter.write(content);
+        newCanonicalSchemaWriter.close();
+        return;
+	}
+	
+	static String getCanonicalSchemaLocationById(String schemaId) {
 		return EXIUtils.exiFolder + schemaId + ".xsd";
 	}
 
@@ -223,16 +299,6 @@ public class EXIUtils {
     	text = text.substring(text.indexOf(comilla) + 1);	// cortar lo que hay hasta la primera comilla (inclusive)
     	text = text.substring(0, text.indexOf(comilla));		// cortar lo que hay despues de la nueva primera comilla/segunda comilla de antes (inclusive)
 		return text;
-	}
-	
-	static void createDefaultCanonicalSchemaFile() throws IOException{
-		EXIUtils.writeFile(EXIUtils.defaultCanonicalSchemaLocation, "<?xml version='1.0' encoding='UTF-8'?>"
-				+ "<xs:schema"
-				+ " xmlns:xs='http://www.w3.org/2001/XMLSchema'"
-				+ " targetNamespace='urn:xmpp:exi:cs'"
-				+ " xmlns='urn:xmpp:exi:cs'"
-				+ " elementFormDefault='qualified'>"
-				+ "</xs:schema>");
 	}
 	
 	/**

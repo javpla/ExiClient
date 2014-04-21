@@ -49,11 +49,11 @@ public class NegotiationTest extends AbstractTest {
 		
 		Object[][] data = new Object[][] {
 				{def, null, "client1 tries to use quick configurations (which do not exist) and then uses EXI with default values .client2 uses normal XMPP."}
-				//,{exiCompression, def, "client1 uses default EXI configurations while client2 uses compression alignment and blocksize = 2048."}
-				//,{exiBytePacked, exiPre, "client1 uses byte-alignment and value max length set to 100, while client2 uses pre-compression alignment and strict mode."}
-//				,{exiBytePacked, exiPre, "client1 uses byte-alignment and value max length set to 100, while client2 uses pre-compression alignment and strict mode."}
-//				,{null, exiCompression, "client1 uses default XMPP connection while client2 uses compression alignment and blocksize = 2048."}
-//				,{def, def, "Both clients use EXI compression with default values."}
+				,{exiCompression, def, "client1 uses default EXI configurations while client2 uses compression alignment and blocksize = 2048."}
+				,{exiBytePacked, exiPre, "client1 uses byte-alignment and value max length set to 100, while client2 uses pre-compression alignment and strict mode."}
+				,{exiBytePacked, exiPre, "client1 uses byte-alignment and value max length set to 100, while client2 uses pre-compression alignment and strict mode."}
+				,{null, exiCompression, "client1 uses default XMPP connection while client2 uses compression alignment and blocksize = 2048."}
+				,{def, def, "Both clients use EXI compression with default values."}
 				};
 
 		return Arrays.asList(data);
@@ -63,7 +63,6 @@ public class NegotiationTest extends AbstractTest {
 	public void testAll(){
 		client1.addEXIEventListener(new EXIPacketLogger("1"));
 		client2.addEXIEventListener(new EXIPacketLogger("2"));
-		//super.testAll();
-		testMessages();
+		super.testAll();
 	}
 }

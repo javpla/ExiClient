@@ -47,12 +47,13 @@ System.err.println("exi: " + EXIUtils.bytesToHex(ba));
 	    			System.arraycopy(anterior, 0, ba, 0, anterior.length);
 	    		}
 		    	try {
-		    		String xml = ep.decodeByteArray(ba).replaceAll("\r", "").replaceAll("\n", "");
+		    		String xml = ep.decodeByteArray(ba)
+		    				.replaceAll("\r", "")
+		    				.replaceAll("\n", "");
 		    		if(xml.startsWith("<exi:open")){
 		    			String from = EXIUtils.getAttributeValue(xml, "from");
 		    			String id = EXIUtils.getAttributeValue(xml, "id");
-		    			xml = "<?xml version='1.0' encoding='UTF-8'?>"
-		    					+ "<stream:stream xmlns:stream=\"http://etherx.jabber.org/streams\" xmlns=\"jabber:client\" from=\"" + from + "\""
+		    			xml = "<stream:stream xmlns:stream=\"http://etherx.jabber.org/streams\" xmlns=\"jabber:client\" from=\"" + from + "\""
 		    					+ " id=\"" + id + "\" xml:lang=\"en\" version=\"1.0\">";
 		    		}
 		    		else if(xml.startsWith("<streamEnd")){

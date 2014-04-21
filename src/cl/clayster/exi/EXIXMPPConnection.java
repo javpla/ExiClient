@@ -49,7 +49,6 @@ public class EXIXMPPConnection extends XMPPConnection{
 	protected EXIBaseProcessor exiProcessor;
 	
 	protected int schemaDownloadsCounter = 0;
-	protected boolean sentMissingSchemas = false;
 	
 	List<String> missingSchemas = new ArrayList<String>(0);
 	HashMap<String, String> sentURL = new HashMap<String, String>(0);
@@ -67,12 +66,16 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 */
 	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
 		super(config);
-		
 		config.setCompressionEnabled(true);
-		//config.setCompressionEnabled(exiConfig != null); // to invoke useComprssion(EXISEtupConfiguration) afterwards TODO:¿?
+		
+		try {
+			EXIUtils.generateSchemasFile();
+			EXIUtils.generateDefaultCanonicalSchema();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
 		this.exiConfig = exiConfig;
-		return;
 	}
 	
 	/**
@@ -95,15 +98,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 		if(isUsingCompression()){
 			return false;
 		}
-		
-		try {
-			EXIUtils.generateSchemasFile();
-			setCanonicalSchema();
-		} catch (NoSuchAlgorithmException | IOException | DocumentException e) {
-			e.printStackTrace();
-			return false;
-		}
-		
+		setCanonicalSchema();		
 		// maybe use quick setup
 		if(!proposeEXICompressionQuickSetup()){
 			proposeEXICompression();
@@ -119,12 +114,8 @@ public class EXIXMPPConnection extends XMPPConnection{
         return isUsingCompression();
 	}
 	
-	public int getUploadSchemaOption(){
-		return uploadSchemaOption;
-	}
-	
 	public void setUploadSchemaOption(int option){
-		if(option < -1 || option > 3)	option = UPLOAD_BINARY;
+		if(option >= -1 && option <= 3);
 		uploadSchemaOption = option;
 	}
 
@@ -253,10 +244,9 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 * @throws NoSuchAlgorithmException 
 	 * @throws XMLStreamException 
 	 */
-	public void sendMissingSchemas(List<String> missingSchemas, int opt) 
+	public void sendMissingSchemas(List<String> missingSchemas) 
 			throws NoSuchAlgorithmException, IOException, DocumentException, EXIException, SAXException, TransformerException, XMLStreamException {
-		sentMissingSchemas = true;
-		switch(opt){
+		switch(uploadSchemaOption){
 			case UPLOAD_EXI_DOCUMENT: // upload compressed EXI document
 				uploadCompressedMissingSchemas(missingSchemas, false);
 				break;
@@ -275,6 +265,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 				setCanonicalSchema();
 				break;
 		}
+		// missing schemas will tried to be sent only once, next time only present schemas will be used
+		uploadSchemaOption = USE_AVAILABLE;
 		try {
 			Thread.sleep(1000);
 		} catch (InterruptedException e) {
@@ -321,7 +313,7 @@ public class EXIXMPPConnection extends XMPPConnection{
 	/**
 	 * Sets the current exiProcessor in this class as the current EXIProcessor in EXIWriter and EXIReader 
 	 */
-	private void setEXIProcessor(){
+	protected void setEXIProcessor(){
 		if(reader instanceof ObservableReader && writer instanceof ObservableWriter){
 			((EXIReader) ((ObservableReader) reader).wrappedReader).setExiProcessor(exiProcessor);
 			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).setExiProcessor(exiProcessor);
@@ -361,9 +353,12 @@ public class EXIXMPPConnection extends XMPPConnection{
 	
 	protected void openEXIStream() throws IOException{
 		enableEXI();
-		String exiOpen = "<exi:open from='"
-				+ getUser()
-	 			+ "' to='"
+		StringBuilder exiOpen = new StringBuilder();
+		exiOpen.append("<exi:open");
+		if(getUser() != null){
+			exiOpen.append(" from='"+ getUser() + "'");
+		}
+		exiOpen.append(" to='"
 	 			+ getHost()
 	 			+ "' version='1.0'"
 	 			+ " xml:lang='en'"
@@ -371,8 +366,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 			+ "<exi:xmlns prefix='' namespace='jabber:client'/>"
 	 			+ "<exi:xmlns prefix='streams' namespace='http://etherx.jabber.org/streams'/>"
 	 			+ "<exi:xmlns prefix='exi' namespace='http://jabber.org/protocol/compress/exi'/>"
-	 			+ "</exi:open>";
-		send(exiOpen);
+	 			+ "</exi:open>");
+		send(exiOpen.toString());
 	}
 	
 	
@@ -495,10 +490,6 @@ public class EXIXMPPConnection extends XMPPConnection{
 	 */
 	public int schemaDownloaded(){
 		return --this.schemaDownloadsCounter;
-	}
-	
-	public boolean missingSchemasSent(){
-		return this.sentMissingSchemas;
 	}
 	
 	/**

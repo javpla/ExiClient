@@ -36,10 +36,10 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 	
 	protected void setDefaultValues() {
 		setDefaultValues(this);
-		setFidelityOptions(FidelityOptions.createStrict());
 		
+		//setFidelityOptions(FidelityOptions.createStrict());
 		try {
-			fidelityOptions.setFidelity(FidelityOptions.FEATURE_PREFIX, true);
+			getFidelityOptions().setFidelity(FidelityOptions.FEATURE_PREFIX, true);
 		} catch (UnsupportedOption e) {
 			e.printStackTrace();
 		}
@@ -47,13 +47,15 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 		setValueMaxLength(64);
 		setValuePartitionCapacity(64);
 		
+		
+		
 		setLocalValuePartitions(false);
 		//setMaximumNumberOfBuiltInElementGrammars(0);
 		//setMaximumNumberOfBuiltInProductions(0);
 	}
 	
 	public String getSchemaId() {
-		return schemaId != null ? schemaId : "urn:xmpp:exi:default";
+		return schemaId == null ? "urn:xmpp:exi:default" : schemaId;
 	}
 
 	public void setSchemaId(String schemaId) {
@@ -88,7 +90,7 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 
 	public String getCanonicalSchemaLocation() {
 		if(schemaId != null){
-			return EXIUtils.getCanonicalSchemaLocation(schemaId);
+			return EXIUtils.getCanonicalSchemaLocationById(schemaId);
 		}
 		else{
 			return EXIUtils.defaultCanonicalSchemaLocation;
@@ -99,7 +101,7 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 		return configurationId;
 	}
 
-	public void setConfigurationId(String configurationId) {
+	void setConfigurationId(String configurationId) {
 		this.configurationId = configurationId;
 	}
 	
@@ -287,7 +289,6 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
             	exiConfig.setEncodingOptions(eo);
             }
         }
-System.out.println("parsed: " + exiConfig);
 		return exiConfig;
 	}
 	

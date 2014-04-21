@@ -16,6 +16,7 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 	
 	public EXIXMPPAlternativeConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
 		super(config, exiConfig);
+		setCanonicalSchema();
 	}
 	
 	@Override
@@ -23,6 +24,9 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 		try {
         	reader = new EXIAltReader(socket.getInputStream());
             writer = new EXIWriter(socket.getOutputStream(), true);
+            if(exiProcessor != null){
+            	setEXIProcessor();
+            }
 		}
         catch (IOException ioe) {
             throw new XMPPException(
@@ -35,10 +39,15 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 	
 	public void startAlternativeBinding() throws IOException{
 		try {
-			if(!tryQuickSetup()){
-				exiProcessor = new EXIProcessor(null);	// create exi processor with default configurations
+			if(!triedQuickSetup){
+				if(!tryQuickSetup()){
+					exiProcessor = new EXIProcessor(null);	// create exi processor with default configurations
+				}
+				startStreamCompression();
 			}
-			startStreamCompression();
+			else{
+				openEXIStream();
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -88,14 +97,13 @@ public class EXIXMPPAlternativeConnection extends EXIXMPPConnection {
 	}
 	
 	private boolean tryQuickSetup() throws EXIException{
-		if(triedQuickSetup)	return true;
+		triedQuickSetup = true;
 		if(exiConfig.exists()){
 			exiConfig.getEncodingOptions().setOption(EncodingOptions.INCLUDE_OPTIONS);
 			// TODO: schema id debe incluir c:
 			exiConfig.getEncodingOptions().setOption(EncodingOptions.INCLUDE_SCHEMA_ID);
 			exiProcessor = new EXIProcessor(exiConfig);
-			triedQuickSetup = true;
-System.out.println("QUICK AB SETUP!");
+System.out.println("QUICK AB SETUP using: " + exiConfig);
 			return true;
 		}
 		else{
