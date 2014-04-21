@@ -27,26 +27,6 @@ public class NoSchemasOnServerTest extends AbstractTest {
 
 	@Override
 	void beforeConnect() {
-		timeOut = 100;
-		removeExtraSchemasOnServer();
-	}
-	
-	@Parameters
-	public static Collection<Object[]> data() {
-		// delete previous configuration id register (just for the first test which should try quick configurations, but will then do normal negotiation instead)
-		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
-		
-		Object[][] data = new Object[][] {
-				{exiConfig, null, "a:client1 uploads binary files."},
-				{exiConfig, null, "b:client1 uploads exi-compressed files (only the exi body)."},
-				{exiConfig, null, "c:client1 uploads exi-compressed files."},
-				{exiConfig, null, "d:client1 uploads a URL for the server to download it, or else uploads binary files."}
-				};
-		return Arrays.asList(data);
-	}
-	
-	@Override
-	public void testAll() {
 		switch(testInfo.charAt(0)){
 			case 'a': client1.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY);
 			break;
@@ -59,7 +39,25 @@ public class NoSchemasOnServerTest extends AbstractTest {
 			case 'e': client1.setUploadSchemaOption(EXIXMPPConnection.USE_AVAILABLE);
 			break;
 		}
+		removeExtraSchemasOnServer();
+	}
+	
+	@Parameters
+	public static Collection<Object[]> data() {
+		// delete previous configuration id register (just for the first test which should try quick configurations, but will then do normal negotiation instead)
+		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
 		
+		Object[][] data = new Object[][] {
+				{exiConfig, null, "a:client1 uploads binary files."}/*
+				{exiConfig, null, "b:client1 uploads exi-compressed files (only the exi body)."},
+				{exiConfig, null, "c:client1 uploads exi-compressed files."},
+				{exiConfig, null, "d:client1 uploads a URL for the server to download it, or else uploads binary files."}*/
+				};
+		return Arrays.asList(data);
+	}
+	
+	@Override
+	public void testAll() {
 		super.testAll();
 	}
 	

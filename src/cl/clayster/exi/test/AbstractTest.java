@@ -50,7 +50,7 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	protected EXIXMPPConnection client1, client2;
 	protected String testInfo;
 	
-	protected int timeOut = 30;
+	protected int timeOut = 300;
 
 	private Message m = null;
 	private IQ iq = null;
@@ -114,7 +114,6 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		ProviderManager.getInstance().addIQProvider("cancel", "urn:xmpp:iot:sensordata", new Cancel.Provider());
 		ProviderManager.getInstance().addIQProvider("accepted", "urn:xmpp:iot:sensordata", new Accepted.Provider());
 		ProviderManager.getInstance().addIQProvider("cancelled", "urn:xmpp:iot:sensordata", new Cancelled.Provider());
-		//TODO: no tiene namespace! ProviderManager.getInstance().addIQProvider("error", "", new Error.Provider());
 	}
 	
 	public void connect() {
@@ -151,12 +150,16 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 				fail("timeout while negotiating EXI (client2)");
 			}
 		}
+		
+		try {
+			Thread.sleep(5000);
+		} catch (InterruptedException e) {
+			fail(e.getMessage());
+		}
 	}
 	
 	@After
 	public void disconnect() {		
-		waitAndTest();
-		
 		if(client1.isConnected())	client1.disconnect();
 		if(client2.isConnected())	client2.disconnect();
 	}
@@ -186,7 +189,7 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	 * Connects to the server and send a message from one client to the other using EXI compression. 
 	 * Disconnects afterwards.
 	 */
-	protected void testMessages(){
+	protected void sendMessages(){
 		client2.addPacketListener(packetListener, testFilter);
 		
 		for(PacketExtension pe : TestExtensions.msgExt){
@@ -205,15 +208,15 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	protected void testSimpleMessage(int i){
 		client2.addPacketListener(packetListener, testFilter);
 		
-		Message m = new Message(client2.getUser());
-		m.setFrom(client1.getUser());
+		Message m = new Message(client1.getUser());
+		m.setFrom(client2.getUser());
 		m.addExtension(TestExtensions.msgExt[i]);
 		try {
 			sent.put(m);
 		} catch (InterruptedException e) {
 			fail(e.getMessage());
 		}
-		client1.sendPacket(m);
+		client2.sendPacket(m);
 	}
 	
 	protected void testSimpleExtendedMessage(){
@@ -284,7 +287,7 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		}
 	}
 	
-	protected void testIQs(){
+	protected void sendIQs(){
 		
 		client2.addPacketListener(packetListener, testFilter);
 		
@@ -318,8 +321,9 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	
 	@Test
 	public void testAll(){
-		testMessages();
-		testIQs();
+		sendMessages();
+		sendIQs();
+		waitAndTest();
 	}
 	
 	/**

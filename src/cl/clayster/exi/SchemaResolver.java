@@ -13,11 +13,13 @@ public class SchemaResolver implements XMLEntityResolver {
 	
 	HashMap<String, String> canonicalPaths = new HashMap<String, String>();
 	HashMap<String, String> names = new HashMap<String, String>();
-	String folderLocation = EXIUtils.schemasFolder;
 	
 
 	public SchemaResolver () throws IOException{
-		File folder = new File(folderLocation);
+		File folder = new File(EXIUtils.schemasFolder);
+		if(!folder.isDirectory()){
+			return;
+		}
         File[] listOfFiles = folder.listFiles();
         File file;
         String fileLocation;

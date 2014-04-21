@@ -7,13 +7,18 @@ import java.io.InputStreamReader;
 import org.jivesoftware.smack.Chat;
 import org.jivesoftware.smack.ChatManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
+import org.jivesoftware.smack.ConnectionConfiguration.SecurityMode;
 import org.jivesoftware.smack.MessageListener;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.IQ;
+import org.jivesoftware.smack.packet.IQ.Type;
 import org.jivesoftware.smack.packet.Message;
+import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.packet.Presence;
 
 import com.siemens.ct.exi.CodingMode;
+
+import cl.clayster.exi.test.TestExtensions;
 
 
 public class SmackAB implements MessageListener{
@@ -25,16 +30,11 @@ public class SmackAB implements MessageListener{
 	public static void main(String[] args) throws XMPPException, IOException{
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
-		//config.setCompressionEnabled(true);
-		//config.setSecurityMode(SecurityMode.disabled);
+		config.setSecurityMode(SecurityMode.disabled);
 		
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
 		exiConfig.setCodingMode(CodingMode.COMPRESSION);
-		exiConfig.setBlockSize(2048);
-		
 		EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, exiConfig);
-//		EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, new EXISetupConfiguration());
-		//EXIXMPPAlternativeConnection connection = new EXIXMPPAlternativeConnection(config, null); //funciona!!
 		connection.connect();
 		
 		//connection.addEXIEventListener(new EXIPacketLogger("alt"));
@@ -55,14 +55,14 @@ public class SmackAB implements MessageListener{
 				connection.sendPacket(presence);
 				continue;
 			}
-			if(msg.equalsIgnoreCase("a")){
+			else if(msg.equalsIgnoreCase("a")){
 				// Create a new presence. Pass in false to indicate we're unavailable.
 				Presence presence = new Presence(Presence.Type.available);
 				// Send the packet (assume we have a Connection instance called "con").
 				connection.sendPacket(presence);
 				continue;
 			}
-			if(msg.startsWith("iq")){
+			else if(msg.startsWith("iq")){
 				IQ iq = new IQ() {
 					
 					@Override
@@ -76,6 +76,35 @@ public class SmackAB implements MessageListener{
 				iq.setType(IQ.Type.GET);
 				connection.sendPacket(iq);
 				continue;
+			}
+			else if(msg.startsWith("test323")){
+				for(final PacketExtension iqExt : TestExtensions.iqExt){
+					IQ iq = new IQ() {
+						@Override 
+						public String getChildElementXML() {
+							return iqExt.toXML();
+							}
+					};
+					String elementName = iqExt.getElementName();
+					if(elementName.equals("query") || elementName.equals("req") || elementName.equals("cancel")){
+						iq.setType(Type.GET);
+					}
+					else if(elementName.equals("accepted") || elementName.equals("cancelled")){
+						iq.setType(Type.RESULT);
+					}
+					else if(elementName.equals("rejected")){
+						iq.setType(Type.ERROR);
+					}
+					iq.setTo(contacto);
+					iq.setFrom(connection.getUser());
+					connection.sendPacket(iq);
+				}
+				for(PacketExtension pe : TestExtensions.msgExt){
+					Message m = new Message(contacto);
+					m.setFrom(connection.getUser());
+					m.addExtension(pe);
+					connection.sendPacket(m);
+				}
 			}
 			else
 				newChat.sendMessage(msg);

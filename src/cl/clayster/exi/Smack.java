@@ -7,29 +7,35 @@ import java.io.InputStreamReader;
 import org.jivesoftware.smack.Chat;
 import org.jivesoftware.smack.ChatManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
+import org.jivesoftware.smack.ConnectionConfiguration.SecurityMode;
 import org.jivesoftware.smack.MessageListener;
+import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.IQ;
+import org.jivesoftware.smack.packet.IQ.Type;
 import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.packet.Presence;
 
 import com.siemens.ct.exi.CodingMode;
 
+import cl.clayster.exi.test.TestExtensions;
+
 
 public class Smack implements MessageListener{ 
 	
+	/*
 	static String servidor = "localhost";
 	static String usuario = "exiuser";
 	static String password = "exiuser";
-	static String contacto = "javier@exi.clayster.cl/Spark";	// usuario al cual se le envían mensajes
+	static String contacto = "javier@exi.clayster.cl/Spark 2.6.3";	// usuario al cual se le envían mensajes
 	static boolean exi = true;
-	/*
+	/**/
 	
-	static final String servidor = "clayster.cl";
-	static final String contacto = "gogonet1@jabber.se";	// usuario al cual se le envían mensajes
-	static final String usuario = "javier.placencio";
-	static final String password = "pla123";
+	static String servidor = "exi.clayster.cl";
+	static String contacto = "exi2@exi.clayster.cl/Spark 2.6.3";	// usuario al cual se le envían mensajes
+	static String usuario = "exiuser";
+	static String password = "exiuser";
 	static boolean exi = false;
 	/**/
 	
@@ -43,23 +49,19 @@ public class Smack implements MessageListener{
 		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
+		config.setCompressionEnabled(true);
+		config.setSecurityMode(SecurityMode.disabled);
 		
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
-		exiConfig.setCodingMode(CodingMode.BYTE_PACKED);
-		exiConfig.setBlockSize(2048);
-		exiConfig.setStrict(false);
-		exiConfig.setValueMaxLength(300);
-		//EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig, new File("C:/Users/Javier/workspace/Personales/ExiClient/schemas/canonicalSchemas/cs.xsd"));
-		
-		
+		exiConfig.setCodingMode(CodingMode.COMPRESSION);
 		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig);
 		
-		
+		//XMPPConnection connection = new XMPPConnection(config);
 		connection.connect();
 		connection.login(usuario, password);
 		
-		connection.addEXIEventListener(new EXIPacketLogger(""));
 		
+		connection.addEXIEventListener(new EXIPacketLogger("Smack EXI"));
 		/**
 		// get list of contacts (Roster)
 		Roster roster = connection.getRoster();
@@ -163,6 +165,43 @@ public class Smack implements MessageListener{
 				iq.setType(IQ.Type.GET);
 				connection.sendPacket(iq);
 				continue;
+			}
+			else if(msg.startsWith("test323")){
+				for(final PacketExtension iqExt : TestExtensions.iqExt){
+					IQ iq = new IQ() {
+						@Override 
+						public String getChildElementXML() {
+							return iqExt.toXML();
+							}
+					};
+					String elementName = iqExt.getElementName();
+					if(elementName.equals("query") || elementName.equals("req") || elementName.equals("cancel")){
+						iq.setType(Type.GET);
+					}
+					else if(elementName.equals("accepted") || elementName.equals("cancelled")){
+						iq.setType(Type.RESULT);
+					}
+					else if(elementName.equals("rejected")){
+						iq.setType(Type.ERROR);
+					}
+					iq.setTo(contacto);
+					iq.setFrom(connection.getUser());
+					connection.sendPacket(iq);
+				}
+				for(PacketExtension pe : TestExtensions.msgExt){
+					Message m = new Message(contacto);
+					m.setFrom(connection.getUser());
+					m.addExtension(pe);
+					connection.sendPacket(m);
+				}
+			}
+			else if(msg.startsWith("testSameMsg")){
+				Message m = new Message(contacto);
+				m.setFrom(connection.getUser());
+				m.addExtension(TestExtensions.msgExt[TestExtensions.msgExt.length-1]);
+				for(int i=0 ; i < 1 ; i++){
+					connection.sendPacket(m);
+				}
 			}
 			else
 				newChat.sendMessage(msg);

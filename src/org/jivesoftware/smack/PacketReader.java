@@ -184,7 +184,7 @@ public class PacketReader {
                 if (eventType == XmlPullParser.START_TAG) {      
                 	//TODO/************************ EXI code ************************/
                     /** EXI alternative binding **/
-                	if(connection instanceof EXIXMPPAlternativeConnection && (parser.getName().equals("streamStart") || parser.getName().equals("stream"))){
+                	if(connection instanceof EXIXMPPAlternativeConnection && parser.getName().equals("stream")){
                 		connectionID = "alternative";
                         if (!"1.0".equals(parser.getAttributeValue("", "version"))) {
                             // Notify that a stream has been opened if the
@@ -195,14 +195,14 @@ public class PacketReader {
                         }
                         // Use the server name that the server says that it is.
                         connection.config.setServiceName(parser.getAttributeValue(null, "from"));
-                	}
+	                }
                 	else if(connection instanceof EXIXMPPAlternativeConnection && parser.getName().equals(("setupResponse"))){
 						EXIXMPPAlternativeConnection exiAltConnection = ((EXIXMPPAlternativeConnection) connection);
 						if("true".equals(parser.getAttributeValue(null, "agreement"))){
 							exiAltConnection.restartEXIStream(parser.getAttributeValue(null, "configurationId"));
 							}
-							else{
-								// TODO: upload missing schemas
+						else{
+							// TODO: upload missing schemas
 System.out.println("no agreement");
 						}
                 	}
@@ -227,12 +227,7 @@ System.out.println("no agreement");
                 		else{
             				List<String> missingSchemas = PacketParserUtils.parseSetupResponse(parser);
             				if(missingSchemas.size() > 0){
-            					int option = exiConnection.getUploadSchemaOption();
-                				if(exiConnection.missingSchemasSent()){
-                					// it is the first intent to send the missing schemas
-                					option = EXIXMPPConnection.USE_AVAILABLE;
-                				}
-	    	                	exiConnection.sendMissingSchemas(missingSchemas, option);
+	    	                	exiConnection.sendMissingSchemas(missingSchemas);
             				}
                 			else{
                 				exiConnection.proposeEXICompression();
