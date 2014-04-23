@@ -127,12 +127,12 @@ public class EXIUtils {
             // variables to write the stanzas and canonicalSchema files
             File stanzasFile = new File(schemasFileLocation);
             BufferedWriter stanzasWriter = new BufferedWriter(new FileWriter(stanzasFile));
-            stanzasWriter.write("<setup xmlns=\'http://jabber.org/protocol/compress/exi\'>");
+            stanzasWriter.write("<schemas>");
             
             for(String ns : namespaces){
             	stanzasWriter.write("\n\t" + schemasStanzas.get(ns));
             }
-            stanzasWriter.write("\n</setup>");
+            stanzasWriter.write("\n</schemas>");
             stanzasWriter.close();
 	}
 	

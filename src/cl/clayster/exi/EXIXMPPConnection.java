@@ -165,25 +165,21 @@ public class EXIXMPPConnection extends XMPPConnection{
 			namespaces.add(auxSchema.attributeValue("namespace"));
 		}
 		
-		Element setupElement = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
-		// add compression parameters
-		setupElement.addAttribute("version", "1");
-		setupElement.addAttribute("alignment", exiConfig.getAlignmentString());
-		setupElement.addAttribute("strict", String.valueOf(exiConfig.getFidelityOptions().isStrict()));
-		setupElement.addAttribute("blockSize", String.valueOf(exiConfig.getBlockSize()));
-		setupElement.addAttribute("valueMaxLength", String.valueOf(exiConfig.getValueMaxLength()));
-		setupElement.addAttribute("valuePartitionCapacity", String.valueOf(exiConfig.getValuePartitionCapacity()));
-        for(@SuppressWarnings("unchecked") Iterator<Element> i = setupElement.elementIterator("schema"); i.hasNext();) {
+		Element setup = DocumentHelper.parseText(exiConfig.toString()).getRootElement();
+		setup.addNamespace("", "http://jabber.org/protocol/compress/exi");
+		setup.remove(setup.attribute("schemaId"));
+		Element schemas = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
+		for(@SuppressWarnings("unchecked") Iterator<Element> i = schemas.elementIterator("schema"); i.hasNext();) {
         	auxSchema = i.next();
         	if(!namespaces.contains(auxSchema.attributeValue("ns"))){
-				setupElement.remove(auxSchema);
+				schemas.remove(auxSchema);
         		continue;
         	}
-        	
         	auxSchema.remove(auxSchema.attribute("url"));
         	auxSchema.remove(auxSchema.attribute("schemaLocation"));
+        	setup.add((Element) auxSchema.clone());
         }
-        return setupElement.asXML();
+        return setup.asXML();
 	}
 	
 	protected void send(String message) throws IOException{

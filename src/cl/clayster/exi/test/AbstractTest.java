@@ -50,7 +50,7 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	protected EXIXMPPConnection client1, client2;
 	protected String testInfo;
 	
-	protected int timeOut = 300;
+	protected int timeOut = 30;
 
 	private Message m = null;
 	private IQ iq = null;

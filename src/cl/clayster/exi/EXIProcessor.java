@@ -25,8 +25,6 @@ import com.siemens.ct.exi.api.sax.EXIResult;
 import com.siemens.ct.exi.api.sax.EXISource;
 import com.siemens.ct.exi.exceptions.EXIException;
 import com.siemens.ct.exi.grammars.Grammars;
-import com.siemens.ct.exi.util.FragmentUtilities;
-import com.siemens.ct.exi.util.SkipRootElementXMLReader;
 
 public class EXIProcessor extends EXIBaseProcessor{
 	
@@ -60,9 +58,6 @@ public class EXIProcessor extends EXIBaseProcessor{
     			
     			exiResult = new EXIResult(exiFactory);
     	        xmlReader = XMLReaderFactory.createXMLReader();
-    	        if (exiFactory.isFragment()) {
-    				xmlReader = new SkipRootElementXMLReader(xmlReader);
-    			}
     	        xmlReader.setContentHandler(exiResult.getHandler());
     			
     			exiSource = new EXISource(exiFactory);
@@ -81,7 +76,6 @@ public class EXIProcessor extends EXIBaseProcessor{
 	        
 	
 	/** FUNCIONES DEFINITIVAS Y PARA XSD VARIABLES **/
-	@SuppressWarnings("resource")
 	@Override
 	protected byte[] encodeToByteArray(String xml) throws IOException, EXIException, SAXException, TransformerException{
 	        // encoding
@@ -90,11 +84,6 @@ public class EXIProcessor extends EXIBaseProcessor{
 	        
 	        InputSource is = new InputSource(new StringReader(xml));
 
-	        if (exiFactory.isFragment()) {
-	        	InputStream xmlInput = new ByteArrayInputStream(xml.getBytes());
-				xmlInput = FragmentUtilities.getSurroundingRootInputStream(xmlInput);
-				is = new InputSource(xmlInput);
-			}
 	        xmlReader.parse(is);
 	        return baos.toByteArray();
 	}
@@ -109,9 +98,19 @@ public class EXIProcessor extends EXIBaseProcessor{
 	        ByteArrayOutputStream baos = new ByteArrayOutputStream();
 	        transformer.transform(exiSource, new StreamResult(baos));
 	        
-	        return baos.toString();
+	        return baos.toString("UTF-8");
 	}
 	
+	/**
+	 * Decodes an EXI Stream contained the given InputStream. It is better to use a BufferedInputStream as it saves its position to 
+	 * decode possible next EXI Documents in the stream.
+	 * @param exiIS
+	 * @return XML String representing the decoded EXI Stream
+	 * @throws IOException
+	 * @throws EXIException
+	 * @throws SAXException
+	 * @throws TransformerException
+	 */
 	protected String decode(InputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{                
         // decoding        
         exiSource = new SAXSource(new InputSource(exiIS));
@@ -120,6 +119,6 @@ public class EXIProcessor extends EXIBaseProcessor{
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         transformer.transform(exiSource, new StreamResult(baos));                
         
-        return baos.toString();
+        return baos.toString("UTF-8");
     }
 }

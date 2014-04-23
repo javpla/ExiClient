@@ -4,19 +4,15 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
-import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamResult;
 
-import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXNotRecognizedException;
@@ -28,7 +24,6 @@ import com.siemens.ct.exi.Constants;
 import com.siemens.ct.exi.EXIFactory;
 import com.siemens.ct.exi.EncodingOptions;
 import com.siemens.ct.exi.FidelityOptions;
-import com.siemens.ct.exi.api.dom.DOMBuilder;
 import com.siemens.ct.exi.api.sax.EXIResult;
 import com.siemens.ct.exi.api.sax.SAXDecoder;
 import com.siemens.ct.exi.exceptions.EXIException;
@@ -84,7 +79,7 @@ public class EXIBaseProcessor {
         ByteArrayOutputStream xmlDecoded = new ByteArrayOutputStream();
         transformer.transform(exiSource, new StreamResult(xmlDecoded));
 
-        return xmlDecoded.toString();
+        return xmlDecoded.toString("UTF-8");
     }
     
 
@@ -175,7 +170,7 @@ public class EXIBaseProcessor {
         ByteArrayOutputStream xmlDecoded = new ByteArrayOutputStream();
         transformer.transform(exiSource, new StreamResult(xmlDecoded));
 
-        return xmlDecoded.toString();
+        return xmlDecoded.toString("UTF-8");
     }
     
     /**
@@ -206,36 +201,4 @@ public class EXIBaseProcessor {
         return decodeSchemaless(exiBytes);
     }
     
-    protected String decodeByteArrayDOM(byte[] exiBytes) throws TransformerException, ParserConfigurationException, EXIException{
-		ByteArrayInputStream is = new ByteArrayInputStream(exiBytes);
-		
-		DOMBuilder domBuilder = new DOMBuilder(exiFactory);
-		boolean isFragment = exiFactory.isFragment();
-		
-		Node doc;
-		if (isFragment) {
-			doc = domBuilder.parseFragment(is);
-		} else {
-			doc = domBuilder.parse(is);
-		}
-		// create string from xml tree
-		StringWriter sw = new StringWriter();
-		
-		// set up a transformer
-		TransformerFactory transfac = TransformerFactory.newInstance();
-		Transformer trans = transfac.newTransformer();
-		// output options
-		trans.setOutputProperty(OutputKeys.METHOD, "xml");
-		// due to fragments
-		trans.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-		// remaining keys
-		
-		trans.setOutputProperty(OutputKeys.INDENT, "yes");
-		// create string from xml tree
-		StreamResult result = new StreamResult(sw);
-		DOMSource source = new DOMSource(doc);
-		trans.transform(source, result);
-
-		return sw.toString();
-	}
 }

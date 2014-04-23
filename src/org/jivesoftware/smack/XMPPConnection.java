@@ -1064,7 +1064,8 @@ public class XMPPConnection extends Connection {
      */
     synchronized void notifyConnectionError(Exception e) {
         // Listeners were already notified of the exception, return right here.
-        if (packetReader.done && packetWriter.done) return;
+        if (packetReader.done && packetWriter.done) 
+        	return;
 
         packetReader.done = true;
         packetWriter.done = true;

@@ -33,7 +33,7 @@ public class Smack implements MessageListener{
 	/**/
 	
 	static String servidor = "exi.clayster.cl";
-	static String contacto = "exi2@exi.clayster.cl/Spark 2.6.3";	// usuario al cual se le envían mensajes
+	static String contacto = "javier@exi.clayster.cl/Spark 2.6.3";	// usuario al cual se le envían mensajes
 	static String usuario = "exiuser";
 	static String password = "exiuser";
 	static boolean exi = false;
@@ -51,7 +51,7 @@ public class Smack implements MessageListener{
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
 		config.setCompressionEnabled(true);
 		config.setSecurityMode(SecurityMode.disabled);
-		
+	
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
 		exiConfig.setCodingMode(CodingMode.COMPRESSION);
 		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig);
@@ -60,8 +60,6 @@ public class Smack implements MessageListener{
 		connection.connect();
 		connection.login(usuario, password);
 		
-		
-		connection.addEXIEventListener(new EXIPacketLogger("Smack EXI"));
 		/**
 		// get list of contacts (Roster)
 		Roster roster = connection.getRoster();
@@ -193,6 +191,37 @@ public class Smack implements MessageListener{
 					m.setFrom(connection.getUser());
 					m.addExtension(pe);
 					connection.sendPacket(m);
+				}
+			}
+			else if(msg.startsWith("�")){
+				for(int i = 0 ; i < 20 ; i++){
+					for(final PacketExtension iqExt : TestExtensions.iqExt){
+						IQ iq = new IQ() {
+							@Override 
+							public String getChildElementXML() {
+								return iqExt.toXML();
+								}
+						};
+						String elementName = iqExt.getElementName();
+						if(elementName.equals("query") || elementName.equals("req") || elementName.equals("cancel")){
+							iq.setType(Type.GET);
+						}
+						else if(elementName.equals("accepted") || elementName.equals("cancelled")){
+							iq.setType(Type.RESULT);
+						}
+						else if(elementName.equals("rejected")){
+							iq.setType(Type.ERROR);
+						}
+						iq.setTo(contacto);
+						iq.setFrom(connection.getUser());
+						connection.sendPacket(iq);
+					}
+					for(PacketExtension pe : TestExtensions.msgExt){
+						Message m = new Message(contacto);
+						m.setFrom(connection.getUser());
+						m.addExtension(pe);
+						connection.sendPacket(m);
+					}
 				}
 			}
 			else if(msg.startsWith("testSameMsg")){

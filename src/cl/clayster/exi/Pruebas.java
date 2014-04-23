@@ -1,10 +1,9 @@
 package cl.clayster.exi;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.StringWriter;
 import java.security.NoSuchAlgorithmException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -12,22 +11,28 @@ import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.sax.SAXSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.dom4j.DocumentException;
 import org.jivesoftware.smack.XMPPException;
-import org.w3c.dom.Node;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
+import org.xml.sax.helpers.XMLReaderFactory;
 
-import com.siemens.ct.exi.api.dom.DOMBuilder;
+import com.siemens.ct.exi.EXIFactory;
+import com.siemens.ct.exi.GrammarFactory;
+import com.siemens.ct.exi.api.sax.EXIResult;
+import com.siemens.ct.exi.api.sax.EXISource;
 import com.siemens.ct.exi.exceptions.EXIException;
+import com.siemens.ct.exi.grammars.Grammars;
 
 
 public class Pruebas{ 
 	
 	public static void main(String[] args) throws XMPPException, IOException, DocumentException, NoSuchAlgorithmException, EXIException, SAXException, TransformerException, ParserConfigurationException{
-		
+		/*
 		EXISetupConfiguration config = new EXISetupConfiguration();
 		long[] enc = new long[20], dec = new long[20];
 		EXIProcessor p = new EXIProcessor(config);
@@ -104,7 +109,7 @@ public class Pruebas{
 		
 		boolean a = true;
 		if(a)return;
-		
+		_*/
 		/*
 		byte[] ba = ("1234567890qwertyuiopasdfghjklzxcvbnm"
 				   + "098765432poiuytrewqñlkjhgfdsamnbvcxz").getBytes();
@@ -131,19 +136,56 @@ System.out.println("second half: " + new String(r));
 		*/
 		
 		/** SAX Deocoder **/
-		/*
-		EXISetupConfiguration ef = new EXISetupConfiguration();
-		ef.setFragment(true);
-		EXIProcessor ep = new EXIProcessor(ef);
-		byte[] ba = new byte[100];
+		
+		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
+	    EXIResult exiResult;
+	    SAXSource exiSource;
+		Transformer transformer;
+		EXIFactory exiFactory = exiConfig;
+		String xsdLocation = exiConfig.getCanonicalSchemaLocation();
+		XMLReader exiReader, xmlReader;
+		GrammarFactory grammarFactory = GrammarFactory.newInstance();
+        Grammars g = grammarFactory.createGrammars(xsdLocation, new SchemaResolver());
+        g.setSchemaId(exiConfig.getSchemaId());
+        exiFactory.setGrammars(g);
+        
+        TransformerFactory tf = TransformerFactory.newInstance();
+		transformer = tf.newTransformer();
+		transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+		
+		exiResult = new EXIResult(exiFactory);
+        xmlReader = XMLReaderFactory.createXMLReader();
+        xmlReader.setContentHandler(exiResult.getHandler());
+		
+		exiSource = new EXISource(exiFactory);
+        exiReader = exiSource.getXMLReader();
+        
+        EXIProcessor ep = new EXIProcessor(exiConfig);
+		
 		byte[] aux = ep.encodeToByteArray("<compressed xmlns='http://jabber.org/protocol/compress'/>");
-		System.arraycopy(aux, 0, ba, 0, aux.length);
 		byte[] aux2 = ep.encodeToByteArray("<presence id=\"IRqHf-3\"></presence>");
+		byte[] ba = new byte[aux.length + aux2.length];
+		System.arraycopy(aux, 0, ba, 0, aux.length);
 		System.arraycopy(aux2, 0, ba, aux.length, aux2.length);
 		
-		//ba = ep.encodeToByteArray("<compressed xmlns='http://jabber.org/protocol/compress'/><presence id=\"IRqHf-3\"></presence>");
+		BufferedInputStream bis = new BufferedInputStream(new ByteArrayInputStream(ba));
+		SAXSource saxSource = new SAXSource(new InputSource(bis));
+		saxSource.setXMLReader(exiReader);
 		
-		ByteArrayInputStream bais = new ByteArrayInputStream(ba);
+		int av = bis.available();
+		try{
+			while(bis.available() > 0){			
+				ByteArrayOutputStream os = new ByteArrayOutputStream();
+				transformer.transform(saxSource, new StreamResult(os));
+				System.out.println("DECODED: " + os.toString());
+				av = bis.available();
+			}
+		}catch (TransformerException e){
+			System.out.println("listo. av=" + av);
+		}
+		
+
+		/*
 		
 		int i = bais.available();
 		while(i > 0){

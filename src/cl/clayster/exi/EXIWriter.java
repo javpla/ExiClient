@@ -41,14 +41,13 @@ public class EXIWriter extends BufferedWriter {
 			return;
     	}
     	try {
-System.out.println("ENCODING: " + xml);
         	byte[] exi = ep.encodeToByteArray(xml);
-System.out.println("ENCODED: " + EXIUtils.bytesToHex(exi));
 			if(!writeListeners.isEmpty()){
 				for(EXIEventListener eel : writeListeners){
 					eel.packetEncoded(xml, exi);
 				}
 			}
+System.out.println("sending: " + EXIUtils.bytesToHex(exi));
         	os.write(exi, off, exi.length);
         	os.flush();
     	}catch (SAXException | EXIException | TransformerException e){
@@ -80,14 +79,12 @@ System.out.println("ENCODED: " + EXIUtils.bytesToHex(exi));
 
 	public void writeWithCookie(String xml) throws IOException {
 		try {
-System.out.println("ENCODING(cookie): " + xml);
         	byte[] exi = ep.encodeToByteArray(xml);
         	byte[] c = "$EXI".getBytes();
         	byte[] aux = new byte[exi.length + c.length]; 
 			System.arraycopy(exi, 0, aux, c.length, exi.length);
 			System.arraycopy(c, 0, aux, 0, c.length);
 			exi = aux;
-System.out.println("ENCODED(cookie): " + EXIUtils.bytesToHex(exi));
 			if(!writeListeners.isEmpty()){
 				for(EXIEventListener eel : writeListeners){
 					eel.packetEncoded(xml, exi);

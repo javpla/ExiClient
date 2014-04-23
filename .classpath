@@ -10,5 +10,6 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="lib/xalan-2.5.1.jar"/>
 	<classpathentry kind="lib" path="lib/jxl.jar"/>
+	<classpathentry kind="lib" path="/openfire/build/lib/merge/mina-core.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
