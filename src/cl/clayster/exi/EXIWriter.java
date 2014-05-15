@@ -37,17 +37,19 @@ public class EXIWriter extends BufferedWriter {
 	@Override
     public void write(String xml , int off, int len) throws IOException {
     	if(!exi){
+//System.out.println("sending xml: " + xml);
     		super.write(xml, off, len);
 			return;
     	}
     	try {
+//System.out.println("encoding: " + xml);
         	byte[] exi = ep.encodeToByteArray(xml);
 			if(!writeListeners.isEmpty()){
 				for(EXIEventListener eel : writeListeners){
 					eel.packetEncoded(xml, exi);
 				}
 			}
-System.out.println("sending: " + EXIUtils.bytesToHex(exi));
+//System.out.println("sending: " + EXIUtils.bytesToHex(exi));
         	os.write(exi, off, exi.length);
         	os.flush();
     	}catch (SAXException | EXIException | TransformerException e){

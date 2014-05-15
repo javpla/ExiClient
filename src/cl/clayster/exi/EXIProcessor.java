@@ -1,5 +1,6 @@
 package cl.clayster.exi;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -20,16 +21,26 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 
+import com.siemens.ct.exi.EXIFactory;
 import com.siemens.ct.exi.GrammarFactory;
 import com.siemens.ct.exi.api.sax.EXIResult;
 import com.siemens.ct.exi.api.sax.EXISource;
 import com.siemens.ct.exi.exceptions.EXIException;
 import com.siemens.ct.exi.grammars.Grammars;
 
+/**
+ * This class containes several methods and fields to be used for encoding and decoding using the EXI compression method.
+ * @author Javier Placencio
+ *
+ */
 public class EXIProcessor extends EXIBaseProcessor{
 	
-	protected Transformer transformer;
+	protected EXIFactory exiFactory;
+	protected EXIResult exiResult;
+    protected SAXSource exiSource;
+    protected Transformer transformer;
 	protected XMLReader exiReader, xmlReader;
+	private boolean swb = false;
 	
 	/**
 	 * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and the respective parameters in exiConfig for its configuration.
@@ -41,6 +52,7 @@ public class EXIProcessor extends EXIBaseProcessor{
 		if(exiConfig == null){
 			exiConfig = new EXISetupConfiguration();
 		}
+		swb = exiConfig.isSessionWideBuffers();
         // create factory and EXI grammar for given schema
         exiFactory = exiConfig;
         String xsdLocation = exiConfig.getCanonicalSchemaLocation();
@@ -78,41 +90,41 @@ public class EXIProcessor extends EXIBaseProcessor{
 	/** FUNCIONES DEFINITIVAS Y PARA XSD VARIABLES **/
 	@Override
 	protected byte[] encodeToByteArray(String xml) throws IOException, EXIException, SAXException, TransformerException{
-	        // encoding
-	        ByteArrayOutputStream baos = new ByteArrayOutputStream();         
-	        exiResult.setOutputStream(baos);
-	        
-	        InputSource is = new InputSource(new StringReader(xml));
+		if(!swb){
+	        exiResult = new EXIResult(exiFactory);
+	        xmlReader.setContentHandler(exiResult.getHandler());
+		}
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();         
+        exiResult.setOutputStream(baos);
+        
+        InputSource is = new InputSource(new StringReader(xml));
 
-	        xmlReader.parse(is);
-	        return baos.toByteArray();
+        xmlReader.parse(is);
+        return baos.toByteArray();
 	}
 	
 	@Override
 	protected String decodeByteArray(byte[] exiBytes) throws IOException, EXIException, TransformerException{
-	        // decoding                
-	        InputStream exiIS = new ByteArrayInputStream(exiBytes);
-	        exiSource = new SAXSource(new InputSource(exiIS));
-	        exiSource.setXMLReader(exiReader);
-	
-	        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	        transformer.transform(exiSource, new StreamResult(baos));
-	        
-	        return baos.toString("UTF-8");
+		if(!swb){
+			exiSource = new EXISource(exiFactory);
+	        exiReader = exiSource.getXMLReader();
+		}
+        InputStream exiIS = new ByteArrayInputStream(exiBytes);
+        exiSource = new SAXSource(new InputSource(exiIS));
+        exiSource.setXMLReader(exiReader);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        transformer.transform(exiSource, new StreamResult(baos));
+        
+        return baos.toString("UTF-8");
 	}
 	
-	/**
-	 * Decodes an EXI Stream contained the given InputStream. It is better to use a BufferedInputStream as it saves its position to 
-	 * decode possible next EXI Documents in the stream.
-	 * @param exiIS
-	 * @return XML String representing the decoded EXI Stream
-	 * @throws IOException
-	 * @throws EXIException
-	 * @throws SAXException
-	 * @throws TransformerException
-	 */
-	protected String decode(InputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{                
-        // decoding        
+	@Override
+	protected String decode(BufferedInputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{
+		if(!swb){
+			exiSource = new EXISource(exiFactory);
+	        exiReader = exiSource.getXMLReader();
+		}
         exiSource = new SAXSource(new InputSource(exiIS));
         exiSource.setXMLReader(exiReader);
 

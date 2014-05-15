@@ -1,5 +1,6 @@
 package cl.clayster.exi;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,10 +30,6 @@ import com.siemens.ct.exi.api.sax.SAXDecoder;
 import com.siemens.ct.exi.exceptions.EXIException;
 
 public class EXIBaseProcessor {
-        
-    protected EXIFactory exiFactory;
-    protected EXIResult exiResult;
-    protected SAXSource exiSource;
     
     /**
      * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and <b>default values</b> for its configuration.
@@ -193,12 +190,44 @@ public class EXIBaseProcessor {
     
     /** FUNCIONES DEFINITIVAS Y PARA XSD VARIABLES **/
     
+    /**
+     * Encodes an XML String using EXI encoding and returns an EXI Stream
+     * @param xml String containing the XML to be encoded
+     * @return the encoded EXI Stream as a byte array
+     * @throws IOException
+     * @throws EXIException
+     * @throws SAXException
+     * @throws TransformerException
+     */
     protected byte[] encodeToByteArray(String xml) throws IOException, EXIException, SAXException, TransformerException{
         return encodeSchemaless(xml, false);
     }
     
+    /**
+     * Decodes an EXI Stream and returns the resulting XML String 
+     * @param exiBytes a byte array containing the EXI Stream to be decoded
+     * @return the decoded XML String
+     * @throws IOException
+     * @throws EXIException
+     * @throws TransformerException
+     */
     protected String decodeByteArray(byte[] exiBytes) throws IOException, EXIException, TransformerException{
         return decodeSchemaless(exiBytes);
     }
+
+    /**
+     * Decodes an EXI Stream contained in the given BufferedInputStream
+     * @param bis a BufferedInputStream containing the EXI Stream to be decoded
+     * @return the decoded XML String
+     * @throws IOException
+     * @throws EXIException
+     * @throws SAXException
+     * @throws TransformerException
+     */
+	protected String decode(BufferedInputStream bis) throws IOException, EXIException, SAXException, TransformerException{
+		byte[] ba = new byte[bis.available()];
+		bis.read(ba);
+		return decodeByteArray(ba);
+	}
     
 }

@@ -9,7 +9,10 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.Box.Filler;
 import javax.xml.transform.TransformerException;
+
+import org.xml.sax.SAXException;
 
 import com.siemens.ct.exi.exceptions.EXIException;
 
@@ -19,16 +22,13 @@ public class EXIReader extends BufferedReader {
 	private EXIBaseProcessor ep;
 	private int leido = 0;
 	
-	private BufferedInputStream is;
-	private byte[] ba;
-	
-	private byte[] anterior;	// bytes recibidos anteriormente (mensaje EXI incompleto)
+	private BufferedInputStream bis;
 	
 	private List<EXIEventListener> readListeners = new ArrayList<EXIEventListener>(0); 
 	
 	public EXIReader(InputStream in) throws UnsupportedEncodingException {
     	super(new InputStreamReader(in, "UTF-8"));
-    	this.is = new BufferedInputStream(in);
+    	this.bis = new BufferedInputStream(in);
     }
     
     @Override
@@ -37,41 +37,32 @@ public class EXIReader extends BufferedReader {
     	synchronized (lock) {
     		if(!exi){
 				leido = super.read(cbuf, off, len);
+System.err.println("received: " + new String(cbuf, off, leido));
     			return leido;
     		}
-    		byte[] dest = new byte[len];
-    		leido = is.read(dest, 0, len);
-    		if(leido == -1)	return leido;
     		
-    		ba = new byte[leido];
-    		System.arraycopy(dest, 0, ba, 0, leido);
-	    	if(exi && (EXIProcessor.isEXI(ba[0]) || EXIProcessor.hasEXICookie(ba) || anterior != null)){
-    			if(anterior != null){	// agregar lo guardado anteriormente a lo leido ahora
-	    			System.arraycopy(ba, 0, ba, anterior.length, ba.length - anterior.length);
-	    			System.arraycopy(anterior, 0, ba, 0, anterior.length);
-	    		}
-		    	try {
-		    		String xml = ep.decodeByteArray(ba).replaceAll("\n", "").replaceAll("\r", "");
-			    	char[] cbuf2 = xml.toCharArray();
-			    	leido = cbuf2.length;
-			    	System.arraycopy(cbuf2, 0, cbuf, off, leido);
-					if(!readListeners.isEmpty()){
-						for(EXIEventListener eel : readListeners){
-							eel.packetDecoded(xml, ba);
-						}
-					}			
-					anterior = null;
-					ba = null;
+    		while(!ready()){
+    			
+    		}
+			while(true){
+				try{
+					bis.mark(len);
+					String xml = ep.decode(bis);
+System.err.println("decoded: " + xml);
+					char[] cbuf2 = xml.toCharArray();
+					leido = cbuf2.length;
+					System.arraycopy(cbuf2, 0, cbuf, off, leido);
 					return leido;
-		    	} catch (EXIException | TransformerException e) {
-		    		// EXI incompleto, los bytes leidos se guardan en anterior
-		    		anterior = new byte[leido];
-    				System.arraycopy(ba, 0, anterior, 0, leido);
-					return leido;
-		    	}
+				} catch (TransformerException e){
+					bis.reset();
+				} catch (EXIException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (SAXException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
-	    	System.arraycopy(new String(ba).toCharArray(), 0, cbuf, off, leido);
-			return leido;
 	    }
     }
     

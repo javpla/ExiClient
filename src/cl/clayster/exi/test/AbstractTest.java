@@ -208,15 +208,15 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	protected void testSimpleMessage(int i){
 		client2.addPacketListener(packetListener, testFilter);
 		
-		Message m = new Message(client1.getUser());
-		m.setFrom(client2.getUser());
+		Message m = new Message(client2.getUser());
+		m.setFrom(client1.getUser());
 		m.addExtension(TestExtensions.msgExt[i]);
 		try {
 			sent.put(m);
 		} catch (InterruptedException e) {
 			fail(e.getMessage());
 		}
-		client2.sendPacket(m);
+		client1.sendPacket(m);
 	}
 	
 	protected void testSimpleExtendedMessage(){
@@ -321,8 +321,11 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	
 	@Test
 	public void testAll(){
+		/*
 		sendMessages();
 		sendIQs();
+		*/
+		testSimpleMessage(0);
 		waitAndTest();
 	}
 	
@@ -349,7 +352,7 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		}
 	}
 	
-	private void waitAndTest(){
+	public void waitAndTest(){
 		waitReception();
 		
 		while(!(sent.isEmpty() || received.isEmpty())){

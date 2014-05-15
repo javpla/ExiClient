@@ -17,7 +17,8 @@ import com.siemens.ct.exi.exceptions.UnsupportedOption;
 import com.siemens.ct.exi.helpers.DefaultEXIFactory;
 
 /**
- * Contains all relevant values to setup an EXI compression, in order to propose them to the server.
+ * Contains all relevant values to setup EXI compression options in order to propose them to the server
+ * and use them for compresses communication according to the XEP-0322 protocol.
  * @author Javier Placencio
  *
  */
@@ -25,15 +26,18 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 	
 	protected String configurationId;
 	protected String schemaId;
-	protected boolean sessionWideBuffers = false;
+	private boolean sessionWideBuffers = false;
 	
 	/**
-	 * Constructs a new EXISetupConfigurations and initializates it with Default Values.
+	 * Constructs a new EXISetupConfigurations and initializes it with Default Values.
 	 */
 	public EXISetupConfiguration(){
 		setDefaultValues();
 	}
 	
+	/**
+	 * Sets default values as they are defined in XEP-0322.
+	 */
 	protected void setDefaultValues() {
 		setDefaultValues(this);
 		
@@ -45,8 +49,6 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 		
 		setValueMaxLength(64);
 		setValuePartitionCapacity(64);
-		
-		
 		
 		setLocalValuePartitions(false);
 		//setMaximumNumberOfBuiltInElementGrammars(0);
@@ -61,6 +63,11 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 		this.schemaId = schemaId;
 	}
 	
+	/**
+	 * Returns a number to represent each data alignment option.
+	 * Possible values are 0, 1, 2 or 3 meaning Bit alignment, byte alignment, pre compression, and compression, respectively.
+	 * @return the alignment code representing the chosen option
+	 */
 	public int getAlignmentCode() {
 		CodingMode cm = getCodingMode();
 		int alignment = (cm.equals(CodingMode.BIT_PACKED)) ? 0 :
@@ -70,6 +77,10 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 		return alignment;
 	}
 	
+	/**
+	 * Returns the current aligment option as it is represented within XML stanzas according to XEP-0322. 
+	 * @return a string representing the alignment option being used
+	 */
 	public String getAlignmentString() {
 		CodingMode cm = getCodingMode();
 		String alignment = (cm.equals(CodingMode.BIT_PACKED)) ? "bit-packed" :
@@ -79,6 +90,12 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 		return alignment;
 	}
 	
+	/**
+	 * Sets if session wide buffers are being used or not. Session wide buffers allow 
+	 * compression related values to be remembered during the connection with the server, achieving better
+	 * encoding and compactness. 
+	 * @param sessionWideBuffers
+	 */
 	public void setSessionWideBuffers(boolean sessionWideBuffers){
 		this.sessionWideBuffers = sessionWideBuffers;
 	}
@@ -95,6 +112,11 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 		}		
 	}
 
+	/**
+	 * Returns a String representing the location of the canonical schema that this configuration will use
+	 * for compression.
+	 * @return a String representing the location of the canonical schema for this configurations
+	 */
 	public String getCanonicalSchemaLocation() {
 		if(schemaId != null){
 			return EXIUtils.getCanonicalSchemaLocationById(schemaId);
@@ -104,6 +126,10 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 		}
 	}
 	
+	/**
+	 * 
+	 * @return the configuration ID for these EXI configurations
+	 */
 	public String getConfigutarionId() {
 		return configurationId;
 	}
@@ -112,6 +138,9 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 		this.configurationId = configurationId;
 	}
 	
+	/**
+	 * Returns an XML representation of the current EXI configurations.
+	 */
 	@Override
 	public String toString(){
 		StringBuilder sb = new StringBuilder();
@@ -203,6 +232,12 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 		}
 	}
 
+	/**
+	 * Looks for a saved EXISetupConfiguration that have been previously used for compression.
+	 * @param configId the configuration ID being loaded 
+	 * @return the saved EXISetupConfiguration if it exists, null otherwise
+	 * @throws DocumentException
+	 */
 	public static EXISetupConfiguration parseQuickConfigId(String configId) throws DocumentException {
 		String fileLocation = EXIUtils.exiFolder + configId + ".xml";
 		String content = EXIUtils.readFile(fileLocation);
@@ -240,7 +275,9 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
             	exiConfig.setValuePartitionCapacity(Integer.valueOf(att.getValue()));
             }
             else if(att.getName().equals("sessionWideBuffers")){
-            	exiConfig.setSessionWideBuffers(true);
+            	if("true".equals(att.getValue())){
+            		exiConfig.setSessionWideBuffers(true);
+            	}
             }
             else if(att.getName().equals("strict")){
             	if("true".equals(att.getValue())){

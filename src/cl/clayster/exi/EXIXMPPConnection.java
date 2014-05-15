@@ -31,7 +31,7 @@ import org.xml.sax.SAXException;
 import com.siemens.ct.exi.exceptions.EXIException;
 
 /**
- * Defines necessary methods to establish an EXI connection over XMPP according to XEP-0322
+ * Defines necessary methods to establish an EXI connection over XMPP as specified in XEP-0322.
  * 
  * @author Javier Placencio
  *
@@ -114,6 +114,19 @@ public class EXIXMPPConnection extends XMPPConnection{
         return isUsingCompression();
 	}
 	
+	/**
+	 * Sets an option to decide what to do when there are missing schemas on the server.
+	 * By default, those missing schemas will not be used.
+	 * Other options are:<br>
+	 * <u>
+	 * <li>0 - upload missing schemas as binary files</li>
+	 * <li>0 - upload missing schemas as an EXI Document</li>
+	 * <li>0 - upload missing schemas as an EXI Body</li>
+	 * <li>0 - upload missing schemas' URL for the server to download them (if available)</li>
+	 * </u>
+	 * 
+	 * @param option the selected uploading option. They can be statically accessed through EXIXMPPConnection
+	 */
 	public void setUploadSchemaOption(int option){
 		if(option >= -1 && option <= 3);
 		uploadSchemaOption = option;
@@ -155,6 +168,12 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 	}
 	
+	/**
+	 * Reads the canonical schema file created by this class and the current EXISetupConfiguration to generate the <setup>
+	 * stanza to start EXI negotiation with the server.
+	 * @return a String containing the <setup> stanza as XML
+	 * @throws DocumentException
+	 */
 	protected String parseSetupStanza() throws DocumentException{
 		Element auxSchema;
 		Element canonicalSchema = DocumentHelper.parseText(EXIUtils.readFile(exiConfig.getCanonicalSchemaLocation())).getRootElement();
@@ -182,11 +201,20 @@ public class EXIXMPPConnection extends XMPPConnection{
         return setup.asXML();
 	}
 	
+	/**
+	 * Writes a message to the server using this connection's socket.
+	 * @param message
+	 * @throws IOException
+	 */
 	protected void send(String message) throws IOException{
 		writer.write(message);
 		writer.flush();
 	}
 	
+	/**
+	 * Creates an EXIProcessor using the current configurations in order to use it for compression.
+	 * @param configId the current EXISetupConfiguration's ID
+	 */
 	protected void createEXIProcessor(String configId){
 		exiConfig.setConfigurationId(configId);
 		EXIUtils.saveExiConfig(exiConfig);
@@ -198,8 +226,12 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 	}
 	
-	public void requestEXICompression(String schemaId) {
-		createEXIProcessor(schemaId);
+	/**
+	 * Requests EXI compression to the server
+	 * @param configId the current EXISetupConfiguration's ID
+	 */
+	public void requestEXICompression(String configId) {
+		createEXIProcessor(configId);
 		requestStreamCompression("exi");
 	};
 	
@@ -347,6 +379,10 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 	}
 	
+	/**
+	 * Opens the EXI/XMPP stream according to XEP-0322.
+	 * @throws IOException
+	 */
 	protected void openEXIStream() throws IOException{
 		enableEXI();
 		StringBuilder exiOpen = new StringBuilder();
@@ -367,7 +403,16 @@ public class EXIXMPPConnection extends XMPPConnection{
 	}
 	
 	
-
+	/**
+	 * Uploads the missing schemas listed in <i>missingSchemas</i> as binary files using Base64 encoding.
+	 * @param missingSchemas a list containing the target namespaces of the missing schemas
+	 * @throws IOException
+	 * @throws DocumentException
+	 * @throws EXIException
+	 * @throws SAXException
+	 * @throws TransformerException
+	 * @throws NoSuchAlgorithmException
+	 */
 	private void uploadMissingSchemas(List<String> missingSchemas) throws IOException, DocumentException, EXIException, SAXException, TransformerException, NoSuchAlgorithmException {
 		String xml, schemaLocation = null;
 		String schemasFileContent = EXIUtils.readFile(EXIUtils.schemasFileLocation);
@@ -396,6 +441,12 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 	}
 	
+	/**
+	 * /**
+	 * Uploads the missing schemas listed in <i>missingSchemas</i> as either EXI Documents or EXI Bodies.
+	 * @param missingSchemas a list containing the target namespaces of the missing schemas
+	 * @param exiBody indicates whether files will be compressed as EXI Bodies or as EXI Documents
+	 */
 	private void uploadCompressedMissingSchemas(List<String> missingSchemas, boolean exiBody) throws IOException, DocumentException, EXIException, SAXException, TransformerException, NoSuchAlgorithmException, XMLStreamException {
 		String schemaLocation = null;
 		String schemasFileContent = EXIUtils.readFile(EXIUtils.schemasFileLocation);
@@ -445,6 +496,16 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 	}
 	
+	/**
+	 * Sends the URL of the missing schemas in order to be downloaded by the server.
+	 * @param missingSchemas a list containing the target namespaces of the missing schemas
+	 * @throws IOException
+	 * @throws NoSuchAlgorithmException
+	 * @throws DocumentException
+	 * @throws EXIException
+	 * @throws SAXException
+	 * @throws TransformerException
+	 */
 	private void downloadSchemas(List<String> missingSchemas) throws IOException, NoSuchAlgorithmException, DocumentException, EXIException, SAXException, TransformerException{
 		String msg = "", url = "";
 		Element schemasElement;
@@ -489,8 +550,9 @@ public class EXIXMPPConnection extends XMPPConnection{
 	}
 	
 	/**
-	 * Adds an EXIEventListener to the connection. Needs to be called after connection has been done.
-	 * @param listener
+	 * Adds an EXIEventListener to the connection. Should be invoked after connection has been done.
+	 * @param listener an EXIEventListener implementation 
+	 * @see {@link EXIEventListener}
 	 */
 	public void addEXIEventListener(EXIEventListener listener){
 		addCompressionStartedListener(listener);
@@ -498,18 +560,38 @@ public class EXIXMPPConnection extends XMPPConnection{
 		addWriteListener(listener);
 	}
 	
+	/**
+	 * Removes the given EXIEventListener from the current connection.
+	 * @param listener an EXIEventListener implementation 
+	 * @see {@link EXIEventListener}
+	 * @return
+	 */
 	public boolean removeEXIEventListener(EXIEventListener listener){
 		return (removeCompressionStartedListener(listener) && removeReadListener(listener) && removeWriteListener(listener));
 	}
 	
+	/**
+	 * Adds an EXIEventListener implementation which will be invoked when EXI compression starts
+	 * @param listener
+	 */
 	public void addCompressionStartedListener(EXIEventListener listener){
 		compressionStartedListeners.add(listener);
 	}
 	
+	/**
+	 * Removes the given EXIEventListener implementation from this connection.
+	 * @param listener
+	 * @return
+	 */
 	public boolean removeCompressionStartedListener(EXIEventListener listener){
 		return compressionStartedListeners.remove(listener);
 	}	
 	
+	/**
+	 * Adds an EXIEventListener implementation which will be invoked when an EXI packet has been received and decoded.
+	 * @param listener an EXIEventListener implementation 
+	 * @see {@link EXIEventListener}
+	 */
 	public void addReadListener(EXIEventListener listener){
 		if(reader instanceof ObservableReader){
 			((EXIReader) ((ObservableReader) reader).wrappedReader).addReadListener(listener);
@@ -520,6 +602,11 @@ public class EXIXMPPConnection extends XMPPConnection{
 		else System.err.println("Unable to add EXIReadListener: An instance of wrapped reader is not treated.");
 	}
 	
+	/**
+	 * Removes the given EXIEventListener from the ReadListener list within this connection.
+	 * @param listener the listener to be removed
+	 * @return true if it was contained and successfully removed
+	 */
 	public boolean removeReadListener(EXIEventListener listener){
 		if(reader instanceof ObservableReader){
 			return ((EXIReader) ((ObservableReader) reader).wrappedReader).removeReadListener(listener);
@@ -534,6 +621,11 @@ public class EXIXMPPConnection extends XMPPConnection{
 		
 	}
 	
+	/**
+	 * Adds an EXIEventListener implementation which will be invoked when an EXI packet has been encoded and sent to the server.
+	 * @param listener an EXIEventListener implementation 
+	 * @see {@link EXIEventListener}
+	 */
 	public void addWriteListener(EXIEventListener listener){
 		if(writer instanceof ObservableWriter){
 			((EXIWriter) ((ObservableWriter) writer).wrappedWriter).addWriteListener(listener);
@@ -544,6 +636,11 @@ public class EXIXMPPConnection extends XMPPConnection{
 		else System.err.println("Unable to add EXIWriteListener: An instance of wrapped writer is not treated.");
 	}
 	
+	/**
+	 * Removes the given EXIEventListener from the WriteListener list within this connection.
+	 * @param listener the listener to be removed
+	 * @return true if it was contained and successfully removed
+	 */
 	public boolean removeWriteListener(EXIEventListener listener){
 		if(writer instanceof ObservableWriter){
 			return ((EXIWriter) ((ObservableWriter) writer).wrappedWriter).removeWriteListener(listener);
@@ -557,10 +654,20 @@ public class EXIXMPPConnection extends XMPPConnection{
 		}
 	}
 	
+	/**
+	 * INTENDED FOR INTERNAL USE ONLY, NOT FOR USERS.
+	 * @param URL
+	 * @return
+	 */
 	public boolean addMissingSchemaByURL(String URL){
 		return missingSchemas.add(sentURL.get(URL));
 	}
 	
+	/**
+	 * INTENDED FOR INTERNAL USE ONLY, NOT FOR USERS.
+	 * @param ns
+	 * @return
+	 */
 	public boolean removeMissingSchema(String ns){
 		if(ns != null){
 			return missingSchemas.remove(ns);

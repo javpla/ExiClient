@@ -3,39 +3,45 @@ package cl.clayster.exi;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.Collection;
 
 import org.jivesoftware.smack.Chat;
 import org.jivesoftware.smack.ChatManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.ConnectionConfiguration.SecurityMode;
 import org.jivesoftware.smack.MessageListener;
-import org.jivesoftware.smack.XMPPConnection;
+import org.jivesoftware.smack.PacketListener;
+import org.jivesoftware.smack.Roster;
+import org.jivesoftware.smack.RosterEntry;
+import org.jivesoftware.smack.RosterListener;
 import org.jivesoftware.smack.XMPPException;
+import org.jivesoftware.smack.filter.PacketFilter;
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.IQ.Type;
 import org.jivesoftware.smack.packet.Message;
+import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.packet.Presence;
 
-import com.siemens.ct.exi.CodingMode;
-
 import cl.clayster.exi.test.TestExtensions;
+
+import com.siemens.ct.exi.CodingMode;
 
 
 public class Smack implements MessageListener{ 
 	
-	/*
+	
 	static String servidor = "localhost";
 	static String usuario = "exiuser";
 	static String password = "exiuser";
 	static String contacto = "javier@exi.clayster.cl/Spark 2.6.3";	// usuario al cual se le env√≠an mensajes
 	static boolean exi = true;
-	/**/
+	/*
 	
-	static String servidor = "exi.clayster.cl";
-	static String contacto = "javier@exi.clayster.cl/Spark 2.6.3";	// usuario al cual se le env√≠an mensajes
-	static String usuario = "exiuser";
-	static String password = "exiuser";
+	static String servidor = "clayster.cl";
+	static String contacto = "demo.server@clayster.cl";	// usuario al cual se le env√≠an mensajes
+	static String usuario = "javier";
+	static String password = "javier";
 	static boolean exi = false;
 	/**/
 	
@@ -53,14 +59,29 @@ public class Smack implements MessageListener{
 		config.setSecurityMode(SecurityMode.disabled);
 	
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
+		exiConfig.setSessionWideBuffers(true);
 		exiConfig.setCodingMode(CodingMode.COMPRESSION);
 		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig);
+		//connection.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY);
 		
-		//XMPPConnection connection = new XMPPConnection(config);
 		connection.connect();
 		connection.login(usuario, password);
 		
-		/**
+		connection.addPacketListener(new PacketListener() {
+			
+			@Override
+			public void processPacket(Packet packet) {
+				System.err.println(packet.toXML());
+			}
+		}, new PacketFilter() {
+			
+			@Override
+			public boolean accept(Packet packet) {
+				return true;
+			}
+		});
+		
+		
 		// get list of contacts (Roster)
 		Roster roster = connection.getRoster();
 		roster.addRosterListener(new RosterListener() {	// presence updates
@@ -74,47 +95,34 @@ public class Smack implements MessageListener{
 			@Override
 			public void entriesAdded(Collection<String> arg0) {}
 		});
-		*/
+		if(roster.getEntryCount() > 0){
+			System.out.println("Roster for " + connection.getUser() + ":");
+			for(RosterEntry re : roster.getEntries()){
+				System.out.println(re.getName() + " - " + re.getStatus());
+			}
+		}
+		else{
+			System.out.println("Roster for " + connection.getUser() + " empty!");
+		}
 		
 		// chatmanager to interchange messages
 		ChatManager chatmanager = connection.getChatManager();
-		Chat newChat = chatmanager.createChat(contacto, showMsgThread);
-		//newChat.sendMessage("aeiou ·ÈÌÛ˙ ‡ËÏÚ˘ ‰ÎÔˆ¸ AEIOU ¡…Õ”⁄ ¿»Ã“Ÿ ƒÀœ÷‹");
-		/*
-		Message newMessage = new Message();
-		newMessage.setBody("Mensaje largo y con propiedades extra. BLABLABLABLABALBALABLABDLAD ADS ABL ABDK LSABD KASB DKASD BAKLD BASKDLAB LKSAB KLAS");
-		newMessage.setProperty("colorName", "red");
-		newMessage.setProperty("color", new Color(0, 127, 255)); // color is Serializable and thus can be sent as a property (also primitives)
-		newMessage.setProperty("colorName", "verde");
-		newMessage.setProperty("color", new Color(0, 255, 0));
-		newMessage.setProperty("colorName", "rojo");
-		newMessage.setProperty("color", new Color(255, 0, 0));
-		newMessage.setProperty("colorName", "azul");
-		newMessage.setProperty("color", new Color(0, 0, 255));
-		newMessage.setProperty("colorName", "blanco");
-		newMessage.setProperty("color", new Color(255, 255, 255));
-		newMessage.setProperty("colorName", "negro");
-		newMessage.setProperty("color", new Color(0, 0, 0));
-		newMessage.setProperty("colorName", "gris");
-		newMessage.setProperty("color", new Color(127, 127, 127));
-		newChat.sendMessage(newMessage);
-		
-		chatmanager.addChatListener(
-			    new ChatManagerListener() {
-			        @Override
-			        public void chatCreated(Chat chat, boolean createdLocally)
-			        {
-			            if (!createdLocally){
-			            	chat.addMessageListener(parrot);
-			            }
-			            chat.addMessageListener(showMsgThread);
-			        }
-			    });
-		*/
+		Chat newChat = chatmanager.createChat(contacto, showMsgBody);
 		BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 		String msg;
 		while (!(msg = br.readLine()).equals("bye")) {
-			if(msg.equals("U")){
+			if(msg.equals("R")){
+				if(roster.getEntryCount() > 0){
+					System.out.println("Roster for " + connection.getUser() + ":");
+					for(RosterEntry re : roster.getEntries()){
+						System.out.println(re.getName() + " - " + re.getStatus());
+					}
+				}
+				else{
+					System.out.println("Roster for " + connection.getUser() + " empty!");
+				}
+			}
+			else if(msg.equals("U")){
 				// Create a new presence. Pass in false to indicate we're unavailable.
 				Presence presence = new Presence(Presence.Type.unavailable);
 				presence.setStatus("Gone fishing");
@@ -127,26 +135,6 @@ public class Smack implements MessageListener{
 				Presence presence = new Presence(Presence.Type.available);
 				// Send the packet (assume we have a Connection instance called "con").
 				connection.sendPacket(presence);
-				continue;
-			}
-			else if(msg.equals("T")){
-				Message message = new Message(contacto);
-				PacketExtension pe = new PacketExtension() {
-					@Override
-					public String toXML() {
-						return "<fields xmlns='urn:xmpp:iot:sensordata' seqnr='1' done='true'>"
-								+ "<node nodeId='Device01'>"
-									+ "<timestamp value='2013-03-07T16:24:30'>"
-										+ "<numeric name='Temperature' momentary='true' automaticReadout='true' value='23.4' unit='∞C'/>"
-									+ "</timestamp>"
-								+ "</node>"
-							+ "</fields>";
-					}
-					@Override public String getNamespace() {return null;}
-					@Override public String getElementName() {return null;}
-				};
-				message.addExtension(pe);
-				connection.sendPacket(message);
 				continue;
 			}
 			else if(msg.startsWith("iq")){
@@ -164,7 +152,7 @@ public class Smack implements MessageListener{
 				connection.sendPacket(iq);
 				continue;
 			}
-			else if(msg.startsWith("test323")){
+			else if(msg.startsWith("T323")){
 				for(final PacketExtension iqExt : TestExtensions.iqExt){
 					IQ iq = new IQ() {
 						@Override 
@@ -190,6 +178,14 @@ public class Smack implements MessageListener{
 					Message m = new Message(contacto);
 					m.setFrom(connection.getUser());
 					m.addExtension(pe);
+					connection.sendPacket(m);
+				}
+			}
+			else if(msg.equals("sameMsg")){
+				Message m = new Message(contacto);
+				m.setFrom(connection.getUser());
+				m.setBody("esto es para crear el mensaje que ser· enviado un millÛn de veces para probar que los mensajes se hacen m·s pequeÒos usando SWB.");
+				for(int i = 0 ; i < 1000 ; i++){
 					connection.sendPacket(m);
 				}
 			}
@@ -224,13 +220,11 @@ public class Smack implements MessageListener{
 					}
 				}
 			}
-			else if(msg.startsWith("testSameMsg")){
-				Message m = new Message(contacto);
-				m.setFrom(connection.getUser());
-				m.addExtension(TestExtensions.msgExt[TestExtensions.msgExt.length-1]);
-				for(int i=0 ; i < 1 ; i++){
-					connection.sendPacket(m);
-				}
+			else if(msg.startsWith("C=")){
+				String c = msg.substring("C=".length());
+				contacto = c;
+				newChat = chatmanager.createChat(contacto, showMsgBody);
+				System.out.println("Contacto updated: " + contacto);
 			}
 			else
 				newChat.sendMessage(msg);
@@ -251,9 +245,9 @@ public class Smack implements MessageListener{
 			}
 	};
 	
-	final static MessageListener showMsgThread = new MessageListener() {
+	final static MessageListener showMsgBody = new MessageListener() {
 	    public void processMessage(Chat chat, Message message) {
-	    	System.out.println("Message received (" + message.getThread() + "): " + message.toXML());
+	    	System.out.println("Message RCVD: " + message.getBody());
 	    }
 	};
 
