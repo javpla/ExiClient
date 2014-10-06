@@ -3,7 +3,7 @@ package cl.clayster.exi;
 import com.siemens.ct.exi.CodingMode;
 import com.siemens.ct.exi.FidelityOptions;
 
-public class SetupValues {
+class SetupValues {
 
 	final static String ALIGNMENT = "alignment";
 	final static String COMPRESSION = "compression";

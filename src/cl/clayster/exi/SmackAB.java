@@ -21,7 +21,7 @@ import com.siemens.ct.exi.CodingMode;
 import cl.clayster.exi.test.TestExtensions;
 
 
-public class SmackAB implements MessageListener{
+class SmackAB implements MessageListener{
 	static final String servidor = "exi.clayster.cl";
 	static final String contacto = "javier@exi.clayster.cl";	// usuario al cual se le envían mensajes
 	static final String usuario = "exiuser";

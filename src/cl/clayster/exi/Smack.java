@@ -10,33 +10,29 @@ import org.jivesoftware.smack.ChatManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.ConnectionConfiguration.SecurityMode;
 import org.jivesoftware.smack.MessageListener;
-import org.jivesoftware.smack.PacketListener;
 import org.jivesoftware.smack.Roster;
 import org.jivesoftware.smack.RosterEntry;
 import org.jivesoftware.smack.RosterListener;
+import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
-import org.jivesoftware.smack.filter.PacketFilter;
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.IQ.Type;
 import org.jivesoftware.smack.packet.Message;
-import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.packet.Presence;
 
 import cl.clayster.exi.test.TestExtensions;
 
-import com.siemens.ct.exi.CodingMode;
 
-
-public class Smack implements MessageListener{ 
+class Smack implements MessageListener{ 
 	
-	
+	/*
 	static String servidor = "localhost";
 	static String usuario = "exiuser";
 	static String password = "exiuser";
 	static String contacto = "javier@exi.clayster.cl/Spark 2.6.3";	// usuario al cual se le envían mensajes
 	static boolean exi = true;
-	/*
+	/**/
 	
 	static String servidor = "clayster.cl";
 	static String contacto = "demo.server@clayster.cl";	// usuario al cual se le envían mensajes
@@ -58,15 +54,18 @@ public class Smack implements MessageListener{
 		config.setCompressionEnabled(true);
 		config.setSecurityMode(SecurityMode.disabled);
 	
+		XMPPConnection connection = new XMPPConnection(config);
+		
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
-		exiConfig.setSessionWideBuffers(true);
-		exiConfig.setCodingMode(CodingMode.COMPRESSION);
-		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig);
+		exiConfig.setAlignment(EXISetupConfiguration.ALIGN_COMPRESSION);
+		connection = new EXIXMPPConnection(config, exiConfig);
 		//connection.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY);
+		/**/
 		
 		connection.connect();
 		connection.login(usuario, password);
-		
+
+		/*
 		connection.addPacketListener(new PacketListener() {
 			
 			@Override
@@ -80,7 +79,7 @@ public class Smack implements MessageListener{
 				return true;
 			}
 		});
-		
+		*/
 		
 		// get list of contacts (Roster)
 		Roster roster = connection.getRoster();
@@ -112,6 +111,7 @@ public class Smack implements MessageListener{
 		String msg;
 		while (!(msg = br.readLine()).equals("bye")) {
 			if(msg.equals("R")){
+				roster = connection.getRoster();
 				if(roster.getEntryCount() > 0){
 					System.out.println("Roster for " + connection.getUser() + ":");
 					for(RosterEntry re : roster.getEntries()){

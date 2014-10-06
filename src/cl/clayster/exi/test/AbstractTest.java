@@ -18,7 +18,6 @@ import org.jivesoftware.smack.packet.Message;
 import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.provider.ProviderManager;
-import org.junit.After;
 import org.junit.Test;
 
 import cl.clayster.exi.EXISetupConfiguration;
@@ -158,11 +157,13 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 		}
 	}
 	
+	/*
 	@After
 	public void disconnect() {		
 		if(client1.isConnected())	client1.disconnect();
 		if(client2.isConnected())	client2.disconnect();
 	}
+	*/
 	
 	/**
 	 * Compares two XML stanzas to see if they are equivalent (they have the same attributes and values, but maybe in different order). 
@@ -321,11 +322,8 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	
 	@Test
 	public void testAll(){
-		/*
 		sendMessages();
 		sendIQs();
-		*/
-		testSimpleMessage(0);
 		waitAndTest();
 	}
 	
@@ -354,15 +352,18 @@ public abstract class AbstractTest extends DocumentAbstractTest{
 	
 	public void waitAndTest(){
 		waitReception();
-		
+		String xml1, xml2;
 		while(!(sent.isEmpty() || received.isEmpty())){
-			assertEquivalentXML(sent.poll().toXML(), received.poll().toXML());
+			xml1 = sent.poll().toXML();
+			xml2 = received.poll().toXML();
+			assertEquivalentXML(xml1, xml2);
 		}
 		
 		// test connectivity
 		assertTrue("Clients are still connected", client1.isConnected() && client2.isConnected());
 		if(config1.isCompressionEnabled())	assertTrue("Client1 is still using compression", client1.isUsingCompression());
 		if(config2.isCompressionEnabled())	assertTrue("Client2 is still using compression", client2.isUsingCompression());
+		
 	}
 	
 	

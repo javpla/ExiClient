@@ -23,9 +23,25 @@ import com.siemens.ct.exi.helpers.DefaultEXIFactory;
  *
  */
 public class EXISetupConfiguration extends DefaultEXIFactory{
+
+	/** Alignments **/
+	public static final int ALIGN_BIT_PACKED = 0;
+	public static final int ALIGN_BYTE_PACKED = 1;
+	public static final int ALIGN_PRE_COMPRESSION = 2;
+	public static final int ALIGN_COMPRESSION = 3;
+	
+	/** Fidelity Options (preserve) **/
+	public static final String PRESERVE_COMMENT = FidelityOptions.FEATURE_COMMENT;
+	public static final String PRESERVE_PI = FidelityOptions.FEATURE_PI;
+	public static final String PRESERVE_DTD = FidelityOptions.FEATURE_DTD;
+	public static final String PRESERVE_PREFIX = FidelityOptions.FEATURE_PREFIX;
+	public static final String PRESERVE_LEXICAL_VALUE = FidelityOptions.FEATURE_LEXICAL_VALUE;
+	public static final String PRESERVE_SC = FidelityOptions.FEATURE_SC;
+	public static final String PRESERVE_STRICT = FidelityOptions.FEATURE_STRICT;
 	
 	protected String configurationId;
 	protected String schemaId;
+	
 	private boolean sessionWideBuffers = false;
 	
 	/**
@@ -36,13 +52,39 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 	}
 	
 	/**
+	 * Sets the alignment option to be used. 
+	 * The alignment option is to control how the values are encoded. 
+	 * The default option 'bit-packed' fits most of communication use cases. 
+	 * If TLS compression is used at the same time, pre-compression will make the best result. 
+	 * @param cm represents the option chosen
+	 */
+	public void setAlignment(int cm){
+		CodingMode codingMode = CodingMode.BIT_PACKED;
+		switch (cm){
+			case ALIGN_COMPRESSION:
+				codingMode = CodingMode.COMPRESSION;
+				break;
+			case ALIGN_BIT_PACKED:
+				codingMode = CodingMode.BIT_PACKED;
+				break;
+			case ALIGN_BYTE_PACKED:
+				codingMode = CodingMode.BYTE_PACKED;
+				break;
+			case ALIGN_PRE_COMPRESSION:
+				codingMode = CodingMode.PRE_COMPRESSION;
+				break;
+		}
+		super.setCodingMode(codingMode);
+	}
+	
+	/**
 	 * Sets default values as they are defined in XEP-0322.
 	 */
 	protected void setDefaultValues() {
 		setDefaultValues(this);
 		
 		try {
-			getFidelityOptions().setFidelity(FidelityOptions.FEATURE_PREFIX, true);
+			fidelityOptions.setFidelity(FidelityOptions.FEATURE_PREFIX, true);
 		} catch (UnsupportedOption e) {
 			e.printStackTrace();
 		}
@@ -59,7 +101,7 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 		return schemaId == null ? "urn:xmpp:exi:default" : schemaId;
 	}
 
-	public void setSchemaId(String schemaId) {
+	void setSchemaId(String schemaId) {
 		this.schemaId = schemaId;
 	}
 	
@@ -68,7 +110,7 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 	 * Possible values are 0, 1, 2 or 3 meaning Bit alignment, byte alignment, pre compression, and compression, respectively.
 	 * @return the alignment code representing the chosen option
 	 */
-	public int getAlignmentCode() {
+	int getAlignmentCode() {
 		CodingMode cm = getCodingMode();
 		int alignment = (cm.equals(CodingMode.BIT_PACKED)) ? 0 :
         	(cm.equals(CodingMode.BYTE_PACKED)) ? 1 :
@@ -117,7 +159,7 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 	 * for compression.
 	 * @return a String representing the location of the canonical schema for this configurations
 	 */
-	public String getCanonicalSchemaLocation() {
+	String getCanonicalSchemaLocation() {
 		if(schemaId != null){
 			return EXIUtils.getCanonicalSchemaLocationById(schemaId);
 		}
@@ -130,7 +172,7 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 	 * 
 	 * @return the configuration ID for these EXI configurations
 	 */
-	public String getConfigutarionId() {
+	String getConfigutarionId() {
 		return configurationId;
 	}
 
@@ -206,7 +248,7 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 	 * @return true if this configurations are saved, false otherwise 
 	 * @throws IOException
 	 */
-	public boolean saveConfiguration() throws IOException {
+	boolean saveConfiguration() throws IOException {
 		String content = this.toString();
         
 		try {
@@ -238,7 +280,7 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 	 * @return the saved EXISetupConfiguration if it exists, null otherwise
 	 * @throws DocumentException
 	 */
-	public static EXISetupConfiguration parseQuickConfigId(String configId) throws DocumentException {
+	static EXISetupConfiguration parseQuickConfigId(String configId) throws DocumentException {
 		String fileLocation = EXIUtils.exiFolder + configId + ".xml";
 		String content = EXIUtils.readFile(fileLocation);
 		if(content == null)
@@ -316,7 +358,7 @@ public class EXISetupConfiguration extends DefaultEXIFactory{
 	 * @param exiConfig EXI Setup Configurations being cheked
 	 * @return true if the configuration has been used, false otherwise
 	 */
-	public boolean exists() {
+	boolean exists() {
 		String content = this.toString();
 		try {
 			MessageDigest md = MessageDigest.getInstance("MD5");

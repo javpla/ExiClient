@@ -9,7 +9,7 @@ import org.apache.xerces.xni.XNIException;
 import org.apache.xerces.xni.parser.XMLEntityResolver;
 import org.apache.xerces.xni.parser.XMLInputSource;
 
-public class SchemaResolver implements XMLEntityResolver {
+class SchemaResolver implements XMLEntityResolver {
 	
 	HashMap<String, String> canonicalPaths = new HashMap<String, String>();
 	HashMap<String, String> names = new HashMap<String, String>();

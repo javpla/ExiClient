@@ -11,7 +11,7 @@ import javax.xml.transform.TransformerException;
 
 import com.siemens.ct.exi.exceptions.EXIException;
 
-public class EXIAltReader extends EXIReader {
+class EXIAltReader extends EXIReader {
 	 
 	private boolean exi = false;
 	private EXIBaseProcessor ep;

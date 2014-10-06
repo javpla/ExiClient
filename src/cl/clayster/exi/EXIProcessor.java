@@ -21,7 +21,6 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 
-import com.siemens.ct.exi.EXIFactory;
 import com.siemens.ct.exi.GrammarFactory;
 import com.siemens.ct.exi.api.sax.EXIResult;
 import com.siemens.ct.exi.api.sax.EXISource;
@@ -33,14 +32,18 @@ import com.siemens.ct.exi.grammars.Grammars;
  * @author Javier Placencio
  *
  */
-public class EXIProcessor extends EXIBaseProcessor{
+class EXIProcessor extends EXIBaseProcessor{
 	
-	protected EXIFactory exiFactory;
+	protected EXISetupConfiguration exiFactory;
 	protected EXIResult exiResult;
     protected SAXSource exiSource;
     protected Transformer transformer;
 	protected XMLReader exiReader, xmlReader;
 	private boolean swb = false;
+	
+	private int cn = 0;
+	private float ct = 0;
+	private float cr = 0;
 	
 	/**
 	 * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and the respective parameters in exiConfig for its configuration.
@@ -100,7 +103,19 @@ public class EXIProcessor extends EXIBaseProcessor{
         InputSource is = new InputSource(new StringReader(xml));
 
         xmlReader.parse(is);
-        return baos.toByteArray();
+        
+        byte[] ba = baos.toByteArray();
+
+System.err.println("EXI.COMPRESSING(" + xml.getBytes().length + "): " + xml);
+System.err.println("EXI.ENCODED(" + ba.length + "):" + EXIUtils.bytesToHex(ba));
+		cr = (float) (float)ba.length * 100 / (float)xml.getBytes().length;
+System.err.println("EXI.COMPRESSION RATE = " + cr + "%");
+		cn++;
+		ct += cr;
+		
+System.out.println("EXI.AVRG COMPRESSION = " + (float)(ct / cn) + "%");
+        
+        return ba;
 	}
 	
 	@Override
@@ -121,6 +136,11 @@ public class EXIProcessor extends EXIBaseProcessor{
 	
 	@Override
 	protected String decode(BufferedInputStream exiIS) throws IOException, EXIException, SAXException, TransformerException{
+		/*
+		EXIBufferedInputStream ebis = (EXIBufferedInputStream) exiIS;
+		int i = ebis.getPos(); 
+		*/
+		
 		if(!swb){
 			exiSource = new EXISource(exiFactory);
 	        exiReader = exiSource.getXMLReader();
@@ -131,6 +151,24 @@ public class EXIProcessor extends EXIBaseProcessor{
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         transformer.transform(exiSource, new StreamResult(baos));                
         
-        return baos.toString("UTF-8");
+        String xml = baos.toString("UTF-8");
+
+        /*
+        int f = ebis.getPos();
+        int dif = f - i;
+        
+        if(dif > 10){
+        	System.err.println("EXI.DECODING " + f + "-" + i + " = " + dif);
+        	System.err.println("EXI.DECOMPRESSED(" + xml.getBytes().length + "): " + xml);
+        	System.err.println("EXI.DECOMPRESSION RATE = " + (float)((float)xml.getBytes().length*100/(float)dif) + "%");
+        	dn++;
+        	dt += (float)((float)xml.getBytes().length*100/(float)dif);
+        }
+        else{
+        	System.err.println("EXI.DECOMPRESSED-UNKNOWN RATE(" + xml.getBytes().length + "): " + xml);
+        }
+        System.out.println("EXI.AVRG DECOMPRESSION = " + (float)(dt / dn) + "%");
+        */
+        return xml;
     }
 }
