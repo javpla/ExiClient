@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 
+import javax.security.auth.callback.CallbackHandler;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.transform.TransformerException;
 
@@ -57,17 +58,8 @@ public class EXIXMPPConnection extends XMPPConnection{
 	
 	private List<EXIEventListener> compressionStartedListeners =  new ArrayList<EXIEventListener>(0);
 	
-	/**
-	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in.
-	 * By default,  compression will be enabled unless <b>exiConfig</b> is null. 
-	 * All schemas within the <i>schema</i> folder will be used.
-	 * @param config configurations to connect to the server
-	 * @param exiConfig EXI parameters to be used. If null, default EXI/XMPP parameters will be used.
-	 */
-	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
-		super(config);
-		config.setCompressionEnabled(true);
-		
+	private void setup(EXISetupConfiguration exiConfig){
+		config.setCompressionEnabled(true);		
 		try {
 			EXIUtils.generateSchemasFile();
 			EXIUtils.generateDefaultCanonicalSchema();
@@ -77,6 +69,42 @@ public class EXIXMPPConnection extends XMPPConnection{
 		if(exiConfig == null)	exiConfig = new EXISetupConfiguration();
 		this.exiConfig = exiConfig;
 	}
+	
+	/**
+	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in.
+	 * By default,  compression will be enabled unless <b>exiConfig</b> is null. 
+	 * All schemas within the <i>schema</i> folder will be used.
+	 * @param config configurations to connect to the server
+	 * @param exiConfig EXI parameters to be used. If null, default EXI/XMPP parameters will be used.
+	 */
+	public EXIXMPPConnection(ConnectionConfiguration config, EXISetupConfiguration exiConfig) {
+		super(config);
+		setup(exiConfig);
+	}
+	
+	public EXIXMPPConnection(ConnectionConfiguration config, CallbackHandler callbackHandler, EXISetupConfiguration exiConfig){
+		super(config, callbackHandler);
+		setup(exiConfig);
+	}
+	
+	/**
+	 * This constructor uses the given <code>EXISetupConfiguration</code> to negotiate EXI compression while logging in.
+	 * By default,  compression will be enabled unless <b>exiConfig</b> is null. 
+	 * All schemas within the <i>schema</i> folder will be used.
+	 * @param serviceName name of the server to connect to
+	 * @param exiConfig EXI parameters to be used. If null, default EXI/XMPP parameters will be used.
+	 */
+	public EXIXMPPConnection(String serviceName, EXISetupConfiguration exiConfig) {
+		super(serviceName);
+		setup(exiConfig);
+	}
+	
+	public EXIXMPPConnection(String serviceName, CallbackHandler callbackHandler, EXISetupConfiguration exiConfig){
+		super(serviceName, callbackHandler);
+		setup(exiConfig);
+	}
+	
+	
 	
 	/**
 	 * Sets new EXI compression configurations for this connection and start EXI negotiation with the server.

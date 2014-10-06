@@ -15,7 +15,7 @@ import org.xml.sax.SAXException;
 
 import com.siemens.ct.exi.exceptions.EXIException;
 
-public class EXIWriter extends BufferedWriter {
+class EXIWriter extends BufferedWriter {
 
 	private boolean exi = false;
 	private EXIBaseProcessor ep;

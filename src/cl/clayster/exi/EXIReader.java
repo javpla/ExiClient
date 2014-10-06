@@ -9,26 +9,26 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.Box.Filler;
 import javax.xml.transform.TransformerException;
 
 import org.xml.sax.SAXException;
 
 import com.siemens.ct.exi.exceptions.EXIException;
 
-public class EXIReader extends BufferedReader {
+class EXIReader extends BufferedReader {
 	 
 	private boolean exi = false;
 	private EXIBaseProcessor ep;
 	private int leido = 0;
 	
 	private BufferedInputStream bis;
+	char[] aux;
 	
 	private List<EXIEventListener> readListeners = new ArrayList<EXIEventListener>(0); 
 	
 	public EXIReader(InputStream in) throws UnsupportedEncodingException {
     	super(new InputStreamReader(in, "UTF-8"));
-    	this.bis = new BufferedInputStream(in);
+    	this.bis = new EXIBufferedInputStream(in);
     }
     
     @Override
@@ -37,31 +37,53 @@ public class EXIReader extends BufferedReader {
     	synchronized (lock) {
     		if(!exi){
 				leido = super.read(cbuf, off, len);
-System.err.println("received: " + new String(cbuf, off, leido));
+//System.err.println("received: " + new String(cbuf, off, leido));
     			return leido;
     		}
     		
-    		while(!ready()){
-    			
-    		}
 			while(true){
 				try{
-					bis.mark(len);
+					//bis.mark(len);
+					if(aux != null){
+						leido = aux.length;
+						System.arraycopy(aux, 0, cbuf, off, leido);
+						aux = null;
+						return leido;
+					}
 					String xml = ep.decode(bis);
-System.err.println("decoded: " + xml);
 					char[] cbuf2 = xml.toCharArray();
 					leido = cbuf2.length;
+					if(leido > len){
+						System.arraycopy(cbuf2, 0, cbuf, off, len);
+						aux = new char[leido - len];
+						System.arraycopy(cbuf2, len, aux, 0, leido - len);
+						return len;
+					}
 					System.arraycopy(cbuf2, 0, cbuf, off, leido);
 					return leido;
 				} catch (TransformerException e){
-					bis.reset();
+					//bis.reset();
+					Throwable t = e.getCause();
+					while(t != null){
+						if(t instanceof java.net.SocketException){
+							return -1;
+						}
+						t = t.getCause();
+					}
 				} catch (EXIException e) {
 					// TODO Auto-generated catch block
+					System.err.println("EXIException at EXIReader!");
 					e.printStackTrace();
 				} catch (SAXException e) {
 					// TODO Auto-generated catch block
+					System.err.println("SAXException at EXIReader!");
+					e.printStackTrace();
+				} catch (ArrayIndexOutOfBoundsException e){
+					cbuf.clone();
+					System.out.println("ArrayIndexOutOfBoundsException at EXIReader!");
 					e.printStackTrace();
 				}
+				
 			}
 	    }
     }

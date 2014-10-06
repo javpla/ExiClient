@@ -31,7 +31,7 @@ import com.siemens.ct.exi.exceptions.EXIException;
 import com.siemens.ct.exi.grammars.Grammars;
 import com.siemens.ct.exi.util.NoEntityResolver;
 
-public class EXIDOMProcessor{
+class EXIDOMProcessor{
 	
 	protected DOMWriter enc;
 	protected EXIFactory exiFactory;
@@ -71,7 +71,7 @@ public class EXIDOMProcessor{
 	/* FUNCIONES DEFINITIVAS Y PARA XSD VARIABLES */ 
 	
 	protected byte[] encodeToByteArray(String xml) throws ParserConfigurationException, SAXException, IOException, EXIException{
-		InputStream xmlInput = new ByteArrayInputStream(xml.getBytes());
+		InputStream xmlInput = new ByteArrayInputStream(xml.getBytes("UTF-8"));
 		Node doc;
 		if (exiFactory.isFragment()) {
 			DocumentBuilderFactory dfactory = DocumentBuilderFactory.newInstance();

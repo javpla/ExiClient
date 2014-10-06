@@ -57,6 +57,14 @@ public class Req extends IQ{
 		fieldNames = new ArrayList<String>();
 	}
 	
+	public Req(String to){
+		setTo(to);
+		setType(Type.GET);
+		nodeIds = new ArrayList<String>();
+		fieldNames = new ArrayList<String>();
+	}
+	
+	
 	@Override
 	public String getChildElementXML() {
 		StringBuilder buf = new StringBuilder();
@@ -157,7 +165,7 @@ public class Req extends IQ{
 	    			if("node".equals(parser.getName())){
 	    				req.addNodeId(parser.getAttributeValue(null, "nodeId"));
 		    		}
-		    		else if(eventType == XmlPullParser.START_TAG && "field".equals(parser.getName())){
+		    		else if("field".equals(parser.getName())){
 		    			req.addFieldName(parser.getAttributeValue(null, "name"));
 		    		}
 	    		}

@@ -10,38 +10,35 @@ import org.jivesoftware.smack.ChatManager;
 import org.jivesoftware.smack.ConnectionConfiguration;
 import org.jivesoftware.smack.ConnectionConfiguration.SecurityMode;
 import org.jivesoftware.smack.MessageListener;
-import org.jivesoftware.smack.PacketListener;
 import org.jivesoftware.smack.Roster;
 import org.jivesoftware.smack.RosterEntry;
 import org.jivesoftware.smack.RosterListener;
+import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
-import org.jivesoftware.smack.filter.PacketFilter;
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.IQ.Type;
 import org.jivesoftware.smack.packet.Message;
-import org.jivesoftware.smack.packet.Packet;
 import org.jivesoftware.smack.packet.PacketExtension;
 import org.jivesoftware.smack.packet.Presence;
 
 import cl.clayster.exi.test.TestExtensions;
+import cl.clayster.packet.Req;
 
-import com.siemens.ct.exi.CodingMode;
 
-
-public class Smack implements MessageListener{ 
+class Smack implements MessageListener{ 
 	
 	
 	static String servidor = "localhost";
-	static String usuario = "exiuser";
-	static String password = "exiuser";
+	static String usuario = "javier";
+	static String password = "javier";
 	static String contacto = "javier@exi.clayster.cl/Spark 2.6.3";	// usuario al cual se le envían mensajes
 	static boolean exi = true;
 	/*
 	
-	static String servidor = "clayster.cl";
-	static String contacto = "demo.server@clayster.cl";	// usuario al cual se le envían mensajes
-	static String usuario = "javier";
-	static String password = "javier";
+	static String servidor = "xmpp-exi.sust.se";
+	static String contacto = "exiuser1@xmpp-exi.sust.se";	// usuario al cual se le envían mensajes
+	static String usuario = "exiuser";
+	static String password = "resuixe";
 	static boolean exi = false;
 	/**/
 	
@@ -58,15 +55,18 @@ public class Smack implements MessageListener{
 		config.setCompressionEnabled(true);
 		config.setSecurityMode(SecurityMode.disabled);
 	
+		XMPPConnection connection = new XMPPConnection(config);
+		
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
-		exiConfig.setSessionWideBuffers(true);
-		exiConfig.setCodingMode(CodingMode.COMPRESSION);
-		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig);
+		exiConfig.setAlignment(EXISetupConfiguration.ALIGN_COMPRESSION);
+		connection = new EXIXMPPConnection(config, exiConfig);
 		//connection.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY);
+		/**/
 		
 		connection.connect();
 		connection.login(usuario, password);
-		
+
+		/*
 		connection.addPacketListener(new PacketListener() {
 			
 			@Override
@@ -80,7 +80,7 @@ public class Smack implements MessageListener{
 				return true;
 			}
 		});
-		
+		*/
 		
 		// get list of contacts (Roster)
 		Roster roster = connection.getRoster();
@@ -112,6 +112,7 @@ public class Smack implements MessageListener{
 		String msg;
 		while (!(msg = br.readLine()).equals("bye")) {
 			if(msg.equals("R")){
+				roster = connection.getRoster();
 				if(roster.getEntryCount() > 0){
 					System.out.println("Roster for " + connection.getUser() + ":");
 					for(RosterEntry re : roster.getEntries()){
@@ -226,6 +227,58 @@ public class Smack implements MessageListener{
 				newChat = chatmanager.createChat(contacto, showMsgBody);
 				System.out.println("Contacto updated: " + contacto);
 			}
+			else if(msg.startsWith("sd-fields")){
+				Req r = new Req(contacto);
+				r.addNodeId("ventilation");
+				r.setMomentary("true");
+				r.setSeqnr("1");
+				r.addFieldName("OutdoorTemp");
+				r.addFieldName("ExtractTemp");
+				r.addFieldName("ExhaustTemp");
+				r.addFieldName("SupplyTemp");
+				r.addFieldName("Speed");
+				connection.sendPacket(r);
+			}
+			else if(msg.startsWith("sd-each")){
+				Req r = new Req(contacto);
+				r.setMomentary("true");
+				r.setSeqnr("1");
+				r.addFieldName("OutdoorTemp");
+				connection.sendPacket(r);
+				
+				Req r1 = new Req(contacto);
+				r1.setMomentary("true");
+				r1.setSeqnr("1");
+				r1.addFieldName("ExtractTemp");
+				connection.sendPacket(r1);
+				
+				Req r2 = new Req(contacto);
+				r2.setMomentary("true");
+				r2.setSeqnr("1");
+				r2.addFieldName("ExhaustTemp");
+				connection.sendPacket(r2);
+				
+				Req r3 = new Req(contacto);
+				r3.setMomentary("true");
+				r3.setSeqnr("1");
+				r3.addFieldName("SupplyTemp");
+				connection.sendPacket(r3);
+				
+				Req r4 = new Req(contacto);
+				r4.setMomentary("true");
+				r4.setSeqnr("1");
+				r4.addFieldName("Speed");
+				connection.sendPacket(r4);
+			}
+			else if(msg.startsWith("sd-all")){
+				for(int i = 0 ; i < 50 ; i++){
+					Req r = new Req();
+					r.setTo(contacto);
+					r.setAll("true");
+					r.setSeqnr("1");
+					connection.sendPacket(r);
+				}
+			}
 			else
 				newChat.sendMessage(msg);
         }
@@ -247,7 +300,12 @@ public class Smack implements MessageListener{
 	
 	final static MessageListener showMsgBody = new MessageListener() {
 	    public void processMessage(Chat chat, Message message) {
-	    	System.out.println("Message RCVD: " + message.getBody());
+	    	if(message.getBody() != null){
+	    		System.out.println("Message RCVD: " + message.getBody());
+	    	}
+	    	else{
+	    		System.out.println("Message RCVD (no body): " + message.toXML());
+	    	}
 	    }
 	};
 

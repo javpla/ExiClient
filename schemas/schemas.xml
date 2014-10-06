@@ -5,4 +5,5 @@
 	<schema ns='jabber:client' bytes='7127' md5Hash='6f29ed17d694e9e8b8203db65ae1f762' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\jabber-client.xsd' url=''/>
 	<schema ns='jabber:x:event' bytes='1013' md5Hash='305f4bef3c118b9d3d11d96aea753026' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\x-event.xsd' url=''/>
 	<schema ns='urn:ietf:params:xml:ns:xmpp-stanzas' bytes='3080' md5Hash='9ad48ff02d0c1258cbc5830d6af7a835' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\stanzaerror.xsd' url=''/>
+	<schema ns='urn:xmpp:iot:sensordata' bytes='10797' md5Hash='24cc55cba6d2c85dcc87a1696637f8ef' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\urn-xmpp-iot-sensordata.xsd' url=''/>
 </schemas>

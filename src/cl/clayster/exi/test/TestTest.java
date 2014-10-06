@@ -33,11 +33,11 @@ public class TestTest extends AbstractTest {
 	
 	@Override
 	public void testAll() {
-		//super.testAll();
+		super.testAll();
 		//testSimpleMessage(6);
 		//testMessages();
 		//testIQs();
-		//testSimpleIQ(8);
-		
+		//testSimpleIQ(0);
+		//waitAndTest();
 	}
 }

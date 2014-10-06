@@ -29,7 +29,7 @@ import com.siemens.ct.exi.api.sax.EXIResult;
 import com.siemens.ct.exi.api.sax.SAXDecoder;
 import com.siemens.ct.exi.exceptions.EXIException;
 
-public class EXIBaseProcessor {
+class EXIBaseProcessor {
     
     /**
      * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and <b>default values</b> for its configuration.
