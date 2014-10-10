@@ -25,15 +25,15 @@ import cl.clayster.exi.test.TestExtensions;
 import cl.clayster.packet.Req;
 
 
-class Smack implements MessageListener{ 
+class Smack implements MessageListener{
 	
-	
+	/*
 	static String servidor = "localhost";
 	static String usuario = "javier";
 	static String password = "javier";
 	static String contacto = "javier@exi.clayster.cl/Spark 2.6.3";	// usuario al cual se le envían mensajes
 	static boolean exi = true;
-	/*
+	/**/
 	
 	static String servidor = "xmpp-exi.sust.se";
 	static String contacto = "exiuser1@xmpp-exi.sust.se";	// usuario al cual se le envían mensajes

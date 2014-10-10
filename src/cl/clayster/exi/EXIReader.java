@@ -16,7 +16,6 @@ import org.xml.sax.SAXException;
 import com.siemens.ct.exi.exceptions.EXIException;
 
 class EXIReader extends BufferedReader {
-	 
 	private boolean exi = false;
 	private EXIBaseProcessor ep;
 	private int leido = 0;
@@ -71,11 +70,9 @@ class EXIReader extends BufferedReader {
 						t = t.getCause();
 					}
 				} catch (EXIException e) {
-					// TODO Auto-generated catch block
 					System.err.println("EXIException at EXIReader!");
 					e.printStackTrace();
 				} catch (SAXException e) {
-					// TODO Auto-generated catch block
 					System.err.println("SAXException at EXIReader!");
 					e.printStackTrace();
 				} catch (ArrayIndexOutOfBoundsException e){
