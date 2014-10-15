@@ -34,7 +34,6 @@ class Smack implements MessageListener{
 	static String contacto = "javier@exi.clayster.cl/Spark 2.6.3";	// usuario al cual se le envían mensajes
 	static boolean exi = true;
 	/**/
-	
 	static String servidor = "xmpp-exi.sust.se";
 	static String contacto = "exiuser1@xmpp-exi.sust.se";	// usuario al cual se le envían mensajes
 	static String usuario = "exiuser";
@@ -58,7 +57,7 @@ class Smack implements MessageListener{
 		XMPPConnection connection = new XMPPConnection(config);
 		
 		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
-		exiConfig.setAlignment(EXISetupConfiguration.ALIGN_COMPRESSION);
+		//exiConfig.setAlignment(EXISetupConfiguration.ALIGN_COMPRESSION);
 		connection = new EXIXMPPConnection(config, exiConfig);
 		//connection.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY);
 		/**/
@@ -240,44 +239,45 @@ class Smack implements MessageListener{
 				connection.sendPacket(r);
 			}
 			else if(msg.startsWith("sd-each")){
-				Req r = new Req(contacto);
-				r.setMomentary("true");
-				r.setSeqnr("1");
-				r.addFieldName("OutdoorTemp");
-				connection.sendPacket(r);
-				
-				Req r1 = new Req(contacto);
-				r1.setMomentary("true");
-				r1.setSeqnr("1");
-				r1.addFieldName("ExtractTemp");
-				connection.sendPacket(r1);
-				
-				Req r2 = new Req(contacto);
-				r2.setMomentary("true");
-				r2.setSeqnr("1");
-				r2.addFieldName("ExhaustTemp");
-				connection.sendPacket(r2);
-				
-				Req r3 = new Req(contacto);
-				r3.setMomentary("true");
-				r3.setSeqnr("1");
-				r3.addFieldName("SupplyTemp");
-				connection.sendPacket(r3);
-				
-				Req r4 = new Req(contacto);
-				r4.setMomentary("true");
-				r4.setSeqnr("1");
-				r4.addFieldName("Speed");
-				connection.sendPacket(r4);
+				for(int i = 0 ; i < 10000 ; i++){
+					Req r = new Req(contacto);
+					r.setMomentary("true");
+					r.setSeqnr("1");
+					r.addFieldName("OutdoorTemp");
+					connection.sendPacket(r);
+					
+					Req r1 = new Req(contacto);
+					r1.setMomentary("true");
+					r1.setSeqnr("1");
+					r1.addFieldName("ExtractTemp");
+					connection.sendPacket(r1);
+					
+					Req r2 = new Req(contacto);
+					r2.setMomentary("true");
+					r2.setSeqnr("1");
+					r2.addFieldName("ExhaustTemp");
+					connection.sendPacket(r2);
+					
+					Req r3 = new Req(contacto);
+					r3.setMomentary("true");
+					r3.setSeqnr("1");
+					r3.addFieldName("SupplyTemp");
+					connection.sendPacket(r3);
+					
+					Req r4 = new Req(contacto);
+					r4.setMomentary("true");
+					r4.setSeqnr("1");
+					r4.addFieldName("Speed");
+					connection.sendPacket(r4);
+				}
 			}
 			else if(msg.startsWith("sd-all")){
-				for(int i = 0 ; i < 50 ; i++){
-					Req r = new Req();
-					r.setTo(contacto);
-					r.setAll("true");
-					r.setSeqnr("1");
-					connection.sendPacket(r);
-				}
+			
+				Req r = new Req();
+				r.setTo(contacto);
+				r.setAll("true");
+				r.setSeqnr("1");
+				connection.sendPacket(r);
 			}
 			else
 				newChat.sendMessage(msg);

@@ -41,7 +41,7 @@ class EXIProcessor extends EXIBaseProcessor{
 	protected XMLReader exiReader, xmlReader;
 	private boolean swb = false;
 	
-	private float et = 0, xt = 0, e, x;
+	private int et = 0, xt = 0, e, x;
 	
 	/**
 	 * Constructs an EXI Processor using <b>xsdLocation</b> as the Canonical Schema and the respective parameters in exiConfig for its configuration.
@@ -104,16 +104,17 @@ class EXIProcessor extends EXIBaseProcessor{
         
         byte[] ba = baos.toByteArray();
 
+        
+/** LOGGING */
         x = xml.getBytes().length;
         e = ba.length;
 System.err.println("EXI.COMPRESSING(" + x + "): " + xml);
 System.err.println("EXI.ENCODED(" + e + "):" + EXIUtils.bytesToHex(ba)); 
-System.err.println("EXI.COMPRESSION RATE = " + (float) (float)e * 100 / (float)x + "%");
+System.err.println("EXI.COMPRESSION RATE = " + (float) e * 100 / x + "%");
 		et += e;
 		xt += x;
-		
-System.out.println("EXI.AVRG COMPRESSION = " + (float)(et *100 / xt) + "%");
-        
+System.err.println("EXI.AVRG COMPRESSION = " + (float) et * 100 / xt + "%");
+        /**/
         return ba;
 	}
 	
