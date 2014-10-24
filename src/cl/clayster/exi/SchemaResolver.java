@@ -12,7 +12,6 @@ import org.apache.xerces.xni.parser.XMLInputSource;
 class SchemaResolver implements XMLEntityResolver {
 	
 	HashMap<String, String> canonicalPaths = new HashMap<String, String>();
-	HashMap<String, String> names = new HashMap<String, String>();
 	
 
 	public SchemaResolver () throws IOException{
@@ -43,7 +42,6 @@ class SchemaResolver implements XMLEntityResolver {
 					namespace = namespace.substring(1, namespace.indexOf(namespace.codePointAt(0), 1));	// SIN comillas
 					}
 				this.canonicalPaths.put(namespace, file.getCanonicalPath());
-				this.names.put(namespace, file.getName());
         	}
 		}
         this.canonicalPaths.put("-//W3C//DTD XMLSCHEMA 200102//EN", new File(EXIUtils.schemasFolder + "XMLSchema.dtd").getAbsolutePath());
@@ -52,8 +50,7 @@ class SchemaResolver implements XMLEntityResolver {
 	
 	@Override
 	public XMLInputSource resolveEntity(XMLResourceIdentifier resourceIdentifier)
-			throws XNIException, IOException {
-		
+			throws XNIException, IOException {		
 		String namespace = resourceIdentifier.getNamespace();
 		if(namespace != null){
 			if(this.canonicalPaths.containsKey(namespace)){				
@@ -62,6 +59,23 @@ class SchemaResolver implements XMLEntityResolver {
 			}
 		}	
 		return null;
+	}
+	
+	public boolean importsOK(String ns){
+		if(canonicalPaths.containsKey(ns)){
+			String fileText = EXIUtils.readFile(canonicalPaths.get(ns));
+			for(int i = fileText.indexOf("<xs:import ") ; i > -1 ; i = fileText.indexOf("<xs:import ")){
+				fileText = fileText.substring(i + 10);
+				String importedNS = EXIUtils.getAttributeValue(fileText, "namespace");
+				if(!importsOK(importedNS)){					
+					return false;
+				}
+			}
+			return true;
+		}
+		else{
+			return false;
+		}
 	}
 
 }

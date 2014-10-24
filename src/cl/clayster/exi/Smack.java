@@ -13,7 +13,6 @@ import org.jivesoftware.smack.MessageListener;
 import org.jivesoftware.smack.Roster;
 import org.jivesoftware.smack.RosterEntry;
 import org.jivesoftware.smack.RosterListener;
-import org.jivesoftware.smack.XMPPConnection;
 import org.jivesoftware.smack.XMPPException;
 import org.jivesoftware.smack.packet.IQ;
 import org.jivesoftware.smack.packet.IQ.Type;
@@ -27,13 +26,13 @@ import cl.clayster.packet.Req;
 
 class Smack implements MessageListener{
 	
-	/*
+	
 	static String servidor = "localhost";
 	static String usuario = "javier";
 	static String password = "javier";
 	static String contacto = "javier@exi.clayster.cl/Spark 2.6.3";	// usuario al cual se le envían mensajes
 	static boolean exi = true;
-	/**/
+	/*
 	static String servidor = "xmpp-exi.sust.se";
 	static String contacto = "exiuser1@xmpp-exi.sust.se";	// usuario al cual se le envían mensajes
 	static String usuario = "exiuser";
@@ -42,26 +41,20 @@ class Smack implements MessageListener{
 	/**/
 	
 	public static void main(String[] args) throws XMPPException, IOException{
-		if(args != null && args.length != 0){
-			if(args[0] != null)	servidor = args[0];
-			if(args[1] != null)	contacto = args[1];
-			if(args[2] != null)	usuario = args[2];
-			if(args[3] != null)	password = args[3];
-		}
 		
 		//create a connection to localhost on a specific port and login
 		ConnectionConfiguration config = new ConnectionConfiguration(servidor);
 		config.setCompressionEnabled(true);
 		config.setSecurityMode(SecurityMode.disabled);
 	
-		XMPPConnection connection = new XMPPConnection(config);
+		EXISetupConfiguration exiConfig = new EXISetupConfiguration();	// creates an EXISetupConfiguration with default parameters
+		exiConfig.setAlignment(EXISetupConfiguration.ALIGN_COMPRESSION);	// choose alignment of compressed bits (this one chooses extra compression)
+		EXIXMPPConnection connection = new EXIXMPPConnection(config, exiConfig);			
+		// XMPPConnection connection = new EXIXMPPConnection(config, exiConfig);	// connection can be declared like this since it is an extension of XMPPConnection 
 		
-		EXISetupConfiguration exiConfig = new EXISetupConfiguration();
-		//exiConfig.setAlignment(EXISetupConfiguration.ALIGN_COMPRESSION);
-		connection = new EXIXMPPConnection(config, exiConfig);
-		//connection.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY);
-		/**/
+		connection.setUploadSchemaOption(EXIXMPPConnection.UPLOAD_BINARY); // chooses how to upload missing schemas to the server (by default they are excluded)
 		
+		// the rest is just like using a normal XMPPConnection from Smack 3.3.0
 		connection.connect();
 		connection.login(usuario, password);
 
@@ -315,24 +308,4 @@ class Smack implements MessageListener{
 	}
 	
 }
-
-
-/** Tareas a realizar **/
-
-/** Smack **/
-// Aprender a usar Smack, enviando y recibiendo mensajes con otro usuario (en Spark)
-// Aprender a interceptar todo tipo de mensajes (iq, stream, auth, challenge, etc) entrantes y salientes -> PacketInterceptor
-
-/** EXIficient **/
-// Aprender a usar EXIficient, codificando y decodificando strings XML
-//TODO: Evitar que se cree el elemento <?xml version="1.0" encoding="UTF-8"?> tras la decodificacion
-//TODO: aplicar codificacion saliente y decodificacion de packetes entrantes al cliente Smack (problema: codificacion de String -> funciona para TODOS los mensajes con ISO-8859-1? Por el momento si)
-
-/** Openfire **/
-// Instalar Openfire para desarrollo (build)
-//TODO: Aprender a interceptar y cambiar mensajes para poder enviar mensajes no XML (que luego serán EXI).
-
-//TODO: Implementar el protocolo XEP-0322
-
-
 

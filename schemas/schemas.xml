@@ -1,9 +1,17 @@
 <schemas>
 	<schema ns='http://etherx.jabber.org/streams' bytes='3485' md5Hash='c91cd4c8c89655120009cf6a18710459' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\streams.xsd' url=''/>
 	<schema ns='http://jabber.org/protocol/compress/exi' bytes='16047' md5Hash='e812dda7209214f92e4f2ae950f285f7' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\xep-0322-01.xsd' url=''/>
-	<schema ns='http://www.w3.org/XML/1998/namespace' bytes='4726' md5Hash='2e2cf9072dc058dcda41b7ee77a5cb54' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\xml.xsd' url=''/>
+	<schema ns='http://jabber.org/protocol/xdata-layout' bytes='2079' md5Hash='26a6cb2715b1c495844f458e6a983f02' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\xdata-layout.xsd' url=''/>
+	<schema ns='http://jabber.org/protocol/xdata-validate' bytes='1937' md5Hash='fb55463250d64ece68f45b16e0f6ecd1' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\xdata-validate.xsd' url=''/>
+	<schema ns='http://www.w3.org/XML/1998/namespace' bytes='4843' md5Hash='893d15b5e3b9731130372818cd36c1c6' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\xml.xsd' url=''/>
 	<schema ns='jabber:client' bytes='7127' md5Hash='6f29ed17d694e9e8b8203db65ae1f762' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\jabber-client.xsd' url=''/>
-	<schema ns='jabber:x:event' bytes='1013' md5Hash='305f4bef3c118b9d3d11d96aea753026' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\x-event.xsd' url=''/>
-	<schema ns='urn:ietf:params:xml:ns:xmpp-stanzas' bytes='3080' md5Hash='9ad48ff02d0c1258cbc5830d6af7a835' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\stanzaerror.xsd' url=''/>
+	<schema ns='jabber:server' bytes='6895' md5Hash='c3513b6161f30027df4f4ee422ecb597' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\jabber-server.xsd' url=''/>
+	<schema ns='jabber:x:data' bytes='3647' md5Hash='846e30375d2cee46404d8be779a190da' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\jabber-x-data.xsd' url=''/>
+	<schema ns='jabber:x:event' bytes='1047' md5Hash='b86c637ab4725b6e50134564daf280f0' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\x-event.xsd' url=''/>
+	<schema ns='urn:ietf:params:xml:ns:xmpp-sasl' bytes='2716' md5Hash='724283078cc9ce6f3523cbb8185c86d1' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\sasl.xsd' url=''/>
+	<schema ns='urn:ietf:params:xml:ns:xmpp-stanzas' bytes='3160' md5Hash='dc39b63a6ac742b1881379d0f7eaed24' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\stanzaerror.xsd' url=''/>
+	<schema ns='urn:ietf:params:xml:ns:xmpp-streams' bytes='3315' md5Hash='75cd95aecb9f1fd66110c3ddcf00c9b8' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\streamerror.xsd' url=''/>
+	<schema ns='urn:ietf:params:xml:ns:xmpp-tls' bytes='688' md5Hash='dc18bc4da35bc1be7a6c52aa43330825' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\tls.xsd' url=''/>
+	<schema ns='urn:xmpp:iot:control' bytes='6687' md5Hash='3db08611f96066e7d873a725cfb4e0ee' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\urn-xmpp-iot-control.xsd' url=''/>
 	<schema ns='urn:xmpp:iot:sensordata' bytes='10797' md5Hash='24cc55cba6d2c85dcc87a1696637f8ef' schemaLocation='C:\Users\Javier\workspace\Personales\ExiClient\schemas\urn-xmpp-iot-sensordata.xsd' url=''/>
 </schemas>

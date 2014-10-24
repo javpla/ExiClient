@@ -112,6 +112,11 @@ public class EXIUtils {
 					
 					md5Hash = bytesToHex(md.digest());
 	
+					n = namespaces.indexOf(namespaces);
+					if(n > -1 && schemasStanzas.get(namespace).contains("md5Hash='" + md5Hash) && schemasStanzas.get(namespace).contains("bytes='" + file.length())){
+						// this file exists with a different name, skip it
+						continue;
+					}
 					n = 0;
 					while(n < namespaces.size() &&
 							namespaces.get(n) != null && 
@@ -153,6 +158,7 @@ public class EXIUtils {
 	 * @throws IOException
 	 */
 	static String generateCanonicalSchema(List<String> missingSchemas) throws IOException {
+		SchemaResolver sr = new SchemaResolver();
 		Element setup;
 		try {
 			setup = DocumentHelper.parseText(EXIUtils.readFile(EXIUtils.schemasFileLocation)).getRootElement();
@@ -174,9 +180,15 @@ public class EXIUtils {
         for (@SuppressWarnings("unchecked") Iterator<Element> i = setup.elementIterator("schema"); i.hasNext(); ) {
         	schema = i.next();
         	String ns = schema.attributeValue("ns");
-        	if(!missingSchemas.contains(ns)){
-        		sb.append("\n\t<xs:import namespace='" + ns + "'/>");
-        	}
+			if(!missingSchemas.contains(ns)){
+				// TODO: the next condition does not allow to include schemas importing schemas that are not present
+				if(sr.importsOK(ns)){
+					sb.append("\n\t<xs:import namespace='" + ns + "'/>");
+				}
+				else{
+					System.err.println("Schema with namespace \"" + ns + "\" was not included. Check its referenced schemas!");
+				}
+			}
         }
         sb.append("\n</xs:schema>");
         
@@ -194,6 +206,7 @@ public class EXIUtils {
         BufferedWriter newCanonicalSchemaWriter = new BufferedWriter(new FileWriter(fileName));
         newCanonicalSchemaWriter.write(content);
         newCanonicalSchemaWriter.close();
+        // TODO: handle when a referenced XSD does not exist!! Throw a message and use Default Canonical Schema instead
         return schemaId;
 	}
 	
@@ -286,6 +299,12 @@ public class EXIUtils {
 		return false;
 	}
 	
+	/**
+	 * Returns the value of the first occurrency of <code>attribute</code> in <code>text</code>.
+	 * @param text
+	 * @param attribute
+	 * @return
+	 */
 	public static String getAttributeValue(String text, String attribute) {
 		if(text.indexOf(attribute) == -1){
 			return null;

@@ -108,12 +108,12 @@ class EXIProcessor extends EXIBaseProcessor{
 /** LOGGING */
         x = xml.getBytes().length;
         e = ba.length;
-System.err.println("EXI.COMPRESSING(" + x + "): " + xml);
-System.err.println("EXI.ENCODED(" + e + "):" + EXIUtils.bytesToHex(ba)); 
-System.err.println("EXI.COMPRESSION RATE = " + (float) e * 100 / x + "%");
+System.out.println("EXI.COMPRESSING(" + x + "): " + xml);
+System.out.println("EXI.ENCODED(" + e + "):" + EXIUtils.bytesToHex(ba)); 
+System.out.println("EXI.COMPRESSION RATE = " + (float) e * 100 / x + "%");
 		et += e;
 		xt += x;
-System.err.println("EXI.AVRG COMPRESSION = " + (float) et * 100 / xt + "%");
+System.out.println("EXI.AVRG COMPRESSION = " + (float) et * 100 / xt + "%");
         /**/
         return ba;
 	}
